@@ -121,14 +121,15 @@ ralf/
 - Optional: Foreman and Semaphore UI instances for orchestration, plus local AI agents for observability/remediation tasks.
 
 ## High-Level Setup Steps
-1. **Clone & Configure** – Fork/clone the repo, copy `images/golden/vars.pkr.hcl.example` to `vars.pkr.hcl`, and adjust `inventory/` host variables, VLAN definitions, and `architecture.yaml` metadata for your environment.
-2. **Prepare LXC Templates** – Run `scripts/lisa_build_lxc.sh` (directly or via Semaphore UI) to seed required templates on Proxmox.
-3. **Generate Golden Images** – Execute `make images` (or `cli/ralf.sh images`) to build LXC/VM templates using Packer.
-4. **Bootstrap Proxmox** – Run `make bootstrap` to apply network bridges, install the GitOps runner, and register automation prerequisites.
-5. **Deploy Core Services** – Apply `make apply` or `cli/ralf.sh deploy-core` to provision DNS, Caddy, authentication, monitoring, and backups.
-6. **Deploy Service Catalogue** – Trigger `cli/ralf.sh deploy-services` once core services are healthy to roll out Vaultwarden, Mail, and Home Assistant.
-7. **Validate Backups** – Schedule `make verify-backups` or run `ansible/playbooks/backups-verify.yaml` manually for restore spot checks.
-8. **Operate via GitOps** – Ensure `ci/gitops-pull.sh` is enabled via systemd timer to pull changes every five minutes and enforce drift remediation.
+1. **Run Installer** – Execute `scripts/ralf-installer.sh` to capture domain, networking, and service LXC mappings for your homelab.
+2. **Clone & Configure** – Fork/clone the repo, copy `images/golden/vars.pkr.hcl.example` to `vars.pkr.hcl`, and adjust `inventory/` host variables, VLAN definitions, and `architecture.yaml` metadata for your environment.
+3. **Prepare LXC Templates** – Run `scripts/lisa_build_lxc.sh` (directly or via Semaphore UI) to seed required templates on Proxmox.
+4. **Generate Golden Images** – Execute `make images` (or `cli/ralf.sh images`) to build LXC/VM templates using Packer.
+5. **Bootstrap Proxmox** – Run `make bootstrap` to apply network bridges, install the GitOps runner, and register automation prerequisites.
+6. **Deploy Core Services** – Apply `make apply` or `cli/ralf.sh deploy-core` to provision DNS, Caddy, authentication, monitoring, and backups.
+7. **Deploy Service Catalogue** – Trigger `cli/ralf.sh deploy-services` once core services are healthy to roll out Vaultwarden, Mail, and Home Assistant.
+8. **Validate Backups** – Schedule `make verify-backups` or run `ansible/playbooks/backups-verify.yaml` manually for restore spot checks.
+9. **Operate via GitOps** – Ensure `ci/gitops-pull.sh` is enabled via systemd timer to pull changes every five minutes and enforce drift remediation.
 
 ## Configuration & Documentation Pointers
 - Detailed service variables live alongside each Ansible role under `ansible/roles/<service>/`.

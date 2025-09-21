@@ -42,6 +42,8 @@
     name: postfix
     enabled: "{{ mail_service_enabled }}"
     state: "{{ mail_service_state }}"
+
+=======
 =======
 - name: Ensure Postfix is installed
   ansible.builtin.package:
