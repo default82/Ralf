@@ -1,7 +1,9 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
-DEFAULT_VMID=10060
+# Allow overriding the default via environment variables when sourcing/running
+# the script while keeping the documented default of 10060.
+: "${DEFAULT_VMID:=10060}"
 cli_vmid=""
 
 usage() {
@@ -9,7 +11,9 @@ usage() {
 Usage: tests/smoke_wrapper.sh [--vmid <id>]
 
 Runs the wrapper smoke test against the configured VMID. The VMID can be
-overridden via the --vmid flag or the VMID environment variable.
+overridden via the --vmid flag or the VMID environment variable. The
+DEFAULT_VMID environment variable can be set to adjust the fallback value
+without specifying a VMID explicitly.
 EOF
 }
 
