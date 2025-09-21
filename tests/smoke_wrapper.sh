@@ -47,6 +47,9 @@ if [[ -n "${cli_vmid}" ]]; then
   vmid="${cli_vmid}"
 fi
 
+EXPECTED_BANNER="ralf-ai - Repo Assistant for Local Fixes"
+EXPECTED_USAGE="Usage: ralf-ai [--help] [--] [AIDER ARGUMENTS...]"
+
 COMMAND=(pct exec "${vmid}" -- ralf-ai --help)
 
 status=0
@@ -61,7 +64,7 @@ fi
 
 if [[ ${status} -ne 0 ]]; then
   echo "pct exec not available (status ${status}); using dummy help output" >&2
-  output=$'ralf-ai - Repo Assistant for Local Fixes\nUsage: ralf-ai [--help] [--] [AIDER ARGUMENTS...]'
+  output=$(printf '%s\n%s' "${EXPECTED_BANNER}" "${EXPECTED_USAGE}")
   status=0
 fi
 
@@ -70,14 +73,14 @@ if [[ -z "${output}" ]]; then
   exit 1
 fi
 
-[[ "${output}" == *"ralf-ai"* ]] || {
-  echo "Help output missing binary name" >&2
+[[ "${output}" == *"${EXPECTED_BANNER}"* ]] || {
+  echo "Help output missing expected banner" >&2
   echo "${output}" >&2
   exit 1
 }
 
-[[ "${output}" == *"Usage:"* ]] || {
-  echo "Help output missing usage hint" >&2
+[[ "${output}" == *"${EXPECTED_USAGE}"* ]] || {
+  echo "Help output missing expected usage" >&2
   echo "${output}" >&2
   exit 1
 }
