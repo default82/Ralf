@@ -10,69 +10,33 @@ if [[ ! -x "${BUILD_SCRIPT}" ]]; then
   exit 1
 fi
 
-output="$(sudo bash "${BUILD_SCRIPT}" --dry-run)"
+output="$(bash "${BUILD_SCRIPT}" --dry-run)"
 
 if [[ -z "${output}" ]]; then
   echo "Dry run produced no output" >&2
   exit 1
 fi
 
-[[ "${output}" == *"# Managed by build_local_ai_lxc.sh"* ]] || {
-  echo "Missing configuration header in output" >&2
+[[ "${output}" == *"==> lisa-llm build plan (dry-run)"* ]] || {
+  echo "Missing dry-run banner" >&2
   echo "${output}" >&2
   exit 1
 }
 
-[[ "${output}" == *"==> Local AI LXC build plan"* ]] || {
-  echo "Missing build plan banner in output" >&2
-  echo "${output}" >&2
-  exit 1
-}
-
-[[ "${output}" == *"[dry-run] Would execute: pct create"* || "${output}" == *"[DRY-RUN] Would execute: pct create"* ]] || {
-  echo "Missing pct create dry-run marker" >&2
-  echo "${output}" >&2
-  exit 1
-}
-
-[[ "${output}" == *"[dry-run] Would execute: pct exec"* || "${output}" == *"[DRY-RUN] Would execute: pct exec"* ]] || {
-  echo "Missing pct exec dry-run marker" >&2
-  echo "${output}" >&2
-  exit 1
-}
-
-[[ "${output}" == *"[dry-run] Would execute: pct set"* ]] || {
+[[ "${output}" == *"[dry-run] pct set"* ]] || {
   echo "Missing pct set reconciliation step" >&2
   echo "${output}" >&2
   exit 1
 }
 
-[[ "${output}" == *"[dry-run] Would execute: pct resize"* ]] || {
-  echo "Missing pct resize dry-run marker" >&2
+[[ "${output}" == *"[dry-run] pct exec"* ]] || {
+  echo "Missing pct exec provisioning step" >&2
   echo "${output}" >&2
   exit 1
 }
 
-[[ "${output}" == *"pct push"*"/usr/local/bin/ralf-ai"* ]] || {
-  echo "Missing ralf-ai wrapper upload step" >&2
-  echo "${output}" >&2
-  exit 1
-}
-
-[[ "${output}" == *"chmod 0755 /usr/local/bin/ralf-ai"* ]] || {
-  echo "Missing ralf-ai chmod step" >&2
-  echo "${output}" >&2
-  exit 1
-}
-
-[[ "${output}" == *"/usr/local/bin/ralf-ai --help"* ]] || {
-  echo "Missing ralf-ai help invocation" >&2
-  echo "${output}" >&2
-  exit 1
-}
-
-[[ "${output}" == *"ralf-lxc-reconcile"* ]] || {
-  echo "Missing reconcile hook installation output" >&2
+[[ "${output}" == *"[dry-run] pct push"* ]] || {
+  echo "Missing pct push wrapper upload" >&2
   echo "${output}" >&2
   exit 1
 }

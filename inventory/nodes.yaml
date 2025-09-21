@@ -1,6 +1,6 @@
 nodes:
   pve01:
-    management_ip: "192.168.10.10"
+    management_ip: "<mgmt-ip>"
     pools:
-      - "pool-placeholder-1"
-      - "pool-placeholder-2"
+      - "<pool-name>"
+      - "<pool-name-2>"

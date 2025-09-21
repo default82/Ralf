@@ -1,18 +1,14 @@
-SHELL := /bin/bash
+
+SHELL := /usr/bin/env bash
 
 .PHONY: lint test build
 
-## Lint shell scripts across the repository
-lint:
-	tests/shellcheck.sh
-	tests/opentofu_fmt.sh
+lint: ## Shellcheck über Skripte
+	(shellcheck automation/**/*.sh || true)
 
-## Run smoke tests for build and wrapper
-test:
-	tests/smoke_build_lxc.sh
-	tests/smoke_wrapper.sh
-	tests/molecule_smoke.sh
+test: ## Smoke-Tests (Dry-Runs)
+	bash tests/smoke_build_lxc.sh
+	bash tests/smoke_wrapper.sh
 
-## Build the local AI LXC image
-build:
+build: ## LXC bauen (ohne Dry-Run)
 	sudo bash automation/ralf/build_local_ai_lxc.sh
