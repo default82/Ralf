@@ -18,13 +18,13 @@ bootstrap:
 	ansible-playbook ansible/playbooks/bootstrap-proxmox.yaml
 
 apply:
-        @if [ "$${CORE_ONLY:-false}" = "true" ]; then \
-                ansible-playbook ansible/playbooks/deploy-core.yaml; \
-        elif [ "$${SERVICES_ONLY:-false}" = "true" ]; then \
-                ansible-playbook ansible/playbooks/deploy-services.yaml; \
-        else \
-                ansible-playbook ansible/playbooks/site.yaml; \
-        fi
+	@if [ "$${CORE_ONLY:-false}" = "true" ]; then \
+		ansible-playbook ansible/playbooks/deploy-core.yaml; \
+	elif [ "$${SERVICES_ONLY:-false}" = "true" ]; then \
+		ansible-playbook ansible/playbooks/deploy-services.yaml; \
+	else \
+		ansible-playbook ansible/playbooks/site.yaml; \
+	fi
 
 deploy-matrix:
 	ansible-playbook ansible/playbooks/deploy-matrix.yaml

@@ -12,8 +12,8 @@
     - name: Apply vmbr0 configuration
       community.general.proxmox_nic:
         api_user: "{{ proxmox_api_user }}"
-        api_password: "{{ proxmox_api_token }}"
-        api_host: "{{ inventory_hostname }}"
+        api_password: "{{ proxmox_api_password }}"
+        api_host: "{{ ansible_host | default(inventory_hostname) }}"
         node: "{{ inventory_hostname }}"
         interface: vmbr0
         bridge_ports: "{{ bridge_config.vmbr0.bridge_ports | default('eno1') }}"

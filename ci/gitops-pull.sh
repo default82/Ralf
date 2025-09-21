@@ -12,6 +12,7 @@ if [ ! -d "$WORKDIR/.git" ]; then
 fi
 
 cd "$WORKDIR"
+git checkout --quiet "$BRANCH" 2>/dev/null || git checkout --quiet -B "$BRANCH" "origin/$BRANCH"
 log "Fetching updates"
 git fetch origin "$BRANCH"
 CURRENT_HEAD=$(git rev-parse HEAD)
