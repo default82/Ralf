@@ -4,8 +4,8 @@ Merge PR feature/local-ai-hybrid → main nach erfolgreichem Test
 
 ## Architekturüberblick
 - **Proxmox-Host** betreibt einen dedizierten LXC-Container als Heimat für das Entwickler-CoPilot-Stack.
-- **Hybrid-Container** bündelt lokale Inferencing-Kapazitäten mit einer optionalen Cloud-Erweiterung. Aufbau, Netzwerkpfade und Betriebsabläufe sind im [Hybrid-Guide](docs/LOCAL_AI_README.md) dokumentiert.
-- **[automation/ralf/build_local_ai_lxc.sh](automation/ralf/build_local_ai_lxc.sh)** bleibt als Legacy-Option verfügbar, um reine Proxmox-Container zu reproduzieren.
+- **Hybrid-Container** bündelt lokale Inferencing-Kapazitäten mit einer optionalen Cloud-Erweiterung; Details liefert der [Hybrid-Guide](docs/LOCAL_AI_README.md).
+- **Legacy-Automation** via [`automation/ralf/build_local_ai_lxc.sh`](automation/ralf/build_local_ai_lxc.sh) bleibt verfügbar, um reine Proxmox-Container zu reproduzieren.
 - **Ollama** stellt lokal das LLM (`llama3:8b`) bereit und exponiert eine HTTP-API, die von Aider genutzt wird.
 - **Aider** wird direkt im Container oder via SSH-Tunnel genutzt, um Codeänderungen im Repository umzusetzen.
 - **Cloud-Fallback**: Wenn der lokale Container nicht erreichbar ist, können dieselben Aider-Workflows gegen einen externen Ollama- oder OpenAI-kompatiblen Endpunkt laufen; die Konfiguration erfolgt über die jeweiligen `AIDER_`- und `OLLAMA_`-Umgebungsvariablen.
@@ -26,6 +26,11 @@ Der Hybrid-Ansatz kombiniert lokale Ollama-Runs mit einem optionalen Cloud-Gatew
 4. **Automations-Helfer aktivieren**
    - Aider-Wrapper ausführen (`wrapper/ralf-ai`) oder direkt das Script unter [`automation/ralf/rlwrap/ralf-ai.sh`](automation/ralf/rlwrap/ralf-ai.sh) verwenden.
    - Weitere Automationsziele sind im [Makefile](Makefile) dokumentiert (z. B. `make lint` für Shell-Linting, `make test` für Smoke-Tests).
+
+### Legacy-Automation (nur falls reiner LXC benötigt wird)
+- Das Script [`automation/ralf/build_local_ai_lxc.sh`](automation/ralf/build_local_ai_lxc.sh) bleibt als Fallback erhalten.
+- Tests und Helfer orientieren sich weiterhin an diesem Workflow (z. B. `tests/smoke_build_lxc.sh`, Makefile-Target `make build`).
+- Neue Deployments sollten bevorzugt dem Hybrid-Setup folgen, um lokale und Cloud-Kapazitäten kombinieren zu können.
 
 ## Nutzung
 ### Lokaler Betrieb (Proxmox LXC + Ollama)
