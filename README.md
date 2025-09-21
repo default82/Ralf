@@ -1,107 +1,139 @@
-# Ralf
+# RALF – Reproducible Automation for Lab Facilities
+
+RALF provides an Infrastructure-as-Code blueprint to promote any Proxmox VE host into a service-rich homelab. The goal is to keep deployments hardware-agnostic, LXC-first, and fully automated so operators can rebuild the stack from Git with minimal manual work.
 
 ## Project Purpose
-Ralf documents the home lab virtualization cluster that hosts mixed workloads across
-containerized, virtualized, and bare-metal services. The goal of the project is to
-capture the infrastructure topology, automation entrypoints, and operational
-runbooks so the environment can be rebuilt or expanded without reverse engineering
-legacy hosts.
+- Deliver a **single source of truth** for networking, storage, automation, and service policies.
+- Enable **GitOps-style pull operations** that keep Proxmox, LXCs, and supporting services converged on the declared state.
+- Support **self-service UX** through a portal, CLI, and runbooks while maintaining strong governance (least privilege, encrypted secrets, signed artefacts).
 
 ## Hardware Layout
-The lab is organized around three Proxmox VE nodes with distinct roles:
+RALF targets a primary Proxmox node (`pve0`) but scales out to additional controllers as resources permit. The baseline inventory is defined in [`inventory/hosts.yaml`](inventory/hosts.yaml):
 
-- **ralf-prox01** – primary compute node for production LXC containers and VMs.
-- **ralf-prox02** – secondary compute node that balances development and staging
-  workloads, and provides failover capacity.
-- **ralf-prox-storage** – storage-focused node with HBA passthrough for ZFS pools and
-  backup repositories.
+| Role            | Node  | Notes |
+|-----------------|-------|-------|
+| Automation Ctrl | pve0  | Runs GitOps runner, Semaphore/Foreman integrations, core LXCs |
+| Storage         | pve0  | Provides ZFS pools; optional external TrueNAS VM via [`images/golden/vm-debian-bookworm.pkr.hcl`](images/golden/vm-debian-bookworm.pkr.hcl) |
+| Ingress/DNS/Auth| LXC   | Containers scheduled on pve0 using golden image [`images/golden/lxc-debian-bookworm.pkr.hcl`](images/golden/lxc-debian-bookworm.pkr.hcl) |
 
-### Storage Pools
-- `tank` – mirrored SSD pool dedicated to low-latency virtual disks.
-- `bulk` – RAID-Z2 HDD pool for archival data, media, and nightly backups.
-- `vm-backups` – external iSCSI target mounted on all nodes for Proxmox scheduled
-  backups and ISO templates.
+Storage tiers are mapped in the architecture manifest:
+- **fast** – encrypted, compressed ZFS pool for latency-sensitive services.
+- **bulk** – encrypted capacity pool for general services.
+- **secure** – optionally immutable datasets for backups and secrets.
+
+Future expansion plans (GPU node, AI workloads) are captured in [`docs/README.md`](docs/README.md) and will grow alongside dedicated runbooks/policies under [`docs/`](docs/).
 
 ## Network Schema
-The cluster uses a segmented layer-2 design:
-
-- **Management VLAN (10.10.10.0/24)** – Proxmox GUI/API, IPMI, and out-of-band access.
-- **Production VLAN (10.20.20.0/24)** – tenant services exposed to the LAN and
-  reverse proxy.
-- **Storage VLAN (10.30.30.0/24)** – ZFS replication, NFS/SMB, and backup traffic.
-- **Lab VLAN (10.40.40.0/24)** – disposable testing workloads and nested
-  virtualization.
-
-Inter-VLAN routing is provided by the core router, while Proxmox bridges (vmbr0,
-vmbr1, vmbr2) tag traffic to the appropriate networks. A WireGuard tunnel is used
-for secure remote administration when offsite.
+- [`network/vlan-plan.yaml`](network/vlan-plan.yaml) defines the 10.23.0.0/16 CIDR segmented into management, services, storage, and DMZ VLANs plus internal DNS defaults.
+- [`network/proxmox-bridges.yaml`](network/proxmox-bridges.yaml) captures the bridge configuration (`vmbr0`) and LXC defaults (unprivileged with nesting) expected on each node.
+- Caddy reverse-proxy templates reside in [`network/caddy/Caddyfile.tmpl`](network/caddy/Caddyfile.tmpl) and should be customised per service FQDN.
 
 ## Automation Approach
-Infrastructure-as-code keeps the environment reproducible:
-
-- **Proxmox provisioning** – The `scripts/lisa_build_lxc.sh` helper script prepares
-  LXC templates, sets resource quotas, and registers them with the cluster via the
-  Proxmox API.
-- **Configuration management** – Ansible playbooks (tracked in the `ansible/`
-  directory of the automation toolkit) apply host-specific roles, manage packages,
-  and push secrets from Vault.
-- **Credential distribution** – Each hypervisor maintains a `/root/keys/` folder
-  populated during bootstrap with SSH public keys and cloud-init snippets so new
-  nodes inherit the correct access controls.
+The repository layers several automation tools:
+- **Packer** builds hardened golden images via the files under `images/golden/`.
+- **Ansible** roles and playbooks in `ansible/` manage bootstrap, core services, catalogue workloads, and backup verification.
+- **GitOps runner** (`ci/gitops-pull.sh` with corresponding systemd units) enforces pull-based reconciliation.
+- **CLI wrapper** (`cli/ralf.sh`) offers friendly entrypoints for recurring workflows.
+- **Supporting scripts** like [`scripts/lisa_build_lxc.sh`](scripts/lisa_build_lxc.sh) prepare LXC templates prior to Ansible runs and can be orchestrated through Semaphore UI or Foreman hooks.
+- **OpenTofu/Terraform** modules can be added under `automation/` (to be created) for declarative Proxmox resource management.
 
 ## Key Services
-- **Reverse proxy stack** (Caddy + Cloudflare tunnel) routing inbound HTTPS
-  traffic.
-- **Observability** (Prometheus, Grafana, Loki) capturing metrics, logs, and
-  alerts.
-- **CI/CD runners** for container image builds and infrastructure validation.
-- **Home automation** services (Home Assistant, Zigbee2MQTT) housed in hardened
-  LXCs on the production VLAN.
-- **Data services** including PostgreSQL, MinIO, and an NFS gateway backed by the
-  `bulk` pool.
+Core services deployed through `ansible/playbooks/deploy-core.yaml`:
+- **DNS** – local authoritative servers for `homelab.lan`.
+- **Caddy** – ACME-enabled reverse proxy enforcing HTTPS ingress.
+- **Auth** – central identity provider (e.g., Authelia/Keycloak).
+- **Monitoring** – metrics, alerts, dashboards, anomaly detection.
+- **Backups** – orchestrated encrypted backup service with restore probes.
+
+Service catalogue (deployable via `ansible/playbooks/deploy-services.yaml`):
+- Vaultwarden
+- Mail gateway/services
+- Home Assistant
+
+Additional services, GPU workloads, and AI multi-agent platforms will be documented in `docs/runbooks/` and `docs/policies/` as they are added.
+
+## Repository Structure
+```
+ralf/
+├── README.md
+├── Makefile
+├── architecture.yaml
+├── inventory/
+│   ├── hosts.yaml
+│   └── groups.yaml
+├── network/
+│   ├── vlan-plan.yaml
+│   ├── proxmox-bridges.yaml
+│   └── caddy/
+│       └── Caddyfile.tmpl
+├── images/
+│   └── golden/
+│       ├── lxc-debian-bookworm.pkr.hcl
+│       ├── vm-debian-bookworm.pkr.hcl
+│       └── vars.pkr.hcl.example
+├── ansible/
+│   ├── inventories -> ../inventory
+│   ├── playbooks/
+│   │   ├── site.yaml
+│   │   ├── bootstrap-proxmox.yaml
+│   │   ├── deploy-core.yaml
+│   │   ├── deploy-services.yaml
+│   │   └── backups-verify.yaml
+│   └── roles/
+│       ├── base/
+│       ├── dns/
+│       ├── caddy/
+│       ├── auth/
+│       ├── backups/
+│       ├── monitoring/
+│       ├── mail/
+│       ├── vaultwarden/
+│       └── homeassistant/
+├── secrets/
+│   └── .sops.yaml
+├── ci/
+│   ├── gitops-runner.service
+│   ├── gitops-runner.timer
+│   ├── gitops-pull.sh
+│   └── lint.yaml
+├── portal/
+│   ├── README.md
+│   ├── ui/
+│   └── api/
+├── cli/
+│   ├── ralf.sh
+│   └── completions/
+├── docs/
+│   ├── README.md
+│   ├── runbooks/
+│   └── policies/
+├── scripts/
+│   ├── hardening.sh
+│   └── lisa_build_lxc.sh
+```
 
 ## Prerequisites
-Before reproducing the environment, ensure the following prerequisites are met:
-
-1. Access to Proxmox VE 8.x nodes with nested virtualization enabled and IPMI
-   configured on the management VLAN.
-2. A workstation with Bash, Ansible, and the Proxmox `pve-cli` utilities installed.
-3. SSH connectivity to each node using the keys staged in `/root/keys/`.
-4. The automation toolkit cloned locally, including the `scripts/lisa_build_lxc.sh`
-   script and supporting Ansible inventories.
-5. Secrets and certificates exported from Vault to the secure secrets store defined
-   in the automation playbooks.
+- Proxmox VE host(s) with VLAN tagging and ZFS pools (`fast`, `bulk`, `secure`) provisioned.
+- Administrative workstation with Git, Ansible, Packer, SOPS/age, and OpenTofu (optional) installed.
+- SSH key material staged on each Proxmox node under `/root/keys/` for passwordless automation.
+- Age key pair stored locally and referenced by [`secrets/.sops.yaml`](secrets/.sops.yaml).
+- Valid domain/ACME email for Caddy plus upstream DNS forwarders.
+- Optional: Foreman and Semaphore UI instances for orchestration, plus local AI agents for observability/remediation tasks.
 
 ## High-Level Setup Steps
-1. **Prepare Proxmox nodes** – Install Proxmox VE, configure networking bridges for
-   each VLAN, and attach storage pools (`tank`, `bulk`, `vm-backups`).
-2. **Bootstrap access** – Copy the provisioning SSH keys into `/root/keys/` on each
-   node, verify passwordless login, and configure IPMI users.
-3. **Run base automation** – Execute `scripts/lisa_build_lxc.sh` to create LXC
-   templates, then apply the Ansible bootstrap playbook to install core packages
-   and enable monitoring agents.
-4. **Deploy services** – Use the service-specific playbooks (e.g.,
-   `ansible/site.yml`) to launch the reverse proxy, observability stack, and data
-   services. Apply Terraform or Proxmox API calls where necessary for VM
-   orchestration.
-5. **Validate observability and backups** – Confirm metrics ingestion, dashboard
-   availability, and backup jobs targeting `vm-backups`.
+1. **Clone & Configure** – Fork/clone the repo, copy `images/golden/vars.pkr.hcl.example` to `vars.pkr.hcl`, and adjust `inventory/` host variables, VLAN definitions, and `architecture.yaml` metadata for your environment.
+2. **Prepare LXC Templates** – Run `scripts/lisa_build_lxc.sh` (directly or via Semaphore UI) to seed required templates on Proxmox.
+3. **Generate Golden Images** – Execute `make images` (or `cli/ralf.sh images`) to build LXC/VM templates using Packer.
+4. **Bootstrap Proxmox** – Run `make bootstrap` to apply network bridges, install the GitOps runner, and register automation prerequisites.
+5. **Deploy Core Services** – Apply `make apply` or `cli/ralf.sh deploy-core` to provision DNS, Caddy, authentication, monitoring, and backups.
+6. **Deploy Service Catalogue** – Trigger `cli/ralf.sh deploy-services` once core services are healthy to roll out Vaultwarden, Mail, and Home Assistant.
+7. **Validate Backups** – Schedule `make verify-backups` or run `ansible/playbooks/backups-verify.yaml` manually for restore spot checks.
+8. **Operate via GitOps** – Ensure `ci/gitops-pull.sh` is enabled via systemd timer to pull changes every five minutes and enforce drift remediation.
 
-## Detailed Configurations & Future Expansion
-Detailed service configurations, including Proxmox host vars, playbook roles, and
-container manifests, live in the `docs/` and `ansible/` directories of the broader
-infrastructure repository. This README links the high-level topology; deep dive
-configuration guides, secrets management workflows, and day-2 operations will be
-tracked there.
+## Configuration & Documentation Pointers
+- Detailed service variables live alongside each Ansible role under `ansible/roles/<service>/`.
+- Operational runbooks, onboarding checklists, and policies will be expanded under `docs/runbooks/` and `docs/policies/`.
+- Portal/UI specifications and API definitions reside in `portal/` and will host the self-service catalogue.
+- Future GPU/AI integrations will include additional automation modules in `automation/` (planned) and accompanying documentation updates.
 
-Planned expansions include:
-
-- **GPU-enabled node** for AI and ML workloads, integrating NVIDIA GPUs with
-  passthrough-ready Proxmox templates.
-- **Dedicated AI workload stack** leveraging the GPU node for model training,
-  inference services, and dataset storage optimizations.
-- **Disaster recovery runbooks** for replicating the cluster to an offsite Proxmox
-  backup server.
-
-As these components are implemented, detailed documentation will be added to the
-`docs/expansion/` section alongside the automation artifacts.
+Contributions should keep the manifest, inventories, and documentation aligned so the repository remains the authoritative definition of the RALF platform.
