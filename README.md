@@ -33,6 +33,7 @@ Merge PR feature/local-ai-hybrid → main nach erfolgreichem Test
    pct exec 10060 -- make test
    ```
    Der Wrapper setzt die notwendigen Variablen; Tests müssen vor jedem Merge grün sein.
+   `make lint` ruft [`tests/shellcheck.sh`](tests/shellcheck.sh) auf, das `shellcheck` für alle Shell-Skripte (inklusive Unterordnern wie `automation/ralf/rlwrap/`) startet. Stelle sicher, dass `shellcheck` verfügbar ist oder installiere es per Paketmanager.
 
 ### Legacy- und Migrationspfade
 Historische Workflows (Docker Compose, Terraform Cloud-Stacks, manuelle LXC-Anlage) gelten als **Legacy** und werden nur noch im [Hybrid-Guide](docs/LOCAL_AI_README.md) dokumentiert. Neue Installationen folgen ausschließlich dem Proxmox-Skript oben.
@@ -55,6 +56,7 @@ Historische Workflows (Docker Compose, Terraform Cloud-Stacks, manuelle LXC-Anla
    pct exec 10060 -- make test
    ```
 4. Ergebnisse committen und wie gewohnt in das zentrale Git-Repository pushen.
+`make lint` nutzt [`tests/shellcheck.sh`](tests/shellcheck.sh), um `shellcheck` auf sämtlichen Shell-Skripten im Repository auszuführen.
 
 ### Cloud-Fallback
 1. Endpoint und Schlüssel exportieren:
