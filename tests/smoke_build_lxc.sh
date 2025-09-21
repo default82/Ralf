@@ -17,6 +17,12 @@ if [[ -z "${output}" ]]; then
   exit 1
 fi
 
+[[ "${output}" == *"# Managed by build_local_ai_lxc.sh"* ]] || {
+  echo "Missing configuration header in output" >&2
+  echo "${output}" >&2
+  exit 1
+}
+
 [[ "${output}" == *"==> Local AI LXC build plan"* ]] || {
   echo "Missing build plan banner in output" >&2
   echo "${output}" >&2
@@ -35,6 +41,18 @@ fi
   exit 1
 }
 
+[[ "${output}" == *"[dry-run] Would execute: pct set"* ]] || {
+  echo "Missing pct set reconciliation step" >&2
+  echo "${output}" >&2
+  exit 1
+}
+
+[[ "${output}" == *"[dry-run] Would execute: pct resize"* ]] || {
+  echo "Missing pct resize dry-run marker" >&2
+  echo "${output}" >&2
+  exit 1
+}
+
 [[ "${output}" == *"pct push"*"/usr/local/bin/ralf-ai"* ]] || {
   echo "Missing ralf-ai wrapper upload step" >&2
   echo "${output}" >&2
@@ -49,6 +67,12 @@ fi
 
 [[ "${output}" == *"/usr/local/bin/ralf-ai --help"* ]] || {
   echo "Missing ralf-ai help invocation" >&2
+  echo "${output}" >&2
+  exit 1
+}
+
+[[ "${output}" == *"ralf-lxc-reconcile"* ]] || {
+  echo "Missing reconcile hook installation output" >&2
   echo "${output}" >&2
   exit 1
 }
