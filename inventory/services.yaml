@@ -1,5 +1,3 @@
 services:
-  - name: caddy
-    placeholder: "caddy@192.168.10.10"
-  - name: vaultwarden
-    placeholder: "vaultwarden@10301"
+  - "caddy@192.168.10.10"
+  - "vaultwarden@10301"
