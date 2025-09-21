@@ -2,9 +2,9 @@ SHELL := /bin/bash
 
 .PHONY: lint test build
 
-## Lint shell scripts in automation/
+## Lint shell scripts across the repository
 lint:
-	shellcheck automation/**/*.sh || true
+	tests/shellcheck.sh
 
 ## Run smoke tests for build and wrapper
 test:

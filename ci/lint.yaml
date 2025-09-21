@@ -17,7 +17,7 @@ jobs:
       - name: Install tooling
         run: |
           pip install ansible ansible-lint yamllint
-          sudo apt-get update && sudo apt-get install -y packer
+          sudo apt-get update && sudo apt-get install -y packer shellcheck
       - name: Run lint
         run: |
           make lint
