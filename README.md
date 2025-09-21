@@ -1,19 +1,25 @@
 # RALF – Lokale AI-Assistenz auf Proxmox
 
+Merge PR feature/local-ai-hybrid → main nach erfolgreichem Test
+
 ## Architekturüberblick
 - **Proxmox-Host** betreibt einen dedizierten LXC-Container als Heimat für das Entwickler-CoPilot-Stack.
-- **[automation/ralf/build_local_ai_lxc.sh](automation/ralf/build_local_ai_lxc.sh)** erzeugt einen reproduzierbaren Debian-Container mit GPU-Forwarding-Optionen, gemeinsamem Modell-Storage (`/srv/ralf/models`) und vorbereiteten Ports für Ollama und Aider.
+- **Hybrid-Container** bündelt lokale Inferencing-Kapazitäten mit einer optionalen Cloud-Erweiterung. Aufbau, Netzwerkpfade und Betriebsabläufe sind im [Hybrid-Guide](docs/LOCAL_AI_README.md) dokumentiert.
+- **[automation/ralf/build_local_ai_lxc.sh](automation/ralf/build_local_ai_lxc.sh)** bleibt als Legacy-Option verfügbar, um reine Proxmox-Container zu reproduzieren.
 - **Ollama** stellt lokal das LLM (`llama3:8b`) bereit und exponiert eine HTTP-API, die von Aider genutzt wird.
 - **Aider** wird direkt im Container oder via SSH-Tunnel genutzt, um Codeänderungen im Repository umzusetzen.
 - **Cloud-Fallback**: Wenn der lokale Container nicht erreichbar ist, können dieselben Aider-Workflows gegen einen externen Ollama- oder OpenAI-kompatiblen Endpunkt laufen; die Konfiguration erfolgt über die jeweiligen `AIDER_`- und `OLLAMA_`-Umgebungsvariablen.
+
+## Hybrid-Container im Überblick
+Der Hybrid-Ansatz kombiniert lokale Ollama-Runs mit einem optionalen Cloud-Gateway für Lastspitzen. Der Guide erläutert Setup-Skripte (`scripts/setup_local_ai.sh`, `scripts/deploy_cloud_stack.sh`), Gateway-Konfiguration sowie Troubleshooting: siehe [docs/LOCAL_AI_README.md](docs/LOCAL_AI_README.md).
 
 ## Setup-Schritte
 1. **Vorbereitung**
    - Proxmox-Host aktualisieren und sicherstellen, dass `pct`, `pveam` sowie ein Storage-Target für Container-Templates verfügbar sind.
    - Repository klonen und ggf. Secrets/SSH-Keys bereitstellen.
 2. **Container provisionieren**
-   - Das Script [`automation/ralf/build_local_ai_lxc.sh`](automation/ralf/build_local_ai_lxc.sh) mit passenden Parametern ausführen (z. B. `./automation/ralf/build_local_ai_lxc.sh --vmid 10060 --hostname lisa-llm`).
-   - Optional Parameter per Environment setzen (siehe `--help`).
+   - Für den Hybrid-Container den Ablauf aus dem [Hybrid-Guide](docs/LOCAL_AI_README.md) befolgen (`scripts/setup_local_ai.sh`, optional `scripts/deploy_cloud_stack.sh`).
+   - Legacy-LXC-Provisionierung ist weiterhin via [`automation/ralf/build_local_ai_lxc.sh`](automation/ralf/build_local_ai_lxc.sh) möglich.
 3. **Ollama vorbereiten**
    - In den Container einloggen (`pct enter 10060`) und den Basismodelldownload starten: `ollama pull llama3:8b`.
    - Sicherstellen, dass ausreichend Speicherplatz auf dem gemounteten Modellverzeichnis vorhanden ist.
