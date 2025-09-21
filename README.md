@@ -48,3 +48,10 @@ secrets (for example, test fixtures) change.
 
 To temporarily skip the hook you can pass `--no-verify` to `git commit`, but please use
 this sparingly and follow up by addressing the reported problems.
+
+## Local AI hybrid workflow
+
+Detailed architecture, setup instructions, and troubleshooting guidance for the local/cloud
+AI stack live in the [LOCAL_AI_README](docs/LOCAL_AI_README.md).
+
+**Merker:** Merge PR `feature/local-ai-hybrid` → `main` nach erfolgreichem Test.
