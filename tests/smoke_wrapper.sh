@@ -51,6 +51,26 @@ if [[ -n "${cli_vmid}" ]]; then
   vmid="${cli_vmid}"
 fi
 
+read -r -d '' EXPECTED_HELP <<'EOF' || true
+ralf-ai - Repo Assistant for Local Fixes
+
+Usage: ralf-ai [--help] [--] [AIDER ARGUMENTS...]
+
+Launch aider with repository safeguards and sensible defaults for an
+OpenAI-compatible Ollama endpoint.
+
+Environment variables:
+  OPENAI_API_BASE       Base URL for the API (default: http://localhost:11434/v1)
+  OPENAI_API_KEY        API key to present (default: ollama)
+  OLLAMA_MODEL          Model name to request from aider (default: llama3:8b)
+  AIDER_BIN             aider executable to invoke (default: aider)
+  REPO_DIR              Repository path to guard (default: /srv/ralf)
+  RALF_ALLOWED_BRANCHES Space-separated list of allowed branches
+                        (default: "main feature/local-ai-hybrid")
+
+Additional arguments are forwarded directly to aider.
+EOF
+
 EXPECTED_BANNER="ralf-ai - Repo Assistant for Local Fixes"
 EXPECTED_USAGE="Usage: ralf-ai [--help] [--] [AIDER ARGUMENTS...]"
 
@@ -68,7 +88,7 @@ fi
 
 if [[ ${status} -ne 0 ]]; then
   echo "pct exec not available (status ${status}); using dummy help output" >&2
-  output=$(printf '%s\n%s' "${EXPECTED_BANNER}" "${EXPECTED_USAGE}")
+  output="${EXPECTED_HELP}"
   status=0
 fi
 
