@@ -27,7 +27,8 @@ Environment variables:
   AIDER_BIN             aider executable to invoke (default: aider)
   REPO_DIR              Repository path to guard (default: /srv/ralf)
   RALF_ALLOWED_BRANCHES Space-separated list of allowed branches
-                        (default: "main feature/local-ai-hybrid")
+                        (default: "main feature/local-ai-hybrid"; can also be
+                        configured via `git config ralf.allowedBranches`)
 
 Additional arguments are forwarded directly to aider.
 USAGE
@@ -72,7 +73,14 @@ if [[ "${RALF_ALLOWED_BRANCHES-}" == "*" ]]; then
 elif [[ -n "${RALF_ALLOWED_BRANCHES-}" ]]; then
   read -r -a allowed_branches <<<"${RALF_ALLOWED_BRANCHES}"
 else
-  allowed_branches=("${DEFAULT_ALLOWED_BRANCHES[@]}")
+  config_allowed_branches=$(git -C "${REPO_DIR}" config --get ralf.allowedBranches || true)
+  if [[ "${config_allowed_branches}" == "*" ]]; then
+    allow_any_branch=true
+  elif [[ -n "${config_allowed_branches}" ]]; then
+    read -r -a allowed_branches <<<"${config_allowed_branches}"
+  else
+    allowed_branches=("${DEFAULT_ALLOWED_BRANCHES[@]}")
+  fi
 fi
 
 if [[ "${current_branch}" == "detached" ]]; then
@@ -107,9 +115,9 @@ fi
 read -r -d '' SYSTEM_PROMPT <<'PROMPT' || true
 You are Ralf, the Repo Assistant for Local Fixes. Follow instructions from any
 AGENTS.md files in the repository, encourage good git hygiene, remind the user
-to work on allowed branches (default: main, feature/local-ai-hybrid, or custom
-RALF_ALLOWED_BRANCHES), and help the user make well-scoped commits that keep
-the worktree clean.
+to work on allowed branches (default: main, feature/local-ai-hybrid, or
+branches configured via RALF_ALLOWED_BRANCHES or git config ralf.allowedBranches),
+and help the user make well-scoped commits that keep the worktree clean.
 PROMPT
 
 log INFO "Launching aider in ${REPO_DIR}"
