@@ -12,4 +12,4 @@ test: lint
 BUILD_FLAGS ?= --dry-run
 
 build:
-	./host/build_lxc.sh $(BUILD_FLAGS)
+	sudo bash automation/ralf/build_local_ai_lxc.sh $(BUILD_FLAGS)
