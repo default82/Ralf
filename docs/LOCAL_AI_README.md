@@ -1,103 +1,83 @@
-
 # Local AI Hybrid Guide
 
-> **Hinweis:** Dieser Guide ergänzt die Proxmox-First-Installation über [`automation/ralf/build_local_ai_lxc.sh`](../automation/ralf/build_local_ai_lxc.sh) und beschreibt, wie bestehende Hybrid-Deployments migriert oder parallel betrieben werden können.
+Dieser Guide beschreibt den Hybrid-Container **lisa-llm** für das Homelab "R.A.L.F.". 
+Er kombiniert einen lokalen Ollama-Dienst im Proxmox-LXC mit einem optionalen Cloud-Fallback, 
+wobei alle Automatisierungen innerhalb dieses Repositories definiert sind.
 
-## Architecture Overview
-The Ralf hybrid platform balances on-device execution for latency-sensitive inference with cloud capacity for burst workloads.
+## Architekturüberblick
+- **Proxmox-LXC**: Container `lisa-llm` (Standard-VMID `10060`) läuft auf `pve01` und bindet `/srv/ralf` vom Host als persistentes Volume ein.
+- **Ollama**: Liefert lokal das Modell `llama3:8b` über `http://localhost:11434/v1`.
+- **Aider + Wrapper**: [`automation/ralf/rlwrap/ralf-ai.sh`](../automation/ralf/rlwrap/ralf-ai.sh) startet Aider mit sicheren Defaults, Git-Hygiene und 
+  Branch-Prüfung.
+- **Cloud-Fallback**: Über Umgebungsvariablen `OPENAI_API_BASE`/`OPENAI_API_KEY` kann auf jeden OpenAI-kompatiblen Dienst gewechselt werden.
 
-- **Local edge nodes** sind bevorzugt als Proxmox-LXC mittels `automation/ralf/build_local_ai_lxc.sh` aufgebaut. Bestehende Docker-basierte Knoten gelten als Legacy, lassen sich aber weiterhin über `scripts/setup_local_ai.sh` betreiben.
-- **Hybrid gateway** routes traffic between local and cloud targets. Locally it runs as a Docker compose stack; in the cloud it is provisioned by Terraform using `scripts/deploy_cloud_stack.sh`.
-- **Cloud control plane** hosts monitoring, autoscaling policies, and a secure artifact registry for model snapshots. It integrates with the gateway through authenticated webhooks (credentials are provided at runtime via environment variables; never commit secrets).
-
-Data never leaves the secure perimeter without encryption and observability hooks, ensuring compliance with enterprise guardrails.
-
-## Setup Flow
-Follow the steps below on a fresh workstation.
-
-1. **Install prerequisites**
-   - Proxmox host with Zugriff auf `automation/ralf/build_local_ai_lxc.sh`
-   - Optional (Legacy): Docker/Podman for bestehende Hybrid-Gateways, Terraform für Cloud-Stacks
-   - [Ollama](https://ollama.ai/) (auf Proxmox-LXC bereits durch das Skript installiert)
-   - `direnv` oder ähnliches Tooling, falls Secrets für Cloud-Bestandteile injiziert werden müssen
-2. **Clone the repository**
+## Setup-Schritte
+1. **Dry-Run durchführen**
    ```bash
-   git clone <your-fork-url>
-   cd Ralf
+   bash automation/ralf/build_local_ai_lxc.sh --dry-run
    ```
-3. **Bootstrap the local model runtime**
-   - **Proxmox-First:**
-     ```bash
-     automation/ralf/build_local_ai_lxc.sh --dry-run
-     sudo automation/ralf/build_local_ai_lxc.sh
-     pct enter 10060 && ollama pull llama3:8b
-     ```
-     Der Container bringt Ollama & Wrapper bereits mit; weitere Konfiguration erfolgt in `/srv/ralf`.
-   - **Legacy Docker Node:**
-     ```bash
-     ./scripts/setup_local_ai.sh llama3:8b
-     ```
-     Dieser Pfad bleibt für Übergangsphasen verfügbar, wird jedoch nicht mehr aktiv weiterentwickelt.
-4. **Start supporting services (Legacy Gateway)**
-   ```bash
-   docker compose up -d
-   ```
-5. **(Optional) Prepare the cloud stack (Legacy Terraform)**
-   ```bash
-   export TF_VAR_environment=staging
-   ./scripts/deploy_cloud_stack.sh -auto-approve
-   ```
-   The script expects credentials to be sourced from your shell session (e.g., `AWS_PROFILE`, `GOOGLE_APPLICATION_CREDENTIALS`). Do not commit secrets to the repo.
+   Dadurch erhältst du eine Übersicht aller geplanten `pct`-Befehle ohne Änderungen.
 
-## Usage Examples
+2. **Container provisionieren**
+   ```bash
+   sudo bash automation/ralf/build_local_ai_lxc.sh
+   ```
+   Das Skript stellt das Ubuntu-Template bereit, erstellt/aktualisiert den Container, richtet Mounts und Features ein, 
+   installiert Ollama und Aider und kopiert den Wrapper nach `/usr/local/bin/ralf-ai`.
 
-### Local inference
+3. **Modell synchronisieren**
+   ```bash
+   pct exec 10060 -- ollama pull llama3:8b
+   ```
+   Sofern du ein anderes Modell nutzen möchtest, passe `OLLAMA_MODEL` in der Umgebung an.
+
+4. **Repo-Struktur prüfen**
+   ```bash
+   pct exec 10060 -- ls -1 /srv/ralf
+   ```
+   Erwartet werden u. a. die Ordner `automation`, `docs`, `tests` und `ci`.
+
+## Nutzung
+### Lokal (Ollama)
 ```bash
-curl -s \
-  -X POST http://localhost:11434/api/generate \
-  -d '{"model": "llama3:8b", "prompt": "Summarize the latest build status."}'
+pct exec 10060 -- ralf-ai /srv/ralf --message "Starte mit Task X"
 ```
-Expect a JSON response containing the generated summary.
+Der Wrapper setzt automatisch:
+- `OPENAI_API_BASE=http://localhost:11434/v1`
+- `OPENAI_API_KEY=ollama`
+- `OLLAMA_MODEL=llama3:8b`
 
-### Cloud burst routing
-Once the Terraform stack is live, point the gateway at the cloud endpoint:
+### Cloud-Fallback
 ```bash
-gatewayctl set-backend \
-  --local http://localhost:11434 \
-  --cloud https://<cloud-endpoint>/v1/llm
+export OPENAI_API_BASE="https://api.openai.com/v1"
+export OPENAI_API_KEY="sk-..."
+pct exec 10060 -- ralf-ai /srv/ralf --message "Nutze Cloud-Fallback"
 ```
-Use the provided runbook to rotate credentials; never hardcode tokens in configuration files.
-
-### Matrix & n8n Integrations
-The hybrid stack can broadcast automation events through Matrix by combining the
-Synapse webhook modules from `automation/integrations/matrix/` with the n8n
-workflow exports in `automation/integrations/n8n/`. Secrets such as Matrix
-access tokens or signing secrets are sourced from Vaultwarden via
-`automation/integrations/vaultwarden/fetch_secret.sh`.
-
-After importing the n8n workflow, create environment variables for
-`MATRIX_BASE_URL`, `MATRIX_ROOM_ID`, and `MATRIX_ACCESS_TOKEN`. Synapse forwards
-events to `https://n8n.homelab.lan/webhook/matrix/incident` and Element Web
-displays the resulting room updates automatically.
+Entferne oder überschreibe die Variablen nach der Cloud-Nutzung.
 
 ## Troubleshooting
-- **`ollama pull` fails with network timeout**: confirm outbound access and retry with `OLLAMA_HOST=https://proxy.yourdomain` if routing through a proxy.
-- **Docker compose services crash**: inspect logs via `docker compose logs -f <service>` and ensure GPU drivers (if applicable) are installed.
-- **Terraform apply prompts for credentials**: export the required environment variables before running `scripts/deploy_cloud_stack.sh`; check your secret manager if unsure.
-- **Gateway latency spikes**: verify the local node has GPU resources free; otherwise switch routing to the cloud backend temporarily using `gatewayctl`.
-- **Matrix incidents landen nicht im Raum**: Smoke-Test gegen
-  `https://synapse01:8448/_matrix/federation/v1/version` ausführen und prüfen,
-  ob der n8n-Webhook (`/healthz`) erreichbar ist. Tokens bei Bedarf über das
-  Vaultwarden-Skript neu ziehen.
+| Problem | Hinweise |
+|---------|----------|
+| Container startet nicht | `pct status 10060` prüfen. Bei Bedarf `pct start 10060` und Logs mit `journalctl -u pveproxy` ansehen. |
+| Kein Netzwerk im Container | Bridge `vmbr0` kontrollieren, `pct exec 10060 -- ip a` ausführen, ggf. DHCP-Server prüfen. |
+| Ollama antwortet nicht | `pct exec 10060 -- systemctl status ollama` und `pct exec 10060 -- systemctl restart ollama`. Modell erneut mit `ollama pull` laden. |
+| Wrapper fehlt | `pct exec 10060 -- ls -l /usr/local/bin/ralf-ai` prüfen, Skript erneut über das Build-Skript provisionieren lassen. |
+| Aider schlägt fehl | Sicherstellen, dass `python3-pip` installiert und `aider-chat` aktuell ist (`pct exec 10060 -- python3 -m pip install --upgrade aider-chat`). |
 
-## PR Merge Checklist
-Before requesting a merge into `main`, confirm the following:
+## Tests & Qualitätssicherung
+Führe vor jedem Merge mindestens folgende Checks aus:
+```bash
+make lint
+make test
+```
+`make lint` startet [`tests/shellcheck.sh`](../tests/shellcheck.sh), `make test` ruft die Smoke-Tests für Build-Skript und Wrapper auf.
 
-- [ ] Local bootstrap completes: `./scripts/setup_local_ai.sh llama3:8b`
-- [ ] `docker compose up -d` succeeds and health checks pass
-- [ ] Cloud infrastructure plan reviewed: `./scripts/deploy_cloud_stack.sh -plan`
-- [ ] Automated tests (unit/integration) executed and recorded
-- [ ] Security scan outputs attached (no secrets committed)
-- [ ] Documentation updated with any new endpoints or scripts
-- [ ] Merge target confirmed: `feature/local-ai-hybrid` → `main`
+## PR-Checkliste
+- [ ] Dry-Run des Build-Skripts erfolgreich (`bash automation/ralf/build_local_ai_lxc.sh --dry-run`).
+- [ ] Realer Lauf abgeschlossen (`sudo bash automation/ralf/build_local_ai_lxc.sh`).
+- [ ] Modell `llama3:8b` über Ollama verfügbar (`pct exec 10060 -- ollama list`).
+- [ ] Smoke-Tests grün (`make lint` & `make test`).
+- [ ] Dokumentation aktualisiert (insbesondere diese Datei und das README).
+- [ ] Merge-Ziel bestätigt: **Merge PR feature/local-ai-hybrid → main nach erfolgreichem Test**.
 
+Bleibe bei allen Änderungen idempotent und halte Secrets außerhalb des Repositories.

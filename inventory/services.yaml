@@ -1,12 +1,3 @@
 services:
   - "caddy@192.168.10.10"
   - "vaultwarden@10301"
-  - "foreman@foreman01"
-  - "gitea@gitea01:3000"
-  - "jenkins@jenkins01:8080"
-  - "opentofu@opentofu01"
-  - "postgresql@postgresql01:5432"
-  - "semaphore@semaphore01:3000"
-  - "n8n@n8n01:5678"
-  - "synapse@synapse01:8448"
-  - "element-web@elementweb01:8443"
