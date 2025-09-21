@@ -16,7 +16,7 @@ fi
 
 if [[ ${status} -ne 0 ]]; then
   echo "pct exec not available (status ${status}); using dummy help output" >&2
-  output=$'ralf-ai - Remote Autonomous LXC Friend\nUsage: ralf-ai [OPTIONS]'
+  output=$'ralf-ai - Repo Assistant for Local Fixes\nUsage: ralf-ai [--help] [--] [AIDER ARGUMENTS...]'
   status=0
 fi
 
