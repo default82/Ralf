@@ -1,10 +1,12 @@
 
 # Local AI Hybrid Guide
 
+> **Hinweis:** Dieser Guide ergänzt die Proxmox-First-Installation über [`automation/ralf/build_local_ai_lxc.sh`](../automation/ralf/build_local_ai_lxc.sh) und beschreibt, wie bestehende Hybrid-Deployments migriert oder parallel betrieben werden können.
+
 ## Architecture Overview
 The Ralf hybrid platform balances on-device execution for latency-sensitive inference with cloud capacity for burst workloads.
 
-- **Local edge nodes** run Ollama-managed large language models. They expose a lightweight REST interface and are orchestrated via `scripts/setup_local_ai.sh`.
+- **Local edge nodes** sind bevorzugt als Proxmox-LXC mittels `automation/ralf/build_local_ai_lxc.sh` aufgebaut. Bestehende Docker-basierte Knoten gelten als Legacy, lassen sich aber weiterhin über `scripts/setup_local_ai.sh` betreiben.
 - **Hybrid gateway** routes traffic between local and cloud targets. Locally it runs as a Docker compose stack; in the cloud it is provisioned by Terraform using `scripts/deploy_cloud_stack.sh`.
 - **Cloud control plane** hosts monitoring, autoscaling policies, and a secure artifact registry for model snapshots. It integrates with the gateway through authenticated webhooks (credentials are provided at runtime via environment variables; never commit secrets).
 
@@ -14,25 +16,33 @@ Data never leaves the secure perimeter without encryption and observability hook
 Follow the steps below on a fresh workstation.
 
 1. **Install prerequisites**
-   - Docker or Podman (for local services)
-   - [Ollama](https://ollama.ai/)
-   - Terraform (for optional cloud deploys)
-   - `direnv` or similar tooling to inject secrets locally (values are sourced from your secret manager at runtime).
+   - Proxmox host with Zugriff auf `automation/ralf/build_local_ai_lxc.sh`
+   - Optional (Legacy): Docker/Podman for bestehende Hybrid-Gateways, Terraform für Cloud-Stacks
+   - [Ollama](https://ollama.ai/) (auf Proxmox-LXC bereits durch das Skript installiert)
+   - `direnv` oder ähnliches Tooling, falls Secrets für Cloud-Bestandteile injiziert werden müssen
 2. **Clone the repository**
    ```bash
    git clone <your-fork-url>
    cd Ralf
    ```
 3. **Bootstrap the local model runtime**
-   ```bash
-   ./scripts/setup_local_ai.sh llama3:8b
-   ```
-   The script validates the `ollama` binary and runs `ollama pull llama3:8b` to ensure the model is cached locally.
-4. **Start supporting services**
+   - **Proxmox-First:**
+     ```bash
+     automation/ralf/build_local_ai_lxc.sh --dry-run
+     sudo automation/ralf/build_local_ai_lxc.sh
+     pct enter 10060 && ollama pull llama3:8b
+     ```
+     Der Container bringt Ollama & Wrapper bereits mit; weitere Konfiguration erfolgt in `/srv/ralf`.
+   - **Legacy Docker Node:**
+     ```bash
+     ./scripts/setup_local_ai.sh llama3:8b
+     ```
+     Dieser Pfad bleibt für Übergangsphasen verfügbar, wird jedoch nicht mehr aktiv weiterentwickelt.
+4. **Start supporting services (Legacy Gateway)**
    ```bash
    docker compose up -d
    ```
-5. **(Optional) Prepare the cloud stack**
+5. **(Optional) Prepare the cloud stack (Legacy Terraform)**
    ```bash
    export TF_VAR_environment=staging
    ./scripts/deploy_cloud_stack.sh -auto-approve

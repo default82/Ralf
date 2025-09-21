@@ -2,26 +2,40 @@
 
 Merge PR feature/local-ai-hybrid → main nach erfolgreichem Test
 
-## Architekturüberblick
-- **Proxmox-Host** stellt die Virtualisierungsumgebung bereit und verwaltet den dedizierten LXC-Container (Standard-VMID `10060`).
-- **RALF-LXC-Container** wird über [`automation/ralf/build_local_ai_lxc.sh`](automation/ralf/build_local_ai_lxc.sh) erzeugt; er mountet `/srv/ralf` vom Host, damit Repositories und Modelle persistent bleiben.
-- **Ollama** läuft im Container als Systemdienst und bedient das Modell `llama3:8b` über die HTTP-API `http://127.0.0.1:11434`.
+## Architektur & Setup
+- **Standardpfad (empfohlen)**: [`automation/ralf/build_local_ai_lxc.sh`](automation/ralf/build_local_ai_lxc.sh) baut und konfiguriert den RALF-LXC auf Proxmox (Standard-VMID `10060`), richtet Mounts, User und Services vollautomatisch ein und bleibt die zentrale Einstiegsmethode.
+- **Proxmox-Host** stellt die Virtualisierungsumgebung bereit und bindet `/srv/ralf` in den Container ein, damit Repositories und Modelle persistent bleiben.
+- **Ollama** läuft im Container als Systemdienst und bedient das Modell `llama3:8b` über `http://127.0.0.1:11434`.
 - **Aider** (bzw. der Wrapper [`wrapper/ralf-ai`](wrapper/ralf-ai)) greift auf die lokale Ollama-Instanz zu und automatisiert Codeänderungen im gemounteten Repository.
 - **Cloud-Fallback** nutzt dieselben Werkzeuge; bei Bedarf werden lediglich Endpoint (`OPENAI_API_BASE`) und Schlüssel (`OPENAI_API_KEY`) auf einen externen Dienst gesetzt.
 
-## Setup-Schritte
-1. **Container bereitstellen**
-   - Repository auf dem Proxmox-Host klonen.
-   - LXC mit `automation/ralf/build_local_ai_lxc.sh` erzeugen (legt VMID `10060` an, richtet User & Services ein).
-   - Host-Pfad `/srv/ralf` anlegen und als Bind-Mount in den Container aufnehmen (Script erledigt dies; bei Abweichungen Mount in `/etc/pve/lxc/10060.conf` ergänzen).
-2. **Modell vorbereiten**
-   - In den Container wechseln: `pct enter 10060`.
-   - Ollama-Modelle laden: `ollama pull llama3:8b`.
-   - Verfügbarkeit prüfen: `systemctl --user status ollama` oder `ollama ps`.
-3. **Repository testen**
-   - Im Container ins Projektverzeichnis wechseln (`/srv/ralf`).
-   - Basistests ausführen: `make lint` und `make test`.
-   - Optional weitere Targets aus dem [Makefile](Makefile) nutzen.
+### Setup auf Proxmox
+1. **Dry-Run des Container-Builds**
+   ```bash
+   automation/ralf/build_local_ai_lxc.sh --dry-run
+   ```
+   Prüft Konnektivität, benötigte Pakete und reserviert die VMID, ohne Änderungen vorzunehmen.
+2. **Real-Run durchführen**
+   ```bash
+   sudo automation/ralf/build_local_ai_lxc.sh
+   ```
+   Erstellt den LXC, legt `/srv/ralf` an und trägt den Bind-Mount automatisch in `/etc/pve/lxc/10060.conf` ein.
+3. **Modell bereitstellen**
+   ```bash
+   pct enter 10060
+   ollama pull llama3:8b
+   ```
+   Anschließend optional `systemctl --user status ollama` oder `ollama ps`, um den Dienst zu überprüfen.
+4. **Wrapper & Tests nutzen**
+   ```bash
+   pct exec 10060 -- ralf-ai "<task-beschreibung>"
+   pct exec 10060 -- make lint
+   pct exec 10060 -- make test
+   ```
+   Der Wrapper setzt die notwendigen Variablen; Tests müssen vor jedem Merge grün sein.
+
+### Legacy- und Migrationspfade
+Historische Workflows (Docker Compose, Terraform Cloud-Stacks, manuelle LXC-Anlage) gelten als **Legacy** und werden nur noch im [Hybrid-Guide](docs/LOCAL_AI_README.md) dokumentiert. Neue Installationen folgen ausschließlich dem Proxmox-Skript oben.
 
 ## Nutzung
 ### Lokaler Betrieb (Proxmox LXC + Ollama)
