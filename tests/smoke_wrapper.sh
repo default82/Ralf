@@ -1,8 +1,53 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
-VMID="${VMID:-9999}"
-COMMAND=(pct exec "${VMID}" -- ralf-ai --help)
+DEFAULT_VMID=10060
+cli_vmid=""
+
+usage() {
+  cat <<'EOF'
+Usage: tests/smoke_wrapper.sh [--vmid <id>]
+
+Runs the wrapper smoke test against the configured VMID. The VMID can be
+overridden via the --vmid flag or the VMID environment variable.
+EOF
+}
+
+while [[ $# -gt 0 ]]; do
+  case "$1" in
+    --vmid=*)
+      cli_vmid="${1#--vmid=}"
+      shift
+      ;;
+    --vmid)
+      if [[ $# -lt 2 ]]; then
+        echo "Missing value for --vmid" >&2
+        usage >&2
+        exit 2
+      fi
+      cli_vmid="$2"
+      shift 2
+      ;;
+    -h|--help)
+      usage
+      exit 0
+      ;;
+    *)
+      cli_vmid="$1"
+      shift
+      ;;
+  esac
+done
+
+vmid="${DEFAULT_VMID}"
+if [[ -n "${VMID:-}" ]]; then
+  vmid="${VMID}"
+fi
+if [[ -n "${cli_vmid}" ]]; then
+  vmid="${cli_vmid}"
+fi
+
+COMMAND=(pct exec "${vmid}" -- ralf-ai --help)
 
 status=0
 output=""
