@@ -1,0 +1,30 @@
+---
+- name: Install OpenTofu packages
+  ansible.builtin.package:
+    name: "{{ opentofu_packages }}"
+    state: present
+  when: opentofu_packages | length > 0
+
+- name: Ensure OpenTofu state directory exists
+  ansible.builtin.file:
+    path: "{{ opentofu_state_path }}"
+    state: directory
+    owner: root
+    group: root
+    mode: '0750'
+
+- name: Ensure OpenTofu configuration directory exists
+  ansible.builtin.file:
+    path: "{{ opentofu_config_path | dirname }}"
+    state: directory
+    owner: root
+    group: root
+    mode: '0755'
+
+- name: Deploy OpenTofu CLI configuration
+  ansible.builtin.template:
+    src: opentofu.hcl.j2
+    dest: "{{ opentofu_config_path }}"
+    owner: root
+    group: root
+    mode: '0644'

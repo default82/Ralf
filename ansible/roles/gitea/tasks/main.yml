@@ -1,0 +1,22 @@
+---
+- name: Install Gitea packages
+  ansible.builtin.package:
+    name: "{{ gitea_packages }}"
+    state: present
+  when: gitea_packages | length > 0
+
+- name: Ensure Gitea configuration directory exists
+  ansible.builtin.file:
+    path: "{{ gitea_config_path | dirname }}"
+    state: directory
+    owner: "{{ gitea_user }}"
+    group: "{{ gitea_group }}"
+    mode: '0755'
+
+- name: Deploy Gitea configuration
+  ansible.builtin.template:
+    src: app.ini.j2
+    dest: "{{ gitea_config_path }}"
+    owner: "{{ gitea_user }}"
+    group: "{{ gitea_group }}"
+    mode: '0644'

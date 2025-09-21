@@ -1,0 +1,10 @@
+---
+# Default variables for the Gitea role
+gitea_packages:
+  - gitea
+gitea_config_path: /etc/gitea/app.ini
+gitea_user: root
+gitea_group: root
+gitea_domain: git.homelab.lan
+gitea_http_port: 3000
+gitea_root_url: "https://{{ gitea_domain }}"
