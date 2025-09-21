@@ -138,3 +138,4 @@ ralf/
 - Future GPU/AI integrations will include additional automation modules in `automation/` (planned) and accompanying documentation updates.
 
 Contributions should keep the manifest, inventories, and documentation aligned so the repository remains the authoritative definition of the RALF platform.
+
