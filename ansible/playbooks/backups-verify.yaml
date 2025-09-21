@@ -12,6 +12,6 @@
     - name: Assert restore succeeded
       ansible.builtin.assert:
         that:
-          - verify.rc == 0
+          - verify.rc | int is eq(0)
         fail_msg: "Backup restore validation failed"
         success_msg: "Backups verified successfully"

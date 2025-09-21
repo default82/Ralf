@@ -3,7 +3,7 @@ set -euo pipefail
 
 usage() {
   cat <<USAGE
-Usage: $0 [--cidr CIDR] [--output DIR] [--once]
+Usage: $0 [--cidr CIDR] [--output DIR] [--once|--loop]
 
 Scan the homelab network and emit JSON reports under reports/scans/.
 Defaults are derived from vars/ralf-installer.yaml when available.
@@ -11,13 +11,14 @@ Defaults are derived from vars/ralf-installer.yaml when available.
   --cidr CIDR    Override network CIDR (e.g. 10.23.0.0/16)
   --output DIR   Directory to store reports (default: reports/scans)
   --once         Run one scan and exit (default)
+  --loop         Sleep and rescan forever
   -h, --help     Show this help
 USAGE
 }
 
 cidr=""
 output_dir="reports/scans"
-run_once=true
+run_once=1
 
 while [[ $# -gt 0 ]]; do
   case "$1" in
@@ -30,7 +31,11 @@ while [[ $# -gt 0 ]]; do
       shift 2
       ;;
     --once)
-      run_once=true
+      run_once=1
+      shift
+      ;;
+    --loop)
+      run_once=0
       shift
       ;;
     -h|--help)
@@ -105,7 +110,7 @@ JSON
 
 run_scan
 
-if [[ "$run_once" == false ]]; then
+if (( ! run_once )); then
   while true; do
     sleep 86400
     run_scan

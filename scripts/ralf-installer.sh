@@ -16,23 +16,23 @@ ensures age keys exist, writes vars to ./vars/, and optionally triggers
 USAGE
 }
 
-run_bootstrap=false
-run_apply=false
-skip_age=false
+run_bootstrap=0
+run_apply=0
+skip_age=0
 
 while [[ $# -gt 0 ]]; do
   case "$1" in
     --bootstrap)
-      run_bootstrap=true
+      run_bootstrap=1
       shift
       ;;
     --apply)
-      run_bootstrap=true
-      run_apply=true
+      run_bootstrap=1
+      run_apply=1
       shift
       ;;
     --skip-age)
-      skip_age=true
+      skip_age=1
       shift
       ;;
     -h|--help)
@@ -105,7 +105,7 @@ YAML
 
 echo "[installer] Wrote ${vars_file}"
 
-if [[ "$skip_age" == false ]]; then
+if (( ! skip_age )); then
   age_key="secrets/age-keys/ralf.agekey"
   if [[ -f "$age_key" ]]; then
     echo "[installer] Existing age key detected at ${age_key}"
@@ -145,12 +145,12 @@ else
   echo "[installer] sops not found; remember to encrypt ${secrets_file}." >&2
 fi
 
-if [[ "$run_bootstrap" == true ]]; then
+if (( run_bootstrap )); then
   echo "[installer] Running make bootstrap"
   make bootstrap
 fi
 
-if [[ "$run_apply" == true ]]; then
+if (( run_apply )); then
   echo "[installer] Running make apply"
   make apply
 fi
