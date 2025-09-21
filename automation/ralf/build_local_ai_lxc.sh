@@ -227,14 +227,23 @@ mkdir -p \
 
 provision_wrapper() {
   local vmid=$1
-  local wrapper_path="$REPO_ROOT/files/ralf-ai"
-  if [[ ! -f $wrapper_path ]]; then
-    log ERROR "Wrapper script not found at $wrapper_path"
+  local wrapper_source="$REPO_ROOT/automation/ralf/rlwrap/ralf-ai.sh"
+  if [[ ! -f $wrapper_source ]]; then
+    log ERROR "Wrapper script not found at $wrapper_source"
     exit 1
   fi
+
+  local tmp_dir
+  tmp_dir=$(mktemp -d)
+
+  local wrapper_path="${tmp_dir}/ralf-ai"
+  cp "$wrapper_source" "$wrapper_path"
+
   run_cmd pct push "$vmid" "$wrapper_path" /usr/local/bin/ralf-ai
   pct_exec "$vmid" chmod 0755 /usr/local/bin/ralf-ai
   pct_exec "$vmid" /usr/local/bin/ralf-ai --help
+
+  rm -rf "$tmp_dir"
 }
 
 # Defaults from environment overrides
