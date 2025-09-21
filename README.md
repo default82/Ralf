@@ -54,8 +54,9 @@ Der Hybrid-Ansatz kombiniert lokale Ollama-Runs mit einem optionalen Cloud-Gatew
 ## PR-Checkliste
 - `make lint` ausführen, um das Shell-Linting zu prüfen (siehe [Makefile](Makefile)).
 - `make test` ausführen, um die Smoke-Tests laufen zu lassen (der Wrapper-Test
-  nutzt standardmäßig VMID `10060` und erlaubt Overrides via `--vmid` oder der
-  Umgebungsvariable `VMID`).
+  nutzt standardmäßig VMID `10060`, erlaubt Overrides via `--vmid` oder der
+  Umgebungsvariable `VMID` und akzeptiert einen alternativen Fallback über
+  `DEFAULT_VMID`).
 - Relevante Skripte/Dokumentation aktualisieren (z. B. `automation/ralf/build_local_ai_lxc.sh`, `wrapper/ralf-ai`, diese README).
 - Funktionsprüfung dokumentieren (Testprotokoll im PR-Beschreibungstext).
 - Merge-Hinweis: Nach Review mit einem regulären Merge-Commit in den Hauptbranch übernehmen (kein Squash/Rebase).
