@@ -34,8 +34,17 @@ The repository layers several automation tools:
 - **Ansible** roles and playbooks in `ansible/` manage bootstrap, core services, catalogue workloads, and backup verification.
 - **GitOps runner** (`ci/gitops-pull.sh` with corresponding systemd units) enforces pull-based reconciliation.
 - **CLI wrapper** (`cli/ralf.sh`) offers friendly entrypoints for recurring workflows.
-- **Supporting scripts** like [`scripts/lisa_build_lxc.sh`](scripts/lisa_build_lxc.sh) prepare LXC templates prior to Ansible runs and can be orchestrated through Semaphore UI or Foreman hooks.
+- **Supporting scripts** like [`scripts/lisa_build_lxc.sh`](scripts/lisa_build_lxc.sh) prepare LXC templates prior to Ansible runs, while [`scripts/ralf-lxc-lab.sh`](scripts/ralf-lxc-lab.sh) can rapidly stand up an isolated LXC lab for testing the playbooks.
 - **OpenTofu/Terraform** modules can be added under `automation/` (to be created) for declarative Proxmox resource management.
+- **Cloud AI advisor** integrates with OpenAI via the `ai-*` Make targets to review cluster health and propose diffs without mutating the repo directly.
+
+### AI Advisor Workflow
+The `ai-check` target wraps three shell scripts to prepare advisory requests:
+1. [`scripts/ai_collect.sh`](scripts/ai_collect.sh) gathers cluster status from `pvecm`, `pvesh`, `zpool status`, and `ansible-lint` (gracefully skipping absent tools).
+2. [`scripts/ai_redact.sh`](scripts/ai_redact.sh) redacts secrets, tokens, keys, and PEM blocks before sharing any context.
+3. [`scripts/ai_advisor.sh`](scripts/ai_advisor.sh) loads the sanitised context into [`ai/prompts/advisor_request.tmpl`](ai/prompts/advisor_request.tmpl) and calls the OpenAI Chat Completions API. Responses are archived under `reports/ai/`.
+
+The SOPS-encrypted key material for API access belongs in [`secrets/ai.sops.yaml`](secrets/ai.sops.yaml). The resulting advisor report should contain unified diffs; when it does, `make ai-pr` creates a feature branch with the staged changes and pushes it to `origin` for review.
 
 ## Key Services
 Core services deployed through `ansible/playbooks/deploy-core.yaml`:
@@ -90,7 +99,8 @@ ralf/
 │       ├── vaultwarden/
 │       └── homeassistant/
 ├── secrets/
-│   └── .sops.yaml
+│   ├── .sops.yaml
+│   └── ai.sops.yaml
 ├── ci/
 │   ├── gitops-runner.service
 │   ├── gitops-runner.timer
@@ -108,27 +118,39 @@ ralf/
 │   ├── runbooks/
 │   └── policies/
 ├── scripts/
+│   ├── ai_collect.sh
+│   ├── ai_advisor.sh
+│   ├── ai_redact.sh
 │   ├── hardening.sh
-│   └── lisa_build_lxc.sh
+│   ├── lisa_build_lxc.sh
+│   └── ralf-lxc-lab.sh
+├── ai/
+│   └── prompts/
+│       └── advisor_request.tmpl
+├── reports/
+│   └── ai/
+│       └── .gitkeep
 ```
 
 ## Prerequisites
 - Proxmox VE host(s) with VLAN tagging and ZFS pools (`fast`, `bulk`, `secure`) provisioned.
 - Administrative workstation with Git, Ansible, Packer, SOPS/age, and OpenTofu (optional) installed.
+- `curl`, `jq`, and `sops` available locally to run the AI advisor workflow plus an OpenAI API key encrypted in [`secrets/ai.sops.yaml`](secrets/ai.sops.yaml).
 - SSH key material staged on each Proxmox node under `/root/keys/` for passwordless automation.
 - Age key pair stored locally and referenced by [`secrets/.sops.yaml`](secrets/.sops.yaml).
 - Valid domain/ACME email for Caddy plus upstream DNS forwarders.
 - Optional: Foreman and Semaphore UI instances for orchestration, plus local AI agents for observability/remediation tasks.
 
 ## High-Level Setup Steps
-1. **Clone & Configure** – Fork/clone the repo, copy `images/golden/vars.pkr.hcl.example` to `vars.pkr.hcl`, and adjust `inventory/` host variables, VLAN definitions, and `architecture.yaml` metadata for your environment.
-2. **Prepare LXC Templates** – Run `scripts/lisa_build_lxc.sh` (directly or via Semaphore UI) to seed required templates on Proxmox.
-3. **Generate Golden Images** – Execute `make images` (or `cli/ralf.sh images`) to build LXC/VM templates using Packer.
-4. **Bootstrap Proxmox** – Run `make bootstrap` to apply network bridges, install the GitOps runner, and register automation prerequisites.
-5. **Deploy Core Services** – Apply `make apply` or `cli/ralf.sh deploy-core` to provision DNS, Caddy, authentication, monitoring, and backups.
-6. **Deploy Service Catalogue** – Trigger `cli/ralf.sh deploy-services` once core services are healthy to roll out Vaultwarden, Mail, and Home Assistant.
-7. **Validate Backups** – Schedule `make verify-backups` or run `ansible/playbooks/backups-verify.yaml` manually for restore spot checks.
-8. **Operate via GitOps** – Ensure `ci/gitops-pull.sh` is enabled via systemd timer to pull changes every five minutes and enforce drift remediation.
+1. **Run Installer** – Execute `scripts/ralf-installer.sh` to capture domain, networking, and service LXC mappings for your homelab.
+2. **Clone & Configure** – Fork/clone the repo, copy `images/golden/vars.pkr.hcl.example` to `vars.pkr.hcl`, and adjust `inventory/` host variables, VLAN definitions, and `architecture.yaml` metadata for your environment.
+3. **Prepare LXC Templates** – Run `scripts/lisa_build_lxc.sh` (directly or via Semaphore UI) to seed required templates on Proxmox. To validate playbooks safely, `scripts/ralf-lxc-lab.sh` can provision disposable service containers on a development node using the same network layout as the inventory.
+4. **Generate Golden Images** – Execute `make images` (or `cli/ralf.sh images`) to build LXC/VM templates using Packer.
+5. **Bootstrap Proxmox** – Run `make bootstrap` to apply network bridges, install the GitOps runner, and register automation prerequisites.
+6. **Deploy Core Services** – Apply `make apply` or `cli/ralf.sh deploy-core` to provision DNS, Caddy, authentication, monitoring, and backups.
+7. **Deploy Service Catalogue** – Trigger `cli/ralf.sh deploy-services` once core services are healthy to roll out Vaultwarden, Mail, and Home Assistant.
+8. **Validate Backups** – Schedule `make verify-backups` or run `ansible/playbooks/backups-verify.yaml` manually for restore spot checks.
+9. **Operate via GitOps** – Ensure `ci/gitops-pull.sh` is enabled via systemd timer to pull changes every five minutes and enforce drift remediation.
 
 ## Configuration & Documentation Pointers
 - Detailed service variables live alongside each Ansible role under `ansible/roles/<service>/`.

@@ -3,6 +3,8 @@
 This role configures the base service stack for the RALF platform.
 
 ## TODO
-- [ ] Define variables in `defaults/main.yml`
-- [ ] Implement tasks in `tasks/main.yml`
-- [ ] Add handlers/templates as required
+- [ ] Harden Debian/Proxmox hosts (timezone, locale, sysctl, unattended-upgrades) for LXCs and hypervisors.
+- [ ] Manage automation users/SSH keys and install baseline tooling (git, ansible, sops, python).
+- [ ] Template GitOps runner systemd units/timers and enforce journald/logrotate policies.
+
+See [docs/TODO.md](../../../docs/TODO.md#base-role) for the authoritative backlog.
