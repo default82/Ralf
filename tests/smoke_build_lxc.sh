@@ -3,7 +3,7 @@ set -euo pipefail
 
 SCRIPT_DIR=$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)
 REPO_ROOT=$(cd "${SCRIPT_DIR}/.." && pwd)
-BUILD_SCRIPT="${REPO_ROOT}/host/build_lxc.sh"
+BUILD_SCRIPT="${REPO_ROOT}/automation/ralf/build_local_ai_lxc.sh"
 
 if [[ ! -x "${BUILD_SCRIPT}" ]]; then
   echo "Expected build script '${BUILD_SCRIPT}' to be executable" >&2
@@ -17,19 +17,19 @@ if [[ -z "${output}" ]]; then
   exit 1
 fi
 
-[[ "${output}" == *"==> RALF LXC build plan"* ]] || {
+[[ "${output}" == *"==> Local AI LXC build plan"* ]] || {
   echo "Missing build plan banner in output" >&2
   echo "${output}" >&2
   exit 1
 }
 
-[[ "${output}" == *"[dry-run] Would run: pct create"* ]] || {
+[[ "${output}" == *"[dry-run] Would execute: pct create"* || "${output}" == *"[DRY-RUN] Would execute: pct create"* ]] || {
   echo "Missing pct create dry-run marker" >&2
   echo "${output}" >&2
   exit 1
 }
 
-[[ "${output}" == *"[dry-run] Would run: pct exec"* ]] || {
+[[ "${output}" == *"[dry-run] Would execute: pct exec"* || "${output}" == *"[DRY-RUN] Would execute: pct exec"* ]] || {
   echo "Missing pct exec dry-run marker" >&2
   echo "${output}" >&2
   exit 1
