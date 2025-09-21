@@ -1,4 +1,0 @@
----
-- name: Placeholder for base role
-  ansible.builtin.debug:
-    msg: "base role tasks to be implemented"

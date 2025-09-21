@@ -1,4 +1,0 @@
----
-- name: Placeholder for monitoring role
-  ansible.builtin.debug:
-    msg: "monitoring role tasks to be implemented"
