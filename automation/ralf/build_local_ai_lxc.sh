@@ -15,9 +15,9 @@ Options (can also be provided via environment variables):
   --bridge <name>      Proxmox bridge (env: RALF_LXC_BRIDGE, default: vmbr0)
   --ip <cidr|dhcp>     IPv4 assignment (env: RALF_LXC_IP, default: dhcp)
   --gw <address>       IPv4 gateway (env: RALF_LXC_GW)
-  --cores <count>      vCPU cores (env: RALF_LXC_CORES, default: 8)
-  --memory <mb>        Memory in MiB (env: RALF_LXC_MEMORY, default: 32768)
-  --disk <size>        Root disk size (env: RALF_LXC_DISK, default: 128G)
+  --cores <count>      vCPU cores (env: RALF_LXC_CORES, default: 2)
+  --memory <mb>        Memory in MiB (env: RALF_LXC_MEMORY, default: 4096)
+  --disk <size>        Root disk size (env: RALF_LXC_DISK, default: 24G)
   --storage <name>     Storage target (env: RALF_LXC_STORAGE, default: local-lvm)
   --mp0-host <path>    Host path for /srv/ralf (env: RALF_LXC_MP0_HOST, default: /srv/ralf)
   --mp1-host <path>    Optional host path for /srv/ralf/models (env: RALF_LXC_MP1_HOST)
@@ -243,9 +243,9 @@ HOSTNAME=${RALF_LXC_HOSTNAME:-lisa-llm}
 BRIDGE=${RALF_LXC_BRIDGE:-vmbr0}
 IP_ASSIGNMENT=${RALF_LXC_IP:-dhcp}
 GATEWAY=${RALF_LXC_GW:-}
-CORES=${RALF_LXC_CORES:-8}
-MEMORY=${RALF_LXC_MEMORY:-32768}
-DISK_SIZE=${RALF_LXC_DISK:-128G}
+CORES=${RALF_LXC_CORES:-2}
+MEMORY=${RALF_LXC_MEMORY:-4096}
+DISK_SIZE=${RALF_LXC_DISK:-24G}
 STORAGE=${RALF_LXC_STORAGE:-local-lvm}
 MP0_HOST=${RALF_LXC_MP0_HOST:-/srv/ralf}
 MP1_HOST=${RALF_LXC_MP1_HOST:-}
