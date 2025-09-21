@@ -1,0 +1,7 @@
+---
+- name: Placeholder for n8n role
+  ansible.builtin.debug:
+    msg: |
+      n8n role tasks to be implemented. Expected to provision the n8n service
+      with systemd units, configuration under {{ n8n_config_path }}, and ensure
+      the web interface listens on {{ n8n_listen_address }}:{{ n8n_listen_port }}.

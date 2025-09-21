@@ -68,11 +68,27 @@ gatewayctl set-backend \
 ```
 Use the provided runbook to rotate credentials; never hardcode tokens in configuration files.
 
+### Matrix & n8n Integrations
+The hybrid stack can broadcast automation events through Matrix by combining the
+Synapse webhook modules from `automation/integrations/matrix/` with the n8n
+workflow exports in `automation/integrations/n8n/`. Secrets such as Matrix
+access tokens or signing secrets are sourced from Vaultwarden via
+`automation/integrations/vaultwarden/fetch_secret.sh`.
+
+After importing the n8n workflow, create environment variables for
+`MATRIX_BASE_URL`, `MATRIX_ROOM_ID`, and `MATRIX_ACCESS_TOKEN`. Synapse forwards
+events to `https://n8n.homelab.lan/webhook/matrix/incident` and Element Web
+displays the resulting room updates automatically.
+
 ## Troubleshooting
 - **`ollama pull` fails with network timeout**: confirm outbound access and retry with `OLLAMA_HOST=https://proxy.yourdomain` if routing through a proxy.
 - **Docker compose services crash**: inspect logs via `docker compose logs -f <service>` and ensure GPU drivers (if applicable) are installed.
 - **Terraform apply prompts for credentials**: export the required environment variables before running `scripts/deploy_cloud_stack.sh`; check your secret manager if unsure.
 - **Gateway latency spikes**: verify the local node has GPU resources free; otherwise switch routing to the cloud backend temporarily using `gatewayctl`.
+- **Matrix incidents landen nicht im Raum**: Smoke-Test gegen
+  `https://synapse01:8448/_matrix/federation/v1/version` ausführen und prüfen,
+  ob der n8n-Webhook (`/healthz`) erreichbar ist. Tokens bei Bedarf über das
+  Vaultwarden-Skript neu ziehen.
 
 ## PR Merge Checklist
 Before requesting a merge into `main`, confirm the following:

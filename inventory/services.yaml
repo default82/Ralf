@@ -7,3 +7,6 @@ services:
   - "opentofu@opentofu01"
   - "postgresql@postgresql01:5432"
   - "semaphore@semaphore01:3000"
+  - "n8n@n8n01:5678"
+  - "synapse@synapse01:8448"
+  - "element-web@elementweb01:8443"
