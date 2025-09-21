@@ -1,0 +1,4 @@
+---
+- name: Placeholder for mail role
+  ansible.builtin.debug:
+    msg: "mail role tasks to be implemented"
