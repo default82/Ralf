@@ -1,8 +1,9 @@
 #!/usr/bin/env bash
 set -Eeuo pipefail
 
-REPO_DIR="/srv/ralf"
+REPO_DIR=${REPO_DIR:-/srv/ralf}
 AIDER_BIN=${AIDER_BIN:-aider}
+DEFAULT_ALLOWED_BRANCHES=(main feature/local-ai-hybrid)
 
 log() {
   local level="$1"
@@ -20,10 +21,13 @@ Launch aider with repository safeguards and sensible defaults for an
 OpenAI-compatible Ollama endpoint.
 
 Environment variables:
-  OPENAI_API_BASE  Base URL for the API (default: http://localhost:11434/v1)
-  OPENAI_API_KEY   API key to present (default: ollama)
-  OLLAMA_MODEL     Model name to request from aider (default: llama3:8b)
-  AIDER_BIN        aider executable to invoke (default: aider)
+  OPENAI_API_BASE       Base URL for the API (default: http://localhost:11434/v1)
+  OPENAI_API_KEY        API key to present (default: ollama)
+  OLLAMA_MODEL          Model name to request from aider (default: llama3:8b)
+  AIDER_BIN             aider executable to invoke (default: aider)
+  REPO_DIR              Repository path to guard (default: /srv/ralf)
+  RALF_ALLOWED_BRANCHES Space-separated list of allowed branches
+                        (default: "main feature/local-ai-hybrid")
 
 Additional arguments are forwarded directly to aider.
 USAGE
@@ -59,8 +63,35 @@ if ! git -C "${REPO_DIR}" symbolic-ref HEAD >/dev/null 2>&1; then
 fi
 
 current_branch=$(git -C "${REPO_DIR}" rev-parse --abbrev-ref HEAD 2>/dev/null || echo detached)
-if [[ "${current_branch}" != "main" ]]; then
-  log WARN "Current branch '${current_branch}' differs from default 'main'; continuing"
+
+allow_any_branch=false
+allowed_branches=()
+
+if [[ "${RALF_ALLOWED_BRANCHES-}" == "*" ]]; then
+  allow_any_branch=true
+elif [[ -n "${RALF_ALLOWED_BRANCHES-}" ]]; then
+  read -r -a allowed_branches <<<"${RALF_ALLOWED_BRANCHES}"
+else
+  allowed_branches=("${DEFAULT_ALLOWED_BRANCHES[@]}")
+fi
+
+if [[ "${current_branch}" == "detached" ]]; then
+  log WARN "Repository is in a detached HEAD state; continuing"
+elif [[ "${allow_any_branch}" != true ]]; then
+  if [[ ${#allowed_branches[@]} -eq 0 ]]; then
+    log WARN "No allowed branches configured; skipping branch validation"
+  else
+    branch_allowed=false
+    for branch in "${allowed_branches[@]}"; do
+      if [[ "${current_branch}" == "${branch}" ]]; then
+        branch_allowed=true
+        break
+      fi
+    done
+    if [[ "${branch_allowed}" != true ]]; then
+      log WARN "Current branch '${current_branch}' is not in the allowed set (${allowed_branches[*]}); continuing"
+    fi
+  fi
 fi
 
 if [[ -n "$(git -C "${REPO_DIR}" status --porcelain)" ]]; then
@@ -75,8 +106,10 @@ fi
 
 read -r -d '' SYSTEM_PROMPT <<'PROMPT' || true
 You are Ralf, the Repo Assistant for Local Fixes. Follow instructions from any
-AGENTS.md files in the repository, encourage good git hygiene, and help the
-user make well-scoped commits that keep the worktree clean.
+AGENTS.md files in the repository, encourage good git hygiene, remind the user
+to work on allowed branches (default: main, feature/local-ai-hybrid, or custom
+RALF_ALLOWED_BRANCHES), and help the user make well-scoped commits that keep
+the worktree clean.
 PROMPT
 
 log INFO "Launching aider in ${REPO_DIR}"
