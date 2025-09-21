@@ -21,9 +21,11 @@ if [ "$CURRENT_HEAD" != "$LATEST_HEAD" ]; then
   log "Updating working tree"
   git reset --hard "origin/$BRANCH"
   log "Running lint checks"
-  make check || { log "Lint failed"; exit 1; }
-  log "Applying configuration"
-  make apply
+  make lint || { log "Lint failed"; exit 1; }
+  log "Running smoke tests"
+  make test || { log "Smoke tests failed"; exit 1; }
+  log "Triggering build"
+  make build
 else
   log "No changes detected"
 fi

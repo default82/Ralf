@@ -25,14 +25,14 @@ Der Hybrid-Ansatz kombiniert lokale Ollama-Runs mit einem optionalen Cloud-Gatew
    - Sicherstellen, dass ausreichend Speicherplatz auf dem gemounteten Modellverzeichnis vorhanden ist.
 4. **Automations-Helfer aktivieren**
    - Aider-Wrapper ausführen (`wrapper/ralf-ai`) oder direkt das Script unter [`automation/ralf/rlwrap/ralf-ai.sh`](automation/ralf/rlwrap/ralf-ai.sh) verwenden.
-   - Weitere Automationsziele sind im [Makefile](Makefile) dokumentiert (z. B. `make check` für Linting/Validierung).
+   - Weitere Automationsziele sind im [Makefile](Makefile) dokumentiert (z. B. `make lint` für Shell-Linting, `make test` für Smoke-Tests).
 
 ## Nutzung
 ### Lokaler Betrieb (Proxmox LXC + Ollama)
 1. Container starten (`pct start 10060`) und Netzwerk prüfen (`pct status 10060`).
 2. `ollama serve` sicherstellen (ggf. via `systemctl --user status ollama` oder `ollama ps`).
 3. Aider mit lokalem Endpoint verbinden, z. B. `OLLAMA_HOST=http://<container-ip>:11434 aider`. Der Wrapper `wrapper/ralf-ai` setzt empfohlene Defaults (z. B. Modellname, Kontextpfade).
-4. Änderungen committen und wie gewohnt testen (`make check`).
+4. Änderungen committen und wie gewohnt testen (`make test`).
 
 ### Cloud-Fallback
 1. Umgebung auf denselben Code-Stand bringen (z. B. Git-Branch pushen).
@@ -47,7 +47,8 @@ Der Hybrid-Ansatz kombiniert lokale Ollama-Runs mit einem optionalen Cloud-Gatew
 - **Aider-Verbindung scheitert**: Endpoint-URL und offene Ports verifizieren (`ss -tulpn` im Container); bei Cloud-Fallback sicherstellen, dass Firewalls API-Zugriffe erlauben.
 
 ## PR-Checkliste
-- `make check` ausführen, um YAML- und Ansible-Linting zu validieren (siehe [Makefile](Makefile)).
+- `make lint` ausführen, um das Shell-Linting zu prüfen (siehe [Makefile](Makefile)).
+- `make test` ausführen, um die Smoke-Tests laufen zu lassen.
 - Relevante Skripte/Dokumentation aktualisieren (z. B. `automation/ralf/build_local_ai_lxc.sh`, `wrapper/ralf-ai`, diese README).
 - Funktionsprüfung dokumentieren (Testprotokoll im PR-Beschreibungstext).
 - Merge-Hinweis: Nach Review mit einem regulären Merge-Commit in den Hauptbranch übernehmen (kein Squash/Rebase).
