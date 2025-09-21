@@ -1,0 +1,59 @@
+meta:
+  name: RALF
+  version: 0.1
+principles:
+  - lxc_first
+  - gitops_pull
+  - hardware_agnostic
+  - least_privilege
+  - minimize_port_forwards
+  - single_source_of_truth
+roles:
+  controller:
+    desc: "Automation/Control"
+    ha: true
+  ingress:
+    desc: "Caddy Reverse Proxy"
+    ha: true
+  dns:
+    desc: "Lokaler DNS"
+    ha: true
+  auth:
+    desc: "Zentrale Auth"
+    ha: true
+  storage:
+    desc: "ZFS/Fileservices"
+    ha: maybe
+  monitoring:
+    desc: "Metrics/Alerts/Dashboards"
+    ha: true
+  backups:
+    desc: "Backup Orchestrator"
+    ha: maybe
+policies:
+  ipv6: false
+  vpn_only: false
+  ids_ips: false
+  fail2ban: false
+  ssh_key_only: true
+  cis_benchmark_like: true
+  golden_images: true
+  auto_security_updates_night: true
+  backup_encryption: true
+storage_classes:
+  fast:
+    compression: true
+    encrypt: true
+  bulk:
+    compression: false
+    encrypt: true
+  secure:
+    compression: true
+    encrypt: true
+    immutable: optional
+gitops:
+  model: pull
+  runner:
+    interval: "*/5 * * * *"
+    repo: "git@your.git/ralf.git"
+    path: "/srv/ralf"

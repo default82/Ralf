@@ -1,0 +1,54 @@
+---
+- name: Bootstrap Proxmox hosts
+  hosts: proxmox
+  become: true
+  gather_facts: true
+  tasks:
+    - name: Load Proxmox bridge configuration
+      ansible.builtin.include_vars:
+        file: ../../network/proxmox-bridges.yaml
+        name: bridge_config
+
+    - name: Apply vmbr0 configuration
+      community.general.proxmox_nic:
+        api_user: "{{ proxmox_api_user }}"
+        api_password: "{{ proxmox_api_token }}"
+        api_host: "{{ inventory_hostname }}"
+        node: "{{ inventory_hostname }}"
+        interface: vmbr0
+        bridge_ports: "{{ bridge_config.vmbr0.bridge_ports | default('eno1') }}"
+        address: "{{ bridge_config.vmbr0.address }}"
+        gateway: "{{ bridge_config.vmbr0.gateway }}"
+        mtu: 1500
+        autostart: true
+      notify: Restart networking
+
+    - name: Ensure GitOps runner service unit is present
+      ansible.builtin.copy:
+        src: ../../ci/gitops-runner.service
+        dest: /etc/systemd/system/gitops-runner.service
+        mode: "0644"
+
+    - name: Ensure GitOps runner timer is present
+      ansible.builtin.copy:
+        src: ../../ci/gitops-runner.timer
+        dest: /etc/systemd/system/gitops-runner.timer
+        mode: "0644"
+
+    - name: Install GitOps pull script
+      ansible.builtin.copy:
+        src: ../../ci/gitops-pull.sh
+        dest: /usr/local/bin/gitops-pull.sh
+        mode: "0755"
+
+    - name: Enable GitOps runner timer
+      ansible.builtin.systemd:
+        name: gitops-runner.timer
+        enabled: true
+        state: started
+
+  handlers:
+    - name: Restart networking
+      ansible.builtin.service:
+        name: networking
+        state: restarted
