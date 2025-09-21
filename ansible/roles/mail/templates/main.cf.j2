@@ -1,0 +1,15 @@
+myhostname = mail.{{ mail_domain }}
+mydomain = {{ mail_domain }}
+myorigin = $mydomain
+inet_interfaces = all
+inet_protocols = ipv4
+mydestination = localhost
+relayhost = [{{ mail_relay_host }}]:{{ mail_relay_port }}
+smtp_use_tls = yes
+smtp_tls_security_level = {{ mail_tls_policy }}
+smtp_sasl_auth_enable = yes
+smtp_sasl_password_maps = hash:{{ mail_config_dir }}/sasl_passwd
+smtp_sasl_security_options = noanonymous
+smtp_sasl_mechanism_filter = plain, login
+mynetworks = {{ mail_trusted_networks | join(', ') }}
+virtual_alias_maps = hash:{{ mail_config_dir }}/virtual

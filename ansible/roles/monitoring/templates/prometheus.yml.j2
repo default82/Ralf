@@ -1,0 +1,35 @@
+global:
+{%- for key, value in monitoring_prometheus_global | dictsort %}
+  {{ key }}: {{ value }}
+{%- endfor %}
+scrape_configs:
+{%- for job in monitoring_prometheus_scrape_configs %}
+  - job_name: {{ job.job_name }}
+{%- if job.metrics_path is defined %}
+    metrics_path: {{ job.metrics_path }}
+{%- endif %}
+{%- if job.params is defined %}
+    params:
+{%- for pkey, pvals in job.params.items() %}
+      {{ pkey }}:
+{%- for pval in pvals %}
+        - {{ pval }}
+{%- endfor %}
+{%- endfor %}
+{%- endif %}
+{%- if job.static_configs is defined %}
+    static_configs:
+{%- for static in job.static_configs %}
+      - targets:
+{%- for target in static.targets %}
+          - {{ target }}
+{%- endfor %}
+{%- if static.labels is defined %}
+        labels:
+{%- for lkey, lval in static.labels.items() %}
+          {{ lkey }}: {{ lval }}
+{%- endfor %}
+{%- endif %}
+{%- endfor %}
+{%- endif %}
+{%- endfor %}

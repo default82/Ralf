@@ -1,0 +1,44 @@
+route:
+{%- for key, value in monitoring_alertmanager_route.items() %}
+{%- if value is mapping %}
+  {{ key }}:
+{%- for skey, sval in value.items() %}
+{%- if sval is mapping %}
+    - {%- for kk, vv in sval.items() %}{{ kk }}: {{ vv }}{% if not loop.last %}, {% endif %}{%- endfor %}
+{%- elif sval is sequence %}
+    - {%- for item in sval %}
+      {%- if item is mapping %}
+        {%- set _dummy = namespace(first=true) %}
+        {%- for mk, mv in item.items() %}
+          {%- if _dummy.first %}{% set _dummy.first = false %}{% else %}, {% endif %}{{ mk }}: {{ mv }}
+        {%- endfor %}
+      {%- else %}
+        {{ item }}
+      {%- endif %}
+    {%- endfor %}
+{%- else %}
+    {{ sval }}
+{%- endif %}
+{%- endfor %}
+{%- else %}
+  {{ key }}: {{ value }}
+{%- endif %}
+{%- endfor %}
+receivers:
+{%- for receiver in monitoring_alertmanager_receivers %}
+  - name: {{ receiver.name }}
+{%- if receiver.email_configs is defined %}
+    email_configs:
+{%- for cfg in receiver.email_configs %}
+      - to: {{ cfg.to }}
+        send_resolved: {{ cfg.send_resolved | default(true) | lower }}
+{%- endfor %}
+{%- endif %}
+{%- if receiver.webhook_configs is defined %}
+    webhook_configs:
+{%- for cfg in receiver.webhook_configs %}
+      - url: {{ cfg.url }}
+        send_resolved: {{ cfg.send_resolved | default(true) | lower }}
+{%- endfor %}
+{%- endif %}
+{%- endfor %}

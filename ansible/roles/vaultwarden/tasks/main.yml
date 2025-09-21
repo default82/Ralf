@@ -1,4 +1,30 @@
 ---
-- name: Placeholder for vaultwarden role
-  ansible.builtin.debug:
-    msg: "vaultwarden role tasks to be implemented"
+- name: Ensure Vaultwarden directories exist
+  ansible.builtin.file:
+    path: "{{ item }}"
+    state: directory
+    owner: root
+    group: root
+    mode: "0750"
+  loop:
+    - "{{ vaultwarden_config_dir }}"
+    - "{{ vaultwarden_data_dir }}"
+
+- name: Render Vaultwarden environment file
+  ansible.builtin.copy:
+    dest: "{{ vaultwarden_env_file }}"
+    content: |
+{%- for key, value in vaultwarden_env | dictsort %}
+      {{ key }}={{ value }}
+{%- endfor %}
+    owner: root
+    group: root
+    mode: "0600"
+
+- name: Document SMTP settings
+  ansible.builtin.copy:
+    dest: "{{ vaultwarden_config_dir }}/smtp.yaml"
+    content: "{{ vaultwarden_smtp | to_nice_yaml }}\n"
+    owner: root
+    group: root
+    mode: "0600"

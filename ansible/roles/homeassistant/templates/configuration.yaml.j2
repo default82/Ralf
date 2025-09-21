@@ -1,0 +1,35 @@
+homeassistant:
+  name: RALF Home Automation
+  unit_system: metric
+  country: DE
+http:
+  base_url: {{ homeassistant_http.base_url }}
+  use_x_forwarded_for: {{ homeassistant_http.use_x_forwarded_for | default(true) | lower }}
+  trusted_proxies:
+{%- for proxy in homeassistant_http.trusted_proxies %}
+    - {{ proxy }}
+{%- endfor %}
+
+logger:
+  default: warning
+
+{% if homeassistant_integrations %}
+# Enabled integrations
+{%- for integration in homeassistant_integrations %}
+{{ integration.name }}:
+{%- if integration.options is mapping %}
+{%- for key, value in integration.options.items() %}
+  {{ key }}: {{ value }}
+{%- endfor %}
+{%- elif integration.options is sequence %}
+  - {%- for item in integration.options %}{{ item }}{% if not loop.last %}, {% endif %}{%- endfor %}
+{%- endif %}
+
+{%- endfor %}
+{% endif %}
+{% if homeassistant_automations %}
+automations:
+{%- for automation in homeassistant_automations %}
+  - {{ automation | to_nice_yaml(indent=4) | trim }}
+{%- endfor %}
+{% endif %}

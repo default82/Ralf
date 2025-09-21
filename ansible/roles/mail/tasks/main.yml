@@ -1,4 +1,47 @@
 ---
-- name: Placeholder for mail role
-  ansible.builtin.debug:
-    msg: "mail role tasks to be implemented"
+- name: Ensure mail directories exist
+  ansible.builtin.file:
+    path: "{{ item }}"
+    state: directory
+    owner: "{{ mail_service_user }}"
+    group: "{{ mail_service_group }}"
+    mode: "0750"
+  loop:
+    - "{{ mail_config_dir }}"
+    - "{{ mail_queue_dir }}"
+
+- name: Render Postfix main configuration
+  ansible.builtin.template:
+    src: main.cf.j2
+    dest: "{{ mail_config_dir }}/main.cf"
+    owner: "{{ mail_service_user }}"
+    group: "{{ mail_service_group }}"
+    mode: "0640"
+
+- name: Render SASL password map
+  ansible.builtin.copy:
+    dest: "{{ mail_config_dir }}/sasl_passwd"
+    owner: "{{ mail_service_user }}"
+    group: "{{ mail_service_group }}"
+    mode: "0600"
+    content: |
+      [{{ mail_relay_host }}]:{{ mail_relay_port }} {{ mail_relay_username }}:{{ lookup('file', mail_relay_password_file, errors='ignore') | default('CHANGE_ME', true) }}
+
+- name: Render virtual alias map
+  ansible.builtin.copy:
+    dest: "{{ mail_config_dir }}/virtual"
+    owner: "{{ mail_service_user }}"
+    group: "{{ mail_service_group }}"
+    mode: "0640"
+    content: |
+{%- for source, target in mail_virtual_aliases.items() %}
+      {{ source }} {{ target }}
+{%- endfor %}
+
+- name: Document trusted networks
+  ansible.builtin.copy:
+    dest: "{{ mail_config_dir }}/trusted_networks.yaml"
+    content: "{{ mail_trusted_networks | to_nice_yaml }}\n"
+    owner: "{{ mail_service_user }}"
+    group: "{{ mail_service_group }}"
+    mode: "0640"

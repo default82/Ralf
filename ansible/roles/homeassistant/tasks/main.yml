@@ -1,4 +1,24 @@
 ---
-- name: Placeholder for homeassistant role
-  ansible.builtin.debug:
-    msg: "homeassistant role tasks to be implemented"
+- name: Ensure Home Assistant configuration directory exists
+  ansible.builtin.file:
+    path: "{{ homeassistant_config_dir }}"
+    state: directory
+    owner: root
+    group: root
+    mode: "0750"
+
+- name: Render Home Assistant configuration
+  ansible.builtin.template:
+    src: configuration.yaml.j2
+    dest: "{{ homeassistant_config_dir }}/configuration.yaml"
+    owner: root
+    group: root
+    mode: "0640"
+
+- name: Render Home Assistant secrets
+  ansible.builtin.copy:
+    dest: "{{ homeassistant_secrets_file }}"
+    owner: root
+    group: root
+    mode: "0600"
+    content: "{{ homeassistant_secrets | to_nice_yaml }}\n"

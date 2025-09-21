@@ -1,4 +1,43 @@
 ---
-- name: Placeholder for Matrix Synapse deployment
-  debug:
-    msg: "Matrix Synapse role not yet implemented. Define tasks to install Synapse, PostgreSQL schema, and bot automation."
+- name: Ensure Matrix Synapse directories exist
+  ansible.builtin.file:
+    path: "{{ item }}"
+    state: directory
+    owner: root
+    group: root
+    mode: "0750"
+  loop:
+    - "{{ matrix_synapse_config_dir }}"
+    - "{{ matrix_synapse_media_dir }}"
+
+- name: Render homeserver configuration
+  ansible.builtin.template:
+    src: homeserver.yaml.j2
+    dest: "{{ matrix_synapse_config_dir }}/homeserver.yaml"
+    owner: root
+    group: root
+    mode: "0640"
+
+- name: Document Matrix Synapse version pin
+  ansible.builtin.copy:
+    dest: "{{ matrix_synapse_config_dir }}/VERSION"
+    content: "{{ matrix_synapse_version }}\n"
+    owner: root
+    group: root
+    mode: "0644"
+
+- name: Register Caddy site definition for Matrix
+  ansible.builtin.copy:
+    dest: "{{ matrix_synapse_config_dir }}/caddy-site.yaml"
+    content: "{{ matrix_synapse_caddy_site | to_nice_yaml }}\n"
+    owner: root
+    group: root
+    mode: "0644"
+
+- name: Persist Matrix admin metadata
+  ansible.builtin.copy:
+    dest: "{{ matrix_synapse_config_dir }}/admin.yaml"
+    content: "{{ matrix_synapse_admin_manifest | combine({'rooms': matrix_synapse_rooms}) | to_nice_yaml }}\n"
+    owner: root
+    group: root
+    mode: "0640"

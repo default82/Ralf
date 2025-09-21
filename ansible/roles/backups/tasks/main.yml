@@ -1,4 +1,70 @@
 ---
-- name: Placeholder for backups role
-  ansible.builtin.debug:
-    msg: "backups role tasks to be implemented"
+- name: Ensure backup directories exist
+  ansible.builtin.file:
+    path: "{{ item }}"
+    state: directory
+    owner: root
+    group: root
+    mode: "0750"
+  loop:
+    - "{{ backups_config_dir }}"
+    - "{{ backups_scripts_dir }}"
+    - "{{ backups_log_dir }}"
+
+- name: Render backup repository manifest
+  ansible.builtin.copy:
+    dest: "{{ backups_config_dir }}/repositories.yaml"
+    content: "{{ backups_repositories | to_nice_yaml }}\n"
+    owner: root
+    group: root
+    mode: "0640"
+
+- name: Generate backup wrapper script
+  ansible.builtin.copy:
+    dest: "{{ backups_scripts_dir }}/run-backups.sh"
+    mode: "0750"
+    owner: root
+    group: root
+    content: |
+      #!/usr/bin/env bash
+      set -euo pipefail
+      LOG_DIR={{ backups_log_dir }}
+      mkdir -p "$LOG_DIR"
+      {% raw %}ts(){ date '+%Y-%m-%dT%H:%M:%S%z'; }{% endraw %}
+      jq -c '.[]' <<'JSON' | while read -r repo; do
+{{ backups_repositories | to_json | indent(6, True) }}
+JSON
+        name=$(jq -r '.name' <<<"$repo")
+        repo_path=$(jq -r '.repo' <<<"$repo")
+        password_file=$(jq -r '.password_file' <<<"$repo")
+        includes=$(jq -r '.include[]?' <<<"$repo")
+        excludes=$(jq -r '.exclude[]?' <<<"$repo")
+        log_file="$LOG_DIR/${name}.log"
+        {
+          echo "$(ts) :: starting backup for $name"
+          INCLUDE_ARGS=""
+          EXCLUDE_ARGS=""
+          for include in $includes; do
+            INCLUDE_ARGS+=" --include $include"
+          done
+          for exclude in $excludes; do
+            EXCLUDE_ARGS+=" --exclude $exclude"
+          done
+          {{ backups_command }} -r "$repo_path" backup $INCLUDE_ARGS $EXCLUDE_ARGS --password-file "$password_file"
+          INCLUDE_ARGS=""
+          EXCLUDE_ARGS=""
+          {{ backups_command }} -r "$repo_path" forget --keep-daily {{ backups_retention.daily }} --keep-weekly {{ backups_retention.weekly }} --keep-monthly {{ backups_retention.monthly }} --prune --password-file "$password_file"
+          echo "$(ts) :: backup for $name completed"
+        } | tee "$log_file"
+      done
+      {% if backups_healthchecks.enabled %}
+      curl -fsS --retry 3 --data-raw '' {{ backups_healthchecks.url }} >/dev/null
+      {% endif %}
+
+- name: Record backup retention policy
+  ansible.builtin.copy:
+    dest: "{{ backups_config_dir }}/retention.yaml"
+    content: "{{ backups_retention | to_nice_yaml }}\n"
+    owner: root
+    group: root
+    mode: "0640"

@@ -1,4 +1,44 @@
 ---
-- name: Placeholder for monitoring role
-  ansible.builtin.debug:
-    msg: "monitoring role tasks to be implemented"
+- name: Ensure monitoring directories exist
+  ansible.builtin.file:
+    path: "{{ item }}"
+    state: directory
+    owner: root
+    group: root
+    mode: "0755"
+  loop:
+    - "{{ monitoring_config_dir }}"
+    - "{{ monitoring_rules_dir }}"
+    - "{{ monitoring_dashboards_dir }}"
+
+- name: Render Prometheus configuration
+  ansible.builtin.template:
+    src: prometheus.yml.j2
+    dest: "{{ monitoring_config_dir }}/prometheus.yml"
+    owner: root
+    group: root
+    mode: "0644"
+
+- name: Render Alertmanager configuration
+  ansible.builtin.template:
+    src: alertmanager.yml.j2
+    dest: "{{ monitoring_config_dir }}/alertmanager.yml"
+    owner: root
+    group: root
+    mode: "0644"
+
+- name: Persist dashboard metadata
+  ansible.builtin.copy:
+    dest: "{{ monitoring_dashboards_dir }}/dashboards.yaml"
+    content: "{{ monitoring_dashboards | to_nice_yaml }}\n"
+    owner: root
+    group: root
+    mode: "0644"
+
+- name: Persist recording rules metadata
+  ansible.builtin.copy:
+    dest: "{{ monitoring_rules_dir }}/rules.yaml"
+    content: "{{ monitoring_recording_rules | to_nice_yaml }}\n"
+    owner: root
+    group: root
+    mode: "0644"

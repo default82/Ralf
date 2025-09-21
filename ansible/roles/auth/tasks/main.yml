@@ -1,4 +1,34 @@
 ---
-- name: Placeholder for auth role
-  ansible.builtin.debug:
-    msg: "auth role tasks to be implemented"
+- name: Ensure auth user exists
+  ansible.builtin.user:
+    name: "{{ auth_service_user }}"
+    group: "{{ auth_service_group }}"
+    system: true
+    create_home: false
+
+- name: Ensure auth directories exist
+  ansible.builtin.file:
+    path: "{{ item }}"
+    state: directory
+    owner: "{{ auth_service_user }}"
+    group: "{{ auth_service_group }}"
+    mode: "0750"
+  loop:
+    - "{{ auth_config_dir }}"
+    - "{{ auth_secrets_dir }}"
+
+- name: Render Authelia configuration
+  ansible.builtin.template:
+    src: configuration.yml.j2
+    dest: "{{ auth_config_dir }}/configuration.yml"
+    owner: "{{ auth_service_user }}"
+    group: "{{ auth_service_group }}"
+    mode: "0640"
+
+- name: Document notifier settings
+  ansible.builtin.copy:
+    dest: "{{ auth_config_dir }}/notifier.yaml"
+    content: "{{ auth_notifier | to_nice_yaml }}\n"
+    owner: "{{ auth_service_user }}"
+    group: "{{ auth_service_group }}"
+    mode: "0600"

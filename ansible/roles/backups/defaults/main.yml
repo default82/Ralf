@@ -1,2 +1,34 @@
 ---
-# Default variables for backups
+ralf_root_dir: /srv/ralf
+ralf_state_dir: /var/lib/ralf
+
+backups_config_dir: "{{ ralf_state_dir }}/backups"
+backups_scripts_dir: "{{ ralf_root_dir }}/backups/scripts"
+backups_log_dir: "{{ ralf_root_dir }}/backups/logs"
+
+backups_repositories:
+  - name: fast-datasets
+    repo: "/mnt/fast/backup"
+    password_file: "{{ backups_config_dir }}/fast.pass"
+    schedule: "02:15"
+    include:
+      - "/srv/ralf"
+    exclude:
+      - "*.tmp"
+  - name: secure-datasets
+    repo: "/mnt/secure/backup"
+    password_file: "{{ backups_config_dir }}/secure.pass"
+    schedule: "03:30"
+    include:
+      - "/mnt/secure"
+
+backups_healthchecks:
+  enabled: true
+  url: "https://healthchecks.example/check/uuid"
+
+backups_retention:
+  daily: 7
+  weekly: 4
+  monthly: 6
+
+backups_command: restic

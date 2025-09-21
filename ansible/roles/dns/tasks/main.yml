@@ -1,4 +1,39 @@
 ---
-- name: Placeholder for dns role
-  ansible.builtin.debug:
-    msg: "dns role tasks to be implemented"
+- name: Ensure DNS service user exists
+  ansible.builtin.user:
+    name: "{{ dns_service_user }}"
+    group: "{{ dns_service_group }}"
+    system: true
+    create_home: false
+  when: dns_service_user is not none
+
+- name: Ensure DNS directories exist
+  ansible.builtin.file:
+    path: "{{ item }}"
+    state: directory
+    owner: "{{ dns_service_user }}"
+    group: "{{ dns_service_group }}"
+    mode: "0755"
+  loop:
+    - "{{ dns_config_dir }}"
+    - "{{ dns_config_dir }}/zones"
+    - "{{ dns_runtime_dir }}"
+
+- name: Render DNS manifest
+  ansible.builtin.copy:
+    dest: "{{ dns_config_dir }}/manifest.yaml"
+    content: "{{ dns_manifest | to_nice_yaml }}\n"
+    owner: "{{ dns_service_user }}"
+    group: "{{ dns_service_group }}"
+    mode: "0644"
+
+- name: Render DNS zones
+  ansible.builtin.copy:
+    dest: "{{ dns_config_dir }}/zones/{{ item.name }}.{{ dns_zone_mode }}"
+    content: "{{ item | to_nice_yaml }}\n"
+    owner: "{{ dns_service_user }}"
+    group: "{{ dns_service_group }}"
+    mode: "0644"
+  loop: "{{ dns_zones }}"
+  loop_control:
+    label: "{{ item.name }}"

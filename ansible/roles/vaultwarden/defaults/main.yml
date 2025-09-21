@@ -1,2 +1,27 @@
 ---
-# Default variables for vaultwarden
+ralf_state_dir: /var/lib/ralf
+ralf_root_dir: /srv/ralf
+
+vaultwarden_config_dir: "{{ ralf_state_dir }}/vaultwarden"
+vaultwarden_env_file: "{{ vaultwarden_config_dir }}/.env"
+vaultwarden_data_dir: "{{ ralf_root_dir }}/vaultwarden"
+
+vaultwarden_admin_token_file: "{{ vaultwarden_config_dir }}/admin.token"
+vaultwarden_domain: "https://vaultwarden.homelab.lan"
+vaultwarden_smtp:
+  host: "smtp.homelab.lan"
+  port: 587
+  from: "vaultwarden@homelab.lan"
+  username: "vaultwarden@homelab.lan"
+  password_file: "{{ vaultwarden_config_dir }}/smtp.pass"
+
+vaultwarden_env:
+  ROCKET_PORT: 8084
+  SIGNUPS_ALLOWED: "false"
+  DOMAIN: "{{ vaultwarden_domain }}"
+  ADMIN_TOKEN: "{{ lookup('file', vaultwarden_admin_token_file, errors='ignore') | default('CHANGE_ME', true) }}"
+  SMTP_HOST: "{{ vaultwarden_smtp.host }}"
+  SMTP_PORT: "{{ vaultwarden_smtp.port }}"
+  SMTP_FROM: "{{ vaultwarden_smtp.from }}"
+  SMTP_USERNAME: "{{ vaultwarden_smtp.username }}"
+  SMTP_PASSWORD: "{{ lookup('file', vaultwarden_smtp.password_file, errors='ignore') | default('CHANGE_ME', true) }}"

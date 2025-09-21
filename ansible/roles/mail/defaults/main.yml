@@ -1,2 +1,26 @@
 ---
-# Default variables for mail
+ralf_state_dir: /var/lib/ralf
+ralf_root_dir: /srv/ralf
+
+mail_config_dir: "{{ ralf_state_dir }}/mail"
+mail_queue_dir: "{{ ralf_root_dir }}/mail/queue"
+mail_service_user: postfix
+mail_service_group: postfix
+
+mail_domain: homelab.lan
+mail_relay_host: "smtp.relay.local"
+mail_relay_port: 587
+mail_relay_username: "relay@homelab.lan"
+mail_relay_password_file: "{{ mail_config_dir }}/relay.pass"
+mail_tls_policy: enforce
+
+mail_virtual_aliases:
+  "alerts@homelab.lan": "admin@homelab.lan"
+  "robot@homelab.lan": "admin@homelab.lan"
+
+mail_trusted_networks:
+  - "10.23.0.0/16"
+  - "127.0.0.0/8"
+
+mail_sasl_domains:
+  - homelab.lan

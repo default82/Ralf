@@ -1,2 +1,41 @@
 ---
-# Default variables for base
+# Default variables for base role
+ralf_root_dir: /srv/ralf
+ralf_state_dir: /var/lib/ralf
+ralf_config_dir: /etc/ralf
+
+base_packages:
+  - ca-certificates
+  - curl
+  - git
+  - jq
+  - gnupg
+  - python3
+  - python3-venv
+  - rsync
+  - vim
+
+base_directories:
+  - path: "{{ ralf_root_dir }}"
+    mode: "0755"
+  - path: "{{ ralf_state_dir }}"
+    mode: "0755"
+  - path: "{{ ralf_config_dir }}"
+    mode: "0755"
+  - path: "{{ ralf_root_dir }}/logs"
+    mode: "0755"
+  - path: "{{ ralf_root_dir }}/backups"
+    mode: "0750"
+
+base_shell_aliases:
+  lxc-ls: "lxc-ls --fancy"
+  k: "kubectl"
+  tf: "tofu"
+
+base_sysctl:
+  net.ipv4.ip_forward: "1"
+  vm.swappiness: "10"
+
+base_motd_header: |
+  Welcome to RALF – the homelab automation layer.
+  Managed by Ansible and GitOps; unintended changes will be reverted.

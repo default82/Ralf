@@ -1,0 +1,51 @@
+server:
+  host: 0.0.0.0
+  port: 9091
+  asset_path: /var/lib/authelia/assets
+session:
+  name: {{ auth_session.name }}
+  expiration: {{ auth_session.expiration }}
+  inactivity: {{ auth_session.inactivity }}
+  domain: {{ auth_session.domain }}
+identity_providers:
+  ldap:
+    implementation: custom
+    url: {{ auth_identity_backend.url }}
+    base_dn: {{ auth_identity_backend.base_dn }}
+    user: {{ auth_identity_backend.user }}
+    password_file: {{ auth_identity_backend.password_file }}
+access_control:
+  default_policy: {{ auth_access_control.default_policy }}
+  rules:
+{%- for rule in auth_access_control.rules %}
+    - domain: {{ rule.domain }}
+      policy: {{ rule.policy }}
+{%- if rule.resources is defined %}
+      resources:
+{%- for resource in rule.resources %}
+        - {{ resource }}
+{%- endfor %}
+{%- endif %}
+{%- if rule.subjects is defined %}
+      subject:
+{%- for subject in rule.subjects %}
+        - {{ subject }}
+{%- endfor %}
+{%- endif %}
+{%- endfor %}
+notifier:
+  {{ auth_notifier.type }}:
+    host: {{ auth_notifier.host }}
+    port: {{ auth_notifier.port }}
+    username: {{ auth_notifier.username }}
+    password_file: {{ auth_notifier.password_file }}
+    sender: {{ auth_notifier.sender }}
+
+regulation:
+  max_retries: 3
+  find_time: 120
+  ban_time: 300
+
+totp:
+  issuer: {{ auth_totp.issuer }}
+  period: {{ auth_totp.period }}

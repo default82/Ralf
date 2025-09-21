@@ -1,0 +1,39 @@
+{%- if caddy_global_options %}
+{
+{%- if caddy_global_options.email %}
+  email {{ caddy_global_options.email }}
+{%- endif %}
+{%- if caddy_global_options.http_port is defined %}
+  http_port {{ caddy_global_options.http_port }}
+{%- endif %}
+{%- if caddy_global_options.https_port is defined %}
+  https_port {{ caddy_global_options.https_port }}
+{%- endif %}
+{%- if caddy_global_options.auto_https is defined and not caddy_global_options.auto_https %}
+  auto_https off
+{%- endif %}
+}
+
+{%- endif %}
+{%- for site in caddy_sites %}
+{{ site.host }} {
+{%- if site.tls_internal %}
+  tls internal
+{%- else %}
+  tls {{ caddy_global_options.email | default('') }}
+{%- endif %}
+  reverse_proxy {{ site.upstream }}
+{%- if site.headers is defined %}
+  header {
+  {%- for key, value in site.headers | dictsort %}
+    {{ key }} "{{ value }}"
+  {%- endfor %}
+  }
+{%- endif %}
+}
+
+{%- endfor %}
+{%- for snippet in caddy_additional_snippets %}
+{{ snippet | trim }}
+
+{%- endfor %}
