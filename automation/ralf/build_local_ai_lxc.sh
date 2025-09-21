@@ -158,7 +158,21 @@ net_config() {
 ensure_template() {
   local template_path="${STORAGE}:vztmpl/${DEFAULT_TEMPLATE}"
   if command_available pveam; then
-    if pveam list "${STORAGE}" 2>/dev/null | awk '{print $1}' | grep -Fx "${template_path}" >/dev/null; then
+    local found=0
+    local column1 column2 rest
+    while read -r column1 column2 rest; do
+      [[ -z ${column1:-} ]] && continue
+      [[ ${column1,,} == name ]] && continue
+      if [[ ${column1} == "${template_path}" ]]; then
+        found=1
+        break
+      fi
+      if [[ ${column1} == "${STORAGE}:vztmpl" && ${column2:-} == "${DEFAULT_TEMPLATE}" ]]; then
+        found=1
+        break
+      fi
+    done < <(pveam list "${STORAGE}" 2>/dev/null || true)
+    if (( found )); then
       log "Template ${template_path} already present"
       return
     fi
