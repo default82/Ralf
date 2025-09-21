@@ -29,7 +29,6 @@ See `defaults/main.yml` for the complete list of tunables.
 - [ ] Document mailbox provisioning and service integrations.
 
 See [docs/TODO.md](../../../docs/TODO.md#mail-role) for the authoritative backlog.
-=======
 
 ## Default behaviour
 - Installs the packages defined in `mail_packages` (defaults to Postfix).

@@ -40,6 +40,9 @@ policies:
   golden_images: true
   auto_security_updates_night: true
   backup_encryption: true
+  ai:
+    provider: cloud
+    no_secrets_to_ai: true
 storage_classes:
   fast:
     compression: true

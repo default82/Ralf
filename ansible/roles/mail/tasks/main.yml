@@ -43,8 +43,6 @@
     enabled: "{{ mail_service_enabled }}"
     state: "{{ mail_service_state }}"
 
-=======
-=======
 - name: Ensure Postfix is installed
   ansible.builtin.package:
     name: postfix
@@ -53,3 +51,4 @@
 - name: Placeholder for mail role
   ansible.builtin.debug:
     msg: "mail role tasks to be implemented"
+

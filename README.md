@@ -36,6 +36,15 @@ The repository layers several automation tools:
 - **CLI wrapper** (`cli/ralf.sh`) offers friendly entrypoints for recurring workflows.
 - **Supporting scripts** like [`scripts/lisa_build_lxc.sh`](scripts/lisa_build_lxc.sh) prepare LXC templates prior to Ansible runs and can be orchestrated through Semaphore UI or Foreman hooks.
 - **OpenTofu/Terraform** modules can be added under `automation/` (to be created) for declarative Proxmox resource management.
+- **Cloud AI advisor** integrates with OpenAI via the `ai-*` Make targets to review cluster health and propose diffs without mutating the repo directly.
+
+### AI Advisor Workflow
+The `ai-check` target wraps three shell scripts to prepare advisory requests:
+1. [`scripts/ai_collect.sh`](scripts/ai_collect.sh) gathers cluster status from `pvecm`, `pvesh`, `zpool status`, and `ansible-lint` (gracefully skipping absent tools).
+2. [`scripts/ai_redact.sh`](scripts/ai_redact.sh) redacts secrets, tokens, keys, and PEM blocks before sharing any context.
+3. [`scripts/ai_advisor.sh`](scripts/ai_advisor.sh) loads the sanitised context into [`ai/prompts/advisor_request.tmpl`](ai/prompts/advisor_request.tmpl) and calls the OpenAI Chat Completions API. Responses are archived under `reports/ai/`.
+
+The SOPS-encrypted key material for API access belongs in [`secrets/ai.sops.yaml`](secrets/ai.sops.yaml). The resulting advisor report should contain unified diffs; when it does, `make ai-pr` creates a feature branch with the staged changes and pushes it to `origin` for review.
 
 ## Key Services
 Core services deployed through `ansible/playbooks/deploy-core.yaml`:
@@ -90,7 +99,8 @@ ralf/
 │       ├── vaultwarden/
 │       └── homeassistant/
 ├── secrets/
-│   └── .sops.yaml
+│   ├── .sops.yaml
+│   └── ai.sops.yaml
 ├── ci/
 │   ├── gitops-runner.service
 │   ├── gitops-runner.timer
@@ -108,13 +118,23 @@ ralf/
 │   ├── runbooks/
 │   └── policies/
 ├── scripts/
+│   ├── ai_collect.sh
+│   ├── ai_advisor.sh
+│   ├── ai_redact.sh
 │   ├── hardening.sh
 │   └── lisa_build_lxc.sh
+├── ai/
+│   └── prompts/
+│       └── advisor_request.tmpl
+├── reports/
+│   └── ai/
+│       └── .gitkeep
 ```
 
 ## Prerequisites
 - Proxmox VE host(s) with VLAN tagging and ZFS pools (`fast`, `bulk`, `secure`) provisioned.
 - Administrative workstation with Git, Ansible, Packer, SOPS/age, and OpenTofu (optional) installed.
+- `curl`, `jq`, and `sops` available locally to run the AI advisor workflow plus an OpenAI API key encrypted in [`secrets/ai.sops.yaml`](secrets/ai.sops.yaml).
 - SSH key material staged on each Proxmox node under `/root/keys/` for passwordless automation.
 - Age key pair stored locally and referenced by [`secrets/.sops.yaml`](secrets/.sops.yaml).
 - Valid domain/ACME email for Caddy plus upstream DNS forwarders.
