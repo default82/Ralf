@@ -1,0 +1,4 @@
+---
+- name: Placeholder for caddy role
+  ansible.builtin.debug:
+    msg: "caddy role tasks to be implemented"

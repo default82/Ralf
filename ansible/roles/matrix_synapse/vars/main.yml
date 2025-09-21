@@ -1,0 +1,5 @@
+---
+matrix_synapse_rooms:
+  - name: "#ralf-notify"
+    visibility: private
+matrix_synapse_bot_user: "ralf-bot"

@@ -1,0 +1,22 @@
+all:
+  vars:
+    ansible_user: root
+    acme_email: admin@homelab.lan
+    domain: homelab.lan
+    dns_forwarders:
+      - 1.1.1.1
+      - 9.9.9.9
+proxmox:
+  vars:
+    proxmox_api_user: root@pam
+    proxmox_api_token: changeme
+core:
+  vars:
+    monitoring_contact: oncall@homelab.lan
+services:
+  vars:
+    service_owner: homelab
+matrix:
+  vars:
+    matrix_domain: matrix.homelab.lan
+    matrix_admin_user: matrix-admin

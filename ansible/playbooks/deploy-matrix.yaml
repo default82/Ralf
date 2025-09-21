@@ -1,0 +1,7 @@
+---
+- name: Deploy Matrix Synapse backbone
+  hosts: matrix
+  become: true
+  gather_facts: true
+  roles:
+    - matrix_synapse

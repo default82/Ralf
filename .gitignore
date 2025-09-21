@@ -1,0 +1,9 @@
+# Secrets and transient artifacts
+secrets/age-keys/
+network/caddy/acme.json
+images/golden/vars.pkr.hcl
+/vars/
+reports/scans/*.json
+*.retry
+*.log
+__pycache__/

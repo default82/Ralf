@@ -1,0 +1,34 @@
+---
+- name: RALF base configuration
+  hosts: all
+  become: true
+  gather_facts: true
+  roles:
+    - base
+
+- name: Deploy core platform services
+  hosts: core
+  become: true
+  gather_facts: true
+  roles:
+    - dns
+    - caddy
+    - auth
+    - monitoring
+    - backups
+
+- name: Deploy matrix backbone
+  hosts: matrix
+  become: true
+  gather_facts: true
+  roles:
+    - matrix_synapse
+
+- name: Deploy service catalogue
+  hosts: services
+  become: true
+  gather_facts: true
+  roles:
+    - vaultwarden
+    - mail
+    - homeassistant

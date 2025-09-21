@@ -1,0 +1,5 @@
+---
+matrix_synapse_version: latest
+matrix_synapse_postgres_host: localhost
+matrix_synapse_admin_user: "matrix-admin"
+matrix_synapse_enable_bot: true

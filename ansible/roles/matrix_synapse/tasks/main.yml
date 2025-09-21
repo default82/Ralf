@@ -1,0 +1,4 @@
+---
+- name: Placeholder for Matrix Synapse deployment
+  debug:
+    msg: "Matrix Synapse role not yet implemented. Define tasks to install Synapse, PostgreSQL schema, and bot automation."

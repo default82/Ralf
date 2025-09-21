@@ -1,0 +1,4 @@
+---
+- name: Placeholder for vaultwarden role
+  ansible.builtin.debug:
+    msg: "vaultwarden role tasks to be implemented"

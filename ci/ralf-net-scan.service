@@ -1,0 +1,9 @@
+[Unit]
+Description=RALF network discovery scan
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+Type=oneshot
+WorkingDirectory=/srv/ralf
+ExecStart=/srv/ralf/scripts/ralf-net-scan.sh --once
