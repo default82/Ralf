@@ -8,38 +8,22 @@ usage() {
 Usage: ralf.sh <command>
 
 Commands:
-  bootstrap      Run initial Proxmox bootstrap
-  images         Build golden images
-  deploy-core    Deploy core services stack
-  deploy-services Deploy service catalog workloads
-  check-backups  Verify encrypted backup restores
-  health         Run health checks
-  logs           Tail GitOps runner logs
+  lint           Run ShellCheck on automation scripts
+  test           Execute Makefile smoke tests
+  build          Build the local AI LXC image
   help           Show this message
 USAGE
 }
 
 case "$COMMAND" in
-  bootstrap)
-    make bootstrap
+  lint)
+    make lint
     ;;
-  images)
-    make images
+  test)
+    make test
     ;;
-  deploy-core)
-    make apply CORE_ONLY=true
-    ;;
-  deploy-services)
-    make apply SERVICES_ONLY=true
-    ;;
-  check-backups)
-    make verify-backups
-    ;;
-  health)
-    ansible-playbook ansible/playbooks/deploy-core.yaml --check
-    ;;
-  logs)
-    journalctl -u gitops-runner.service -f
+  build)
+    make build
     ;;
   help|*)
     usage
