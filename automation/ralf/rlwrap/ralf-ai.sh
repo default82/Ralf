@@ -20,9 +20,9 @@ Launch aider with repository safeguards and sensible defaults for an
 OpenAI-compatible Ollama endpoint.
 
 Environment variables:
-  OPENAI_API_BASE  Base URL for the API (default: http://127.0.0.1:11434/v1)
+  OPENAI_API_BASE  Base URL for the API (default: http://localhost:11434/v1)
   OPENAI_API_KEY   API key to present (default: ollama)
-  OLLAMA_MODEL     Model name to request from aider (default: llama3)
+  OLLAMA_MODEL     Model name to request from aider (default: llama3:8b)
   AIDER_BIN        aider executable to invoke (default: aider)
 
 Additional arguments are forwarded directly to aider.
@@ -34,9 +34,9 @@ if [[ "${1-}" == "--help" || "${1-}" == "-h" ]]; then
   exit 0
 fi
 
-OPENAI_API_BASE=${OPENAI_API_BASE:-http://127.0.0.1:11434/v1}
+OPENAI_API_BASE=${OPENAI_API_BASE:-http://localhost:11434/v1}
 OPENAI_API_KEY=${OPENAI_API_KEY:-ollama}
-OLLAMA_MODEL=${OLLAMA_MODEL:-llama3}
+OLLAMA_MODEL=${OLLAMA_MODEL:-llama3:8b}
 OPENAI_MODEL=${OPENAI_MODEL:-$OLLAMA_MODEL}
 
 export OPENAI_API_BASE OPENAI_API_KEY OPENAI_MODEL
