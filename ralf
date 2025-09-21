@@ -1,0 +1,90 @@
+#!/usr/bin/env bash
+set -Eeuo pipefail
+
+SCRIPT_NAME="${0##*/}"
+REPO_DIR="/srv/ralf"
+AIDER_BIN=${AIDER_BIN:-aider}
+
+log() {
+  local level="$1"
+  shift
+  printf '[%s] %s: %s\n' "$(date -u +'%Y-%m-%dT%H:%M:%SZ')" "$level" "$*" >&2
+}
+
+show_help() {
+  cat <<'USAGE'
+Usage: ralf [OPTIONS] [--] [AIDER ARGUMENTS...]
+
+Wrapper around aider that ensures the /srv/ralf repository is ready and
+configures defaults for using the local Ollama OpenAI-compatible endpoint.
+
+Options:
+  -h, --help    Show this help message and exit.
+
+Environment:
+  OPENAI_API_BASE  Base URL for the OpenAI-compatible endpoint (default:
+                   http://127.0.0.1:11434/v1).
+  OPENAI_API_KEY   API key presented to the endpoint (default: ollama).
+  OLLAMA_MODEL     Model name used with aider (default: llama3).
+  AIDER_BIN        aider executable to use (default: aider).
+
+Any additional arguments are forwarded directly to aider.
+USAGE
+}
+
+if [[ "${1-}" == "-h" || "${1-}" == "--help" ]]; then
+  show_help
+  exit 0
+fi
+
+OPENAI_API_BASE=${OPENAI_API_BASE:-http://127.0.0.1:11434/v1}
+OPENAI_API_KEY=${OPENAI_API_KEY:-ollama}
+OLLAMA_MODEL=${OLLAMA_MODEL:-llama3}
+
+export OPENAI_API_BASE OPENAI_API_KEY
+export OPENAI_MODEL="${OPENAI_MODEL:-$OLLAMA_MODEL}"
+
+if [[ ! -d "$REPO_DIR" ]]; then
+  log INFO "Creating repository directory $REPO_DIR"
+  mkdir -p "$REPO_DIR"
+fi
+
+if [[ ! -d "$REPO_DIR/.git" ]]; then
+  log INFO "Initialising git repository in $REPO_DIR"
+  git init "$REPO_DIR" >/dev/null
+fi
+
+git -C "$REPO_DIR" symbolic-ref HEAD >/dev/null 2>&1 || {
+  log INFO "Setting default branch to main"
+  git -C "$REPO_DIR" symbolic-ref HEAD refs/heads/main
+}
+
+current_branch=$(git -C "$REPO_DIR" rev-parse --abbrev-ref HEAD 2>/dev/null || echo detached)
+if [[ "$current_branch" != "main" ]]; then
+  log ERROR "Refusing to run on branch '$current_branch'; switch to 'main' first"
+  exit 1
+fi
+
+if [[ -n "$(git -C "$REPO_DIR" status --porcelain)" ]]; then
+  log ERROR "Repository has uncommitted changes; please commit or stash them first"
+  exit 1
+fi
+
+if ! command -v "$AIDER_BIN" >/dev/null 2>&1; then
+  log ERROR "Could not find aider executable '$AIDER_BIN'"
+  exit 127
+fi
+
+read -r -d '' SYSTEM_PROMPT <<'PROMPT'
+You are Ralf, the Repo Assistant for Local Fixes. Follow instructions from any
+AGENTS.md files in the repository, respect git branch discipline by working on
+the main branch only, and help the user make well-scoped commits that keep the
+worktree clean.
+PROMPT
+
+log INFO "Launching aider in $REPO_DIR using model $OLLAMA_MODEL"
+
+exec "$AIDER_BIN" \
+  --model "$OLLAMA_MODEL" \
+  --system-prompt "$SYSTEM_PROMPT" \
+  "$@"
