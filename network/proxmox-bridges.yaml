@@ -1,0 +1,9 @@
+vmbr0:
+  address: 10.23.10.2/24
+  gateway: 10.23.10.1
+  bridge_ports: eno1
+  vlans: [10, 20, 30, 40]
+lxc_defaults:
+  unprivileged: true
+  features:
+    - nesting

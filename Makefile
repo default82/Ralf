@@ -1,15 +1,32 @@
-SHELL := /usr/bin/env bash
 
-.PHONY: lint test build
+.PHONY: check lint packer-validate images bootstrap apply verify-backups
+
+check: lint packer-validate
 
 lint:
-	./tests/shellcheck.sh
+	yamllint inventory ansible/playbooks network architecture.yaml
+	ansible-lint ansible/playbooks
 
-test: lint
-	./tests/smoke_build_lxc.sh
-	./tests/smoke_wrapper.sh
+packer-validate:
+	packer validate -var-file=images/golden/vars.pkr.hcl.example images/golden/lxc-debian-bookworm.pkr.hcl
+	packer validate -var-file=images/golden/vars.pkr.hcl.example images/golden/vm-debian-bookworm.pkr.hcl
 
-BUILD_FLAGS ?= --dry-run
+images:
+	packer build -var-file=images/golden/vars.pkr.hcl.example images/golden/lxc-debian-bookworm.pkr.hcl
+	packer build -var-file=images/golden/vars.pkr.hcl.example images/golden/vm-debian-bookworm.pkr.hcl
 
-build:
-	sudo bash automation/ralf/build_local_ai_lxc.sh $(BUILD_FLAGS)
+bootstrap:
+	ansible-playbook ansible/playbooks/bootstrap-proxmox.yaml
+
+apply:
+	@if [ "$${CORE_ONLY:-false}" = "true" ]; then \
+		ansible-playbook ansible/playbooks/deploy-core.yaml; \
+	elif [ "$${SERVICES_ONLY:-false}" = "true" ]; then \
+		ansible-playbook ansible/playbooks/deploy-services.yaml; \
+	else \
+		ansible-playbook ansible/playbooks/site.yaml; \
+	fi
+
+verify-backups:
+	ansible-playbook ansible/playbooks/backups-verify.yaml
+

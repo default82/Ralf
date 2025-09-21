@@ -1,0 +1,48 @@
+---
+# Default variables for mail role
+mail_packages:
+  - postfix
+
+mail_directories:
+  - path: /etc/postfix/maps
+    owner: root
+    group: root
+    mode: '0755'
+  - path: /var/lib/postfix
+    owner: postfix
+    group: postfix
+    mode: '0750'
+
+mail_hostname: "{{ inventory_hostname }}"
+mail_domain: "{{ domain | default('localhost.localdomain') }}"
+mail_myorigin: "{{ mail_domain }}"
+mail_relayhost: ""
+mail_inet_interfaces: "all"
+mail_inet_protocols: "all"
+mail_my_destination:
+  - "{{ mail_hostname }}"
+  - localhost.localdomain
+  - localhost
+mail_extra_my_destination: []
+mail_virtual_alias_maps: []
+mail_main_cf_extra_parameters:
+  append_dot_mydomain: "no"
+  biff: "no"
+  mailbox_size_limit: "0"
+  readme_directory: "no"
+  recipient_delimiter: "+"
+  smtp_tls_security_level: "may"
+  smtp_tls_note_starttls_offer: "yes"
+  smtp_use_tls: "yes"
+  smtpd_tls_cert_file: "/etc/ssl/certs/ssl-cert-snakeoil.pem"
+  smtpd_tls_key_file: "/etc/ssl/private/ssl-cert-snakeoil.key"
+  smtpd_tls_security_level: "may"
+  smtpd_use_tls: "yes"
+  smtpd_recipient_restrictions: "permit_mynetworks permit_sasl_authenticated defer_unauth_destination"
+  alias_maps: "hash:/etc/aliases"
+  alias_database: "hash:/etc/aliases"
+mail_manage_aliases: true
+mail_root_alias: "{{ service_owner | default('root') }}"
+mail_aliases: []
+mail_service_enabled: true
+mail_service_state: started
