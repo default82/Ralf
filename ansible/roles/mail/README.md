@@ -30,6 +30,7 @@ See `defaults/main.yml` for the complete list of tunables.
 
 See [docs/TODO.md](../../../docs/TODO.md#mail-role) for the authoritative backlog.
 
+
 ## Default behaviour
 - Installs the packages defined in `mail_packages` (defaults to Postfix).
 - Ensures supporting directories exist before configuration templates are deployed.
@@ -49,3 +50,4 @@ Key variables can be overridden as needed:
 - `mail_service_enabled`, `mail_service_state` – service management flags.
 
 See `defaults/main.yml` for the complete list of tunables.
+

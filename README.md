@@ -34,7 +34,7 @@ The repository layers several automation tools:
 - **Ansible** roles and playbooks in `ansible/` manage bootstrap, core services, catalogue workloads, and backup verification.
 - **GitOps runner** (`ci/gitops-pull.sh` with corresponding systemd units) enforces pull-based reconciliation.
 - **CLI wrapper** (`cli/ralf.sh`) offers friendly entrypoints for recurring workflows.
-- **Supporting scripts** like [`scripts/lisa_build_lxc.sh`](scripts/lisa_build_lxc.sh) prepare LXC templates prior to Ansible runs and can be orchestrated through Semaphore UI or Foreman hooks.
+- **Supporting scripts** like [`scripts/lisa_build_lxc.sh`](scripts/lisa_build_lxc.sh) prepare LXC templates prior to Ansible runs, while [`scripts/ralf-lxc-lab.sh`](scripts/ralf-lxc-lab.sh) can rapidly stand up an isolated LXC lab for testing the playbooks.
 - **OpenTofu/Terraform** modules can be added under `automation/` (to be created) for declarative Proxmox resource management.
 - **Cloud AI advisor** integrates with OpenAI via the `ai-*` Make targets to review cluster health and propose diffs without mutating the repo directly.
 
@@ -122,7 +122,7 @@ ralf/
 │   ├── ai_advisor.sh
 │   ├── ai_redact.sh
 │   ├── hardening.sh
-│   └── lisa_build_lxc.sh
+
 ├── ai/
 │   └── prompts/
 │       └── advisor_request.tmpl
@@ -143,7 +143,11 @@ ralf/
 ## High-Level Setup Steps
 1. **Run Installer** – Execute `scripts/ralf-installer.sh` to capture domain, networking, and service LXC mappings for your homelab.
 2. **Clone & Configure** – Fork/clone the repo, copy `images/golden/vars.pkr.hcl.example` to `vars.pkr.hcl`, and adjust `inventory/` host variables, VLAN definitions, and `architecture.yaml` metadata for your environment.
+
+3. **Prepare LXC Templates** – Run `scripts/lisa_build_lxc.sh` (directly or via Semaphore UI) to seed required templates on Proxmox. To validate playbooks safely, `scripts/ralf-lxc-lab.sh` can provision disposable service containers on a development node using the same network layout as the inventory.
+
 3. **Prepare LXC Templates** – Run `scripts/lisa_build_lxc.sh` (directly or via Semaphore UI) to seed required templates on Proxmox.
+
 4. **Generate Golden Images** – Execute `make images` (or `cli/ralf.sh images`) to build LXC/VM templates using Packer.
 5. **Bootstrap Proxmox** – Run `make bootstrap` to apply network bridges, install the GitOps runner, and register automation prerequisites.
 6. **Deploy Core Services** – Apply `make apply` or `cli/ralf.sh deploy-core` to provision DNS, Caddy, authentication, monitoring, and backups.
