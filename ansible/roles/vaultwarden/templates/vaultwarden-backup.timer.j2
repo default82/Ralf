@@ -1,0 +1,10 @@
+[Unit]
+Description=Vaultwarden backup schedule
+
+[Timer]
+OnCalendar={{ vaultwarden_backup_oncalendar }}
+Persistent=true
+Unit=vaultwarden-backup.service
+
+[Install]
+WantedBy=timers.target
