@@ -123,7 +123,6 @@ ralf/
 │   ├── ai_redact.sh
 │   ├── hardening.sh
 
-├── ai/
 │   └── prompts/
 │       └── advisor_request.tmpl
 ├── reports/
@@ -143,10 +142,6 @@ ralf/
 ## High-Level Setup Steps
 1. **Run Installer** – Execute `scripts/ralf-installer.sh` to capture domain, networking, and service LXC mappings for your homelab.
 2. **Clone & Configure** – Fork/clone the repo, copy `images/golden/vars.pkr.hcl.example` to `vars.pkr.hcl`, and adjust `inventory/` host variables, VLAN definitions, and `architecture.yaml` metadata for your environment.
-
-3. **Prepare LXC Templates** – Run `scripts/lisa_build_lxc.sh` (directly or via Semaphore UI) to seed required templates on Proxmox. To validate playbooks safely, `scripts/ralf-lxc-lab.sh` can provision disposable service containers on a development node using the same network layout as the inventory.
-
-3. **Prepare LXC Templates** – Run `scripts/lisa_build_lxc.sh` (directly or via Semaphore UI) to seed required templates on Proxmox.
 
 4. **Generate Golden Images** – Execute `make images` (or `cli/ralf.sh images`) to build LXC/VM templates using Packer.
 5. **Bootstrap Proxmox** – Run `make bootstrap` to apply network bridges, install the GitOps runner, and register automation prerequisites.

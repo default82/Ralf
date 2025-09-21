@@ -218,9 +218,11 @@ main() {
   SERVICES_GATEWAY=$(prompt "Services gateway" "10.23.20.1")
   SERVICES_VLAN=$(prompt "Services VLAN ID" "20")
 
+
   STORAGE_SUBNET=$(prompt "Storage subnet" "10.23.30.0/24")
   STORAGE_GATEWAY=$(prompt "Storage gateway" "10.23.30.1")
   STORAGE_VLAN=$(prompt "Storage VLAN ID" "30")
+
 
   DMZ_SUBNET=$(prompt "DMZ subnet" "10.23.40.0/24")
   DMZ_GATEWAY=$(prompt "DMZ gateway" "10.23.40.1")
@@ -245,8 +247,7 @@ main() {
   PROXMOX_IPS=()
   for ((i=1; i<=node_count; i++)); do
     local default_name="pve$((i-1))"
-    local default_ip_octet=$((10 + i - 1))
-    local default_ip="10.23.10.${default_ip_octet}"
+
     local name ip
     name=$(prompt "Hostname for Proxmox node #${i}" "${default_name}")
     ip=$(prompt "Management IP for ${name}" "${default_ip}")
@@ -268,24 +269,17 @@ main() {
     [homeassistant]="homeassistant01"
   )
 
-  declare -A default_ips=(
-    [dns]="10.23.20.10"
-    [caddy]="10.23.20.20"
-    [auth]="10.23.20.30"
-    [monitoring]="10.23.20.40"
-    [backups]="10.23.30.10"
-    [vaultwarden]="10.23.20.50"
-    [mail]="10.23.20.60"
-    [homeassistant]="10.23.20.70"
+
   )
 
   echo "\nConfigure service LXCs (one per service)."
   for service in dns caddy auth monitoring backups vaultwarden mail homeassistant; do
+
     local host_prompt="Hostname for ${service} LXC"
     local ip_prompt="IP address for ${service} (${service} runs in its own LXC)"
     local hostname ip
     hostname=$(prompt "${host_prompt}" "${default_names[$service]}")
-    ip=$(prompt "${ip_prompt}" "${default_ips[$service]}")
+
     SERVICE_HOSTNAMES[$service]="${hostname}"
     SERVICE_IPS[$service]="${ip}"
   done
