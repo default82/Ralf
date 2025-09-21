@@ -110,7 +110,6 @@ ralf/
 ├── scripts/
 │   ├── hardening.sh
 │   └── lisa_build_lxc.sh
-└── .gitignore
 ```
 
 ## Prerequisites
