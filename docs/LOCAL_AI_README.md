@@ -1,3 +1,4 @@
+
 # Local AI Hybrid Guide
 
 ## Architecture Overview
@@ -73,3 +74,4 @@ Before requesting a merge into `main`, confirm the following:
 - [ ] Security scan outputs attached (no secrets committed)
 - [ ] Documentation updated with any new endpoints or scripts
 - [ ] Merge target confirmed: `feature/local-ai-hybrid` → `main`
+

@@ -1,0 +1,8 @@
+proxmox_url      = "https://pve0.local:8006/api2/json"
+proxmox_username = "root@pam!packer"
+proxmox_token    = "s3cr3t"
+proxmox_node     = "pve0"
+storage_pool     = "local-lvm"
+iso_storage      = "local"
+ssh_public_key   = "ssh-ed25519 AAAAC..."
+ssh_private_key  = "${env("PACKER_SSH_KEY")}" 

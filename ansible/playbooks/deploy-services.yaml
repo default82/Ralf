@@ -1,0 +1,9 @@
+---
+- name: Deploy user-facing services
+  hosts: services
+  become: true
+  gather_facts: true
+  roles:
+    - vaultwarden
+    - mail
+    - homeassistant
