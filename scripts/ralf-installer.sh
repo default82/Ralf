@@ -32,35 +32,6 @@ trim() {
   echo "${value}" | sed 's/^\s*//;s/\s*$//'
 }
 
-ip_to_int() {
-  local ip="$1"
-  local IFS='.'
-  local o1 o2 o3 o4
-  read -r o1 o2 o3 o4 <<< "${ip}"
-  printf '%u\n' $(((o1 << 24) | (o2 << 16) | (o3 << 8) | o4))
-}
-
-int_to_ip() {
-  local int="$1"
-  printf '%u.%u.%u.%u\n' $(((int >> 24) & 255)) $(((int >> 16) & 255)) $(((int >> 8) & 255)) $((int & 255))
-}
-
-ip_increment() {
-  local base_ip="$1"
-  local offset="${2:-0}"
-  local base_int
-  base_int=$(ip_to_int "${base_ip}")
-  int_to_ip $((base_int + offset))
-}
-
-subnet_host_address() {
-  local subnet="$1"
-  local host_octet="$2"
-  local network_ip="${subnet%%/*}"
-  local prefix="${network_ip%.*}"
-  echo "${prefix}.${host_octet}"
-}
-
 backup_file() {
   local file_path="$1"
   if [[ -f "${file_path}" ]]; then
@@ -242,23 +213,16 @@ main() {
   MGMT_SUBNET=$(prompt "Management subnet" "10.23.10.0/24")
   MGMT_GATEWAY=$(prompt "Management gateway" "10.23.10.1")
   MGMT_VLAN=$(prompt "Management VLAN ID" "10")
-  local MGMT_DEFAULT_NODE_START
-  MGMT_DEFAULT_NODE_START=$(subnet_host_address "${MGMT_SUBNET}" 10)
-  PROXMOX_IP_START=$(prompt "Starting IP for Proxmox nodes" "${MGMT_DEFAULT_NODE_START}")
 
   SERVICES_SUBNET=$(prompt "Services subnet" "10.23.20.0/24")
   SERVICES_GATEWAY=$(prompt "Services gateway" "10.23.20.1")
   SERVICES_VLAN=$(prompt "Services VLAN ID" "20")
-  local SERVICES_DEFAULT_RANGE_START
-  SERVICES_DEFAULT_RANGE_START=$(subnet_host_address "${SERVICES_SUBNET}" 10)
-  SERVICES_IP_RANGE_START=$(prompt "Starting IP for services VLAN LXCs" "${SERVICES_DEFAULT_RANGE_START}")
+
 
   STORAGE_SUBNET=$(prompt "Storage subnet" "10.23.30.0/24")
   STORAGE_GATEWAY=$(prompt "Storage gateway" "10.23.30.1")
   STORAGE_VLAN=$(prompt "Storage VLAN ID" "30")
-  local STORAGE_DEFAULT_RANGE_START
-  STORAGE_DEFAULT_RANGE_START=$(subnet_host_address "${STORAGE_SUBNET}" 10)
-  STORAGE_IP_RANGE_START=$(prompt "Starting IP for storage VLAN LXCs" "${STORAGE_DEFAULT_RANGE_START}")
+
 
   DMZ_SUBNET=$(prompt "DMZ subnet" "10.23.40.0/24")
   DMZ_GATEWAY=$(prompt "DMZ gateway" "10.23.40.1")
@@ -283,8 +247,7 @@ main() {
   PROXMOX_IPS=()
   for ((i=1; i<=node_count; i++)); do
     local default_name="pve$((i-1))"
-    local default_ip
-    default_ip=$(ip_increment "${PROXMOX_IP_START}" $((i - 1)))
+
     local name ip
     name=$(prompt "Hostname for Proxmox node #${i}" "${default_name}")
     ip=$(prompt "Management IP for ${name}" "${default_ip}")
@@ -306,44 +269,17 @@ main() {
     [homeassistant]="homeassistant01"
   )
 
-  declare -A SERVICE_NETWORK
-  SERVICE_NETWORK=(
-    [dns]="services"
-    [caddy]="services"
-    [auth]="services"
-    [monitoring]="services"
-    [backups]="storage"
-    [vaultwarden]="services"
-    [mail]="services"
-    [homeassistant]="services"
-  )
 
-  declare -A range_bases
-  range_bases=(
-    [services]="${SERVICES_IP_RANGE_START}"
-    [storage]="${STORAGE_IP_RANGE_START}"
-  )
-
-  declare -A range_counters
-  range_counters=(
-    [services]=0
-    [storage]=0
   )
 
   echo "\nConfigure service LXCs (one per service)."
   for service in dns caddy auth monitoring backups vaultwarden mail homeassistant; do
-    local range
-    range="${SERVICE_NETWORK[$service]}"
-    local base_ip="${range_bases[$range]}"
-    local offset=${range_counters[$range]}
-    local default_ip
-    default_ip=$(ip_increment "${base_ip}" "${offset}")
-    range_counters[$range]=$((offset + 1))
+
     local host_prompt="Hostname for ${service} LXC"
     local ip_prompt="IP address for ${service} (${service} runs in its own LXC)"
     local hostname ip
     hostname=$(prompt "${host_prompt}" "${default_names[$service]}")
-    ip=$(prompt "${ip_prompt}" "${default_ip}")
+
     SERVICE_HOSTNAMES[$service]="${hostname}"
     SERVICE_IPS[$service]="${ip}"
   done

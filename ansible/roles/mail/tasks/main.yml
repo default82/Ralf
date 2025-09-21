@@ -42,3 +42,4 @@
     name: postfix
     enabled: "{{ mail_service_enabled }}"
     state: "{{ mail_service_state }}"
+
