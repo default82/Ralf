@@ -35,6 +35,24 @@ fi
   exit 1
 }
 
+[[ "${output}" == *"pct push"*"/usr/local/bin/ralf-ai"* ]] || {
+  echo "Missing ralf-ai wrapper upload step" >&2
+  echo "${output}" >&2
+  exit 1
+}
+
+[[ "${output}" == *"chmod 0755 /usr/local/bin/ralf-ai"* ]] || {
+  echo "Missing ralf-ai chmod step" >&2
+  echo "${output}" >&2
+  exit 1
+}
+
+[[ "${output}" == *"/usr/local/bin/ralf-ai --help"* ]] || {
+  echo "Missing ralf-ai help invocation" >&2
+  echo "${output}" >&2
+  exit 1
+}
+
 [[ "${output}" == *"==> Dry run complete"* ]] || {
   echo "Missing completion banner" >&2
   echo "${output}" >&2
