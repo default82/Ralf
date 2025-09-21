@@ -1,0 +1,20 @@
+---
+dependency:
+  name: galaxy
+driver:
+  name: delegated
+lint: |
+  ansible-lint
+platforms:
+  - name: instance
+provisioner:
+  name: ansible
+  playbooks:
+    converge: converge.yml
+scenario:
+  name: default
+  test_sequence:
+    - lint
+    - syntax
+verifier:
+  name: ansible

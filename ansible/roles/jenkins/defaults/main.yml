@@ -1,0 +1,9 @@
+---
+# Default variables for the Jenkins role
+jenkins_packages:
+  - jenkins
+jenkins_config_path: /etc/jenkins/jenkins.yaml
+jenkins_user: root
+jenkins_group: root
+jenkins_http_port: 8080
+jenkins_url: http://jenkins.example.lan

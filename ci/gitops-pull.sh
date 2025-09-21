@@ -26,6 +26,15 @@ if [ "$CURRENT_HEAD" != "$LATEST_HEAD" ]; then
   make test || { log "Smoke tests failed"; exit 1; }
   log "Triggering build"
   make build
+  if command -v ansible-playbook >/dev/null 2>&1; then
+    log "Applying DevOps toolchain configuration"
+    ansible-playbook \
+      -i ansible/inventories/hosts.yaml \
+      -i ansible/inventories/groups.yaml \
+      ansible/playbooks/deploy-toolchain.yaml
+  else
+    log "ansible-playbook not available; skipping toolchain apply"
+  fi
 else
   log "No changes detected"
 fi

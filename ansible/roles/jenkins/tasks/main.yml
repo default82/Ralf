@@ -1,0 +1,22 @@
+---
+- name: Install Jenkins packages
+  ansible.builtin.package:
+    name: "{{ jenkins_packages }}"
+    state: present
+  when: jenkins_packages | length > 0
+
+- name: Ensure Jenkins configuration directory exists
+  ansible.builtin.file:
+    path: "{{ jenkins_config_path | dirname }}"
+    state: directory
+    owner: "{{ jenkins_user }}"
+    group: "{{ jenkins_group }}"
+    mode: '0755'
+
+- name: Deploy Jenkins configuration
+  ansible.builtin.template:
+    src: jenkins.yaml.j2
+    dest: "{{ jenkins_config_path }}"
+    owner: "{{ jenkins_user }}"
+    group: "{{ jenkins_group }}"
+    mode: '0644'

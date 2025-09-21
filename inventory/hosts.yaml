@@ -28,3 +28,17 @@ all:
           ansible_host: 10.23.20.60
         homeassistant01:
           ansible_host: 10.23.20.70
+    toolchain:
+      hosts:
+        gitea01:
+          ansible_host: 10.23.40.10
+        jenkins01:
+          ansible_host: 10.23.40.20
+        semaphore01:
+          ansible_host: 10.23.40.30
+        foreman01:
+          ansible_host: 10.23.40.40
+        opentofu01:
+          ansible_host: 10.23.40.50
+        postgresql01:
+          ansible_host: 10.23.40.60

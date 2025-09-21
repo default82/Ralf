@@ -1,0 +1,10 @@
+---
+# Default variables for the PostgreSQL role
+postgresql_packages:
+  - postgresql
+postgresql_config_path: /etc/postgresql/postgresql.conf
+postgresql_user: root
+postgresql_group: root
+postgresql_listen_addresses: '127.0.0.1'
+postgresql_port: 5432
+postgresql_max_connections: 100

@@ -38,6 +38,9 @@ Merge PR feature/local-ai-hybrid → main nach erfolgreichem Test
 ### Legacy- und Migrationspfade
 Historische Workflows (Docker Compose, Terraform Cloud-Stacks, manuelle LXC-Anlage) gelten als **Legacy** und werden nur noch im [Hybrid-Guide](docs/LOCAL_AI_README.md) dokumentiert. Neue Installationen folgen ausschließlich dem Proxmox-Skript oben.
 
+### IaC mit OpenTofu
+Für die Abbildung der DevOps-Toolchain steht eine Beispielstruktur unter [`infrastructure/opentofu`](infrastructure/opentofu/README.md) bereit. Die Stacks zeigen, wie zusätzliche Dienste wie Gitea, Jenkins oder Semaphore referenziert werden können und dienen als Ausgangspunkt für eigene Automatisierung.
+
 ## Nutzung
 ### Lokaler Betrieb (Proxmox LXC + Ollama)
 1. Container starten und prüfen:

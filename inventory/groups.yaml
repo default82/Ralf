@@ -16,3 +16,7 @@ core:
 services:
   vars:
     service_owner: homelab
+toolchain:
+  vars:
+    toolchain_owner: devops
+    toolchain_ci_registry: git.homelab.lan

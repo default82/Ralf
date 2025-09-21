@@ -5,11 +5,13 @@ SHELL := /bin/bash
 ## Lint shell scripts across the repository
 lint:
 	tests/shellcheck.sh
+	tests/opentofu_fmt.sh
 
 ## Run smoke tests for build and wrapper
 test:
 	tests/smoke_build_lxc.sh
 	tests/smoke_wrapper.sh
+	tests/molecule_smoke.sh
 
 ## Build the local AI LXC image
 build:

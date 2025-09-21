@@ -1,0 +1,22 @@
+---
+- name: Install Semaphore packages
+  ansible.builtin.package:
+    name: "{{ semaphore_packages }}"
+    state: present
+  when: semaphore_packages | length > 0
+
+- name: Ensure Semaphore configuration directory exists
+  ansible.builtin.file:
+    path: "{{ semaphore_config_path | dirname }}"
+    state: directory
+    owner: "{{ semaphore_user }}"
+    group: "{{ semaphore_group }}"
+    mode: '0755'
+
+- name: Deploy Semaphore configuration
+  ansible.builtin.template:
+    src: config.json.j2
+    dest: "{{ semaphore_config_path }}"
+    owner: "{{ semaphore_user }}"
+    group: "{{ semaphore_group }}"
+    mode: '0644'
