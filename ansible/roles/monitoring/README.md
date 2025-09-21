@@ -3,6 +3,8 @@
 This role configures the monitoring service stack for the RALF platform.
 
 ## TODO
-- [ ] Define variables in `defaults/main.yml`
-- [ ] Implement tasks in `tasks/main.yml`
-- [ ] Add handlers/templates as required
+- [ ] Roll out Prometheus/Grafana stack with long-term retention on the bulk pool.
+- [ ] Enable Alertmanager routing to the configured monitoring contact.
+- [ ] Configure exporters, LXC scrape jobs, and synthetic health checks.
+
+See [docs/TODO.md](../../../docs/TODO.md#monitoring-role) for the authoritative backlog.
