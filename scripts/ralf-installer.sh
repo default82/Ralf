@@ -69,7 +69,8 @@ vlan_storage=$(prompt "VLAN ID for storage" "30")
 vlan_dmz=$(prompt "VLAN ID for dmz" "40")
 proxmox_host=$(prompt "Proxmox API host" "pve0.homelab.lan")
 proxmox_user=$(prompt "Proxmox API user" "root@pam")
-proxmox_password=$(prompt "Proxmox API password (will be encrypted)" "changeme")
+proxmox_token_id=$(prompt "Proxmox API token ID (user@realm!token)" "root@pam!ralf-bootstrap")
+proxmox_token_secret=$(prompt "Proxmox API token secret (will be encrypted)" "changeme")
 admin_email=$(prompt "Admin e-mail" "admin@${fqdn}")
 matrix_domain=$(prompt "Matrix homeserver domain" "matrix.${fqdn}")
 matrix_admin=$(prompt "Matrix admin username" "matrix-admin")
@@ -91,6 +92,7 @@ vlan_ids:
 proxmox:
   host: ${proxmox_host}
   user: ${proxmox_user}
+  token_id: ${proxmox_token_id}
 admin_email: ${admin_email}
 matrix:
   domain: ${matrix_domain}
@@ -128,7 +130,7 @@ fi
 secrets_file="vars/ralf-secrets.yaml"
 cat > "$secrets_file" <<YAML
 # Encrypt this file with sops before committing.
-proxmox_api_password: ${proxmox_password}
+proxmox_api_token_secret: ${proxmox_token_secret}
 matrix_admin_password: changeme
 matrix_bot_password: changeme-bot
 YAML

@@ -9,7 +9,8 @@ all:
 proxmox:
   vars:
     proxmox_api_user: root@pam
-    proxmox_api_password: changeme
+    proxmox_api_token_id: root@pam!ralf-bootstrap
+    proxmox_api_token_secret: changeme
 core:
   vars:
     monitoring_contact: oncall@homelab.lan
