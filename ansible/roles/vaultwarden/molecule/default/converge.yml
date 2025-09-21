@@ -1,0 +1,39 @@
+---
+- name: Converge
+  hosts: all
+  connection: local
+  gather_facts: false
+  vars:
+    vaultwarden_manage_systemd: false
+    vaultwarden_manage_user: false
+    vaultwarden_db_password: "example-db-password"
+    vaultwarden_admin_token: "example-admin-token"
+    vaultwarden_enable_ssl: true
+    vaultwarden_ssl_certificate: |
+      -----BEGIN CERTIFICATE-----
+      MIIBsjCCAVigAwIBAgIUQdemoExampleCertificateforMoleculewDQYJKoZIhvcNAQELBQAw
+      EDEOMAwGA1UEAwwFVmF1bHQwHhcNMjQwMTAxMDAwMDAwWhcNMjUwMTAxMDAwMDAwWjAQMQ4w
+      DAYDVQQDDAVWYXVsdDCBnzANBgkqhkiG9w0BAQEFAAOBjQAwgYkCgYEAvExampleBase64
+      1SOKx17WZ6Q6QnjlqlYg1nMc1rIdCBfplceh1Yn/IsdXasbJ4GZgfM7g+l8nGw2jhSMLdGPw
+      J2KVYhmtiqYdGHcS/cxN9V4lX6f8pMTqBCK0NvqVJ0SoH6HdFWxRPY5ExxcSE0rqL92B5F52
+      u43q7GZcKTyt+CxIX7I/9HkCAwEAAaNTMFEwHQYDVR0OBBYEFDkExampleSignedCertLine
+      7l6IOXskA7R3HRyv5UBMB8GA1UdIwQYMBaAFDkExampleSignedCertLine7l6IOXskA7R3HR
+      yv5UBMA8GA1UdEwEB/wQFMAMBAf8wDQYJKoZIhvcNAQELBQADgYEAcExampleSignature
+      c9xFG2F8W4op5L7T4GoX0mWrgSN7c3I0/p/r+9Awt1X0xXQZPT6WFypm45jQAvhoqt3MiHAY
+      1kfX6LHcOZIscTZ7Hhe8IwMqf4UQJU20J8HwkFM7n1iExampleSignatureTrailerYVPvI=
+      -----END CERTIFICATE-----
+    vaultwarden_ssl_private_key: |
+      -----BEGIN PRIVATE KEY-----
+      MIIBVwIBADANBgkqhkiG9w0BAQEFAASCAT8wggE7AgEAAkEAuExampleKeyBase64Block
+      1SOKx17WZ6Q6QnjlqlYg1nMc1rIdCBfplceh1Yn/IsdXasbJ4GZgfM7g+l8nGw2jhSMLdGPw
+      J2KVYhmtiqYdGHcS/cxN9V4lX6f8pMTqBCK0NvqVJ0SoH6HdFWxRPY5ExxcSE0rqL92B5F52
+      u43q7GZcKTyt+CxIX7I/9HkIDAQABAkEAoExampleKeySignatureBlockaL7T4GoX0mWrgSN
+      7c3I0/p/r+9Awt1X0xXQZPT6WFypm45jQAvhoqt3MiHAY1kfX6LHcOZIscTZ7Hhe8IwIhAP
+      ExampleKeySignatureTrailerb7l6IOXskA7R3HRyv5UBAiEAvoExampleTrailer
+      -----END PRIVATE KEY-----
+    vaultwarden_env_overrides:
+      SIGNUPS_ALLOWED: "true"
+    vaultwarden_config_overrides:
+      log_level: debug
+  roles:
+    - role: vaultwarden

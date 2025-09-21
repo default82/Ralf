@@ -1,0 +1,10 @@
+[Unit]
+Description=Vaultwarden backup execution
+After=vaultwarden.service
+
+[Service]
+Type=oneshot
+ExecStart={{ vaultwarden_backup_script }}
+
+[Install]
+WantedBy=multi-user.target
