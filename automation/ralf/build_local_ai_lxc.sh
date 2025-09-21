@@ -89,7 +89,13 @@ ensure_template() {
     return
   fi
 
-  if pveam list "$storage" | awk '{print $2}' | grep -Fxq "vztmpl/$template"; then
+  local template_entry="$template_path"
+  if pveam list "$storage" | awk -v target="$template_entry" '
+      NR == 1 && $1 == "NAME" { next }
+      $1 == target { found=1 }
+      END { exit found ? 0 : 1 }
+    ';
+  then
     log INFO "Template $template already available on $storage"
     return
   fi
