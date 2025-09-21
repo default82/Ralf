@@ -1,3 +1,4 @@
+
 # RALF – Reproducible Automation for Lab Facilities
 
 RALF provides an Infrastructure-as-Code blueprint to promote any Proxmox VE host into a service-rich homelab. The goal is to keep deployments hardware-agnostic, LXC-first, and fully automated so operators can rebuild the stack from Git with minimal manual work.

@@ -1,3 +1,4 @@
+
 .PHONY: check lint packer-validate images bootstrap apply verify-backups
 
 check: lint packer-validate
@@ -28,3 +29,4 @@ apply:
 
 verify-backups:
 	ansible-playbook ansible/playbooks/backups-verify.yaml
+
