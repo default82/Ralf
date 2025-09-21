@@ -1,0 +1,11 @@
+---
+# Default variables for the Matrix Synapse homeserver
+synapse_user: "matrix-synapse"
+synapse_group: "matrix-synapse"
+synapse_config_dir: "/etc/matrix-synapse"
+synapse_data_dir: "/var/lib/matrix-synapse"
+synapse_service_name: "matrix-synapse"
+synapse_public_baseurl: "https://matrix.homelab.lan"
+synapse_client_port: 8008
+synapse_federation_port: 8448
+synapse_workers: []

@@ -1,0 +1,18 @@
+---
+modules:
+  - module: synapse_pushgateway_webhook
+    config:
+      endpoint: "https://n8n.homelab.lan/webhook/matrix/incident"
+      secret_header: "X-N8N-Signature"
+      secret_env: "N8N_MATRIX_SHARED_SECRET"
+      verify_ssl: true
+      upstream_timeout: 10
+
+# Example appservice-style webhook that relays custom events to n8n
+webhook_mappings:
+  incident.alert.raised:
+    matrix_room: "!incidentroom:homelab.lan"
+    workflow_url: "https://n8n.homelab.lan/webhook/matrix/incident"
+    headers:
+      X-Matrix-Origin: synapse01
+    include_event_body: true

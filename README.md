@@ -70,11 +70,38 @@ Für die Abbildung der DevOps-Toolchain steht eine Beispielstruktur unter [`infr
 2. Wrapper bzw. `aider` wie gewohnt starten (lokal oder im Container).
 3. Nach Cloud-Nutzung wieder auf lokale Werte zurücksetzen oder Variablen unsetten.
 
+### Integrationsservices betreiben
+- **n8n** wird über die neue Ansible-Rolle `n8n` ausgerollt und verarbeitet
+  eingehende Webhooks (`automation/integrations/n8n/`). Die Standard-Health-Route
+  `/healthz` dient sowohl als Smoke-Test als auch als Load-Balancer-Check.
+- **Matrix Synapse** erhält Konfigurationsbausteine für Webhooks in
+  `automation/integrations/matrix/`. Darüber werden Vorfälle automatisiert an n8n
+  gesendet und in dedizierten Räumen veröffentlicht.
+- **Element Web** konsumiert die Synapse-Endpunkte unter
+  `https://matrix.homelab.lan` und kann statisch über die Rolle `element_web`
+  ausgeliefert werden. Die Konfiguration (`config.json`) verweist auf die
+  Synapse- und n8n-Endpunkte.
+- Secrets wie Matrix-Tokens oder n8n-Signing-Secrets werden mit dem Skript
+  [`automation/integrations/vaultwarden/fetch_secret.sh`](automation/integrations/vaultwarden/fetch_secret.sh)
+  aus Vaultwarden geladen und den Workflows bzw. Playbooks zur Verfügung gestellt.
+- Smoke-Checks für alle drei Komponenten bündelt
+  [`tests/smoke_integrations.sh`](tests/smoke_integrations.sh).
+
 ## Troubleshooting
 - **Netzwerk im Container fehlt**: `pct exec 10060 -- ip a` prüfen, Bridge-Konfiguration (`vmbr`) und DHCP am Proxmox-Host kontrollieren.
 - **Ollama-Service läuft nicht**: `pct exec 10060 -- systemctl --user status ollama` auswerten; bei Fehlern Logs via `journalctl --user -u ollama` einsehen und Dienst mit `systemctl --user restart ollama` neu starten.
 - **Wrapper nicht auffindbar**: Sicherstellen, dass `/srv/ralf/wrapper/ralf-ai` ausführbar ist (`chmod +x`) und der Bind-Mount aktiv ist (`pct exec 10060 -- mount | grep /srv/ralf`).
 - **API-Aufrufe schlagen fehl**: Endpoints (`OLLAMA_HOST`, `OPENAI_API_BASE`) und Firewalls/Reverse-Proxies kontrollieren; bei Cloud-Fallback zusätzlich TLS-Zertifikate prüfen.
+- **n8n-Webhooks liefern 401**: Prüfen, ob das Vaultwarden-Skript gültige Tokens
+  zurückgibt (`automation/integrations/vaultwarden/fetch_secret.sh`) und ob die
+  Workflow-Umgebungsvariablen (`MATRIX_*`) gesetzt sind.
+- **Synapse-Webhook-Bridge reagiert nicht**: Health-Check unter
+  `https://synapse01:8448/_matrix/federation/v1/version` ausführen und
+  sicherstellen, dass die Modulkonfiguration aus
+  `automation/integrations/matrix/synapse-webhook-modules.yaml` aktiv ist.
+- **Element Web zeigt keine Räume**: `config.json` (Ansible-Variable
+  `element_web_config_path`) auf korrekte Homeserver-URL prüfen und Browser-Cache
+  leeren.
 
 ## PR-Checkliste
 - `pct exec 10060 -- make lint` und `pct exec 10060 -- make test` ausführen; Ergebnisse im PR dokumentieren.

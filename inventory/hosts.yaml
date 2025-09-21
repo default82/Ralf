@@ -28,6 +28,12 @@ all:
           ansible_host: 10.23.20.60
         homeassistant01:
           ansible_host: 10.23.20.70
+        n8n01:
+          ansible_host: 10.23.20.80
+        synapse01:
+          ansible_host: 10.23.20.90
+        elementweb01:
+          ansible_host: 10.23.20.100
     toolchain:
       hosts:
         gitea01:

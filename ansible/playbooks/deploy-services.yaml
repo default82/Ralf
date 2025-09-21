@@ -7,3 +7,6 @@
     - vaultwarden
     - mail
     - homeassistant
+    - n8n
+    - synapse
+    - element_web
