@@ -1,2 +1,11 @@
 ---
-# Handlers for mail
+- name: Restart Postfix
+  ansible.builtin.service:
+    name: postfix
+    state: restarted
+  listen: Restart Postfix
+
+- name: Rebuild Postfix aliases
+  ansible.builtin.command: newaliases
+  listen: Rebuild Postfix aliases
+  changed_when: true

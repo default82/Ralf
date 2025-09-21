@@ -1,4 +1,48 @@
 ---
+- name: Ensure Postfix packages are installed
+  ansible.builtin.package:
+    name: "{{ item }}"
+    state: present
+  loop: "{{ mail_packages | default([]) }}"
+
+- name: Ensure mail directories exist
+  ansible.builtin.file:
+    path: "{{ item.path }}"
+    state: directory
+    owner: "{{ item.owner | default('root') }}"
+    group: "{{ item.group | default('root') }}"
+    mode: "{{ item.mode | default('0755') }}"
+  loop: "{{ mail_directories | default([]) }}"
+  loop_control:
+    label: "{{ item.path }}"
+
+- name: Deploy main Postfix configuration
+  ansible.builtin.template:
+    src: main.cf.j2
+    dest: /etc/postfix/main.cf
+    owner: root
+    group: root
+    mode: '0644'
+  notify: Restart Postfix
+
+- name: Deploy Postfix aliases file
+  ansible.builtin.template:
+    src: aliases.j2
+    dest: /etc/aliases
+    owner: root
+    group: root
+    mode: '0644'
+  when: mail_manage_aliases
+  notify:
+    - Rebuild Postfix aliases
+    - Restart Postfix
+
+- name: Ensure Postfix service is enabled and running
+  ansible.builtin.service:
+    name: postfix
+    enabled: "{{ mail_service_enabled }}"
+    state: "{{ mail_service_state }}"
+=======
 - name: Ensure Postfix is installed
   ansible.builtin.package:
     name: postfix
