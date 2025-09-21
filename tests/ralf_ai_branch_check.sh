@@ -57,6 +57,12 @@ git -C "${repo_default}" checkout -b feature/local-ai-hybrid >/dev/null 2>&1
 output=$(REPO_DIR="${repo_default}" AIDER_BIN="${AIDER_STUB}" "${RALF_AI_SCRIPT}" 2>&1 || true)
 assert_no_branch_warning "${output}"
 
+git -C "${repo_default}" checkout main >/dev/null 2>&1
+git -C "${repo_default}" config ralf.allowedBranches "main experiment"
+git -C "${repo_default}" checkout -b experiment >/dev/null 2>&1
+output=$(REPO_DIR="${repo_default}" AIDER_BIN="${AIDER_STUB}" "${RALF_AI_SCRIPT}" 2>&1 || true)
+assert_no_branch_warning "${output}"
+
 repo_custom=$(setup_repo)
 git -C "${repo_custom}" checkout -b experiment >/dev/null 2>&1
 output=$(REPO_DIR="${repo_custom}" RALF_ALLOWED_BRANCHES="main" AIDER_BIN="${AIDER_STUB}" "${RALF_AI_SCRIPT}" 2>&1 || true)

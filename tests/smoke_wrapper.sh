@@ -66,7 +66,8 @@ Environment variables:
   AIDER_BIN             aider executable to invoke (default: aider)
   REPO_DIR              Repository path to guard (default: /srv/ralf)
   RALF_ALLOWED_BRANCHES Space-separated list of allowed branches
-                        (default: "main feature/local-ai-hybrid")
+                        (default: "main feature/local-ai-hybrid"; can also be
+                        configured via `git config ralf.allowedBranches`)
 
 Additional arguments are forwarded directly to aider.
 EOF
