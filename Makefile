@@ -1,32 +1,16 @@
+SHELL := /bin/bash
 
-.PHONY: check lint packer-validate images bootstrap apply verify-backups
+.PHONY: lint test build
 
-check: lint packer-validate
-
+## Lint shell scripts in automation/
 lint:
-	yamllint inventory ansible/playbooks network architecture.yaml
-	ansible-lint ansible/playbooks
+	shellcheck automation/**/*.sh || true
 
-packer-validate:
-	packer validate -var-file=images/golden/vars.pkr.hcl.example images/golden/lxc-debian-bookworm.pkr.hcl
-	packer validate -var-file=images/golden/vars.pkr.hcl.example images/golden/vm-debian-bookworm.pkr.hcl
+## Run smoke tests for build and wrapper
+test:
+	tests/smoke_build_lxc.sh
+	tests/smoke_wrapper.sh
 
-images:
-	packer build -var-file=images/golden/vars.pkr.hcl.example images/golden/lxc-debian-bookworm.pkr.hcl
-	packer build -var-file=images/golden/vars.pkr.hcl.example images/golden/vm-debian-bookworm.pkr.hcl
-
-bootstrap:
-	ansible-playbook ansible/playbooks/bootstrap-proxmox.yaml
-
-apply:
-	@if [ "$${CORE_ONLY:-false}" = "true" ]; then \
-		ansible-playbook ansible/playbooks/deploy-core.yaml; \
-	elif [ "$${SERVICES_ONLY:-false}" = "true" ]; then \
-		ansible-playbook ansible/playbooks/deploy-services.yaml; \
-	else \
-		ansible-playbook ansible/playbooks/site.yaml; \
-	fi
-
-verify-backups:
-	ansible-playbook ansible/playbooks/backups-verify.yaml
-
+## Build the local AI LXC image
+build:
+	sudo bash automation/ralf/build_local_ai_lxc.sh
