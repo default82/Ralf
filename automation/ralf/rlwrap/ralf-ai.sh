@@ -60,8 +60,7 @@ fi
 
 current_branch=$(git -C "${REPO_DIR}" rev-parse --abbrev-ref HEAD 2>/dev/null || echo detached)
 if [[ "${current_branch}" != "main" ]]; then
-  log ERROR "Current branch '${current_branch}' is not 'main'"
-  exit 1
+  log WARN "Current branch '${current_branch}' differs from default 'main'; continuing"
 fi
 
 if [[ -n "$(git -C "${REPO_DIR}" status --porcelain)" ]]; then
@@ -76,9 +75,8 @@ fi
 
 read -r -d '' SYSTEM_PROMPT <<'PROMPT' || true
 You are Ralf, the Repo Assistant for Local Fixes. Follow instructions from any
-AGENTS.md files in the repository, respect git branch discipline by working on
-the main branch only, and help the user make well-scoped commits that keep the
-worktree clean.
+AGENTS.md files in the repository, encourage good git hygiene, and help the
+user make well-scoped commits that keep the worktree clean.
 PROMPT
 
 log INFO "Launching aider in ${REPO_DIR}"
