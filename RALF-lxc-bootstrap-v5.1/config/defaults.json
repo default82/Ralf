@@ -1,0 +1,27 @@
+{
+  "state_dir": "/root/ralf",
+  "plan_template": "config/plan.json",
+  "plan_path": "/root/ralf/plan.json",
+  "inventory_path": "/root/ralf/inventory.json",
+  "secrets_dir": "/root/ralf/secrets",
+  "links_path": "/root/ralf/links.txt",
+  "omada_path": "/root/ralf/omada.json",
+  "ki_choice_path": "/root/ralf/ki_choice.txt",
+  "resume_flag": "/root/.ralf_resume_needed",
+  "hostname": "pve-du-00",
+  "pve": {
+    "storage": "local",
+    "template_pattern": "debian-12-standard"
+  },
+  "resources": {
+    "ralf-edge":   {"memory": 1024, "cores": 1},
+    "ralf-ki":     {"memory": 8192, "cores": 4},
+    "ralf-gitea":  {"memory": 2048, "cores": 2},
+    "ralf-netbox": {"memory": 4096, "cores": 2},
+    "ralf-db":     {"memory": 4096, "cores": 2},
+    "ralf-n8n":    {"memory": 2048, "cores": 2},
+    "ralf-matrix": {"memory": 2048, "cores": 2},
+    "ralf-secrets": {"memory": 1024, "cores": 1},
+    "ralf-foreman": {"memory": 6144, "cores": 4}
+  }
+}
