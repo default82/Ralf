@@ -1,6 +1,12 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
+source "$(dirname "$0")/common.sh"
+
+PLAN=""
+INV=""
+SECDIR=""
+LINKS_FILE=""
 PLAN="/root/ralf/plan.json"
 INV="/root/ralf/inventory.json"
 SECDIR="/root/ralf/secrets"
@@ -232,6 +238,8 @@ install_foreman(){
 }
 
 write_links(){
+  mkdir -p "$(dirname "$LINKS_FILE")"
+  cat > "$LINKS_FILE" <<EOF_LINKS
   local f="/root/ralf/links.txt"
   cat > "$f" <<EOF_LINKS
 === RALF Dienste ===
@@ -244,6 +252,22 @@ Matrix Synapse:           http://$(ip_of ralf-matrix):8008
 Vaultwarden:              http://$(ip_of ralf-secrets):8080
 Foreman:                  https://$(ip_of ralf-foreman)
 
+Plan:    $PLAN
+Secrets: $SECDIR/
+Inventar:$INV
+EOF_LINKS
+  echo "[*] Summary: $LINKS_FILE"; cat "$LINKS_FILE"
+}
+
+main(){
+  req jq
+  PLAN=$(jq -r '.plan_path' "$CONFIG_FILE")
+  INV=$(jq -r '.inventory_path' "$CONFIG_FILE")
+  SECDIR=$(jq -r '.secrets_dir' "$CONFIG_FILE")
+  LINKS_FILE=$(jq -r '.links_path' "$CONFIG_FILE")
+  mkdir -p "$SECDIR"
+  ensure_inv
+  gen_db_pw
 Plan:    /root/ralf/plan.json
 Secrets: /root/ralf/secrets/
 Inventar:/root/ralf/inventory.json

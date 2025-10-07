@@ -1,5 +1,7 @@
 # R.A.L.F. – LXC Bootstrap **v5.1**
 
+**Neu:**
+- **Globale Konfig-Datei**: Alle Pfade, Ressourcen-Größen, Storage/Template und Hostname landen in `config/defaults.json` → der TUI-Fragebogen legt eine editierbare `config.json` (Standard: `/root/ralf/config.json`, via `$RALF_CONFIG` überschreibbar) ab.
 **Neu:** 
 - **GPU-Profile**: NVIDIA/AMD/Intel (best effort) in der KI-Auswahl.
 - **Caddy Edge (ralf-edge)**: Reverse Proxy in eigenem LXC, pro Dienst **public/local** steuerbar.
@@ -18,6 +20,39 @@ bash ./install.sh
 ```
 
 ---
+
+### Datei: `config/defaults.json`
+```json
+{
+  "state_dir": "/root/ralf",
+  "plan_template": "config/plan.json",
+  "plan_path": "/root/ralf/plan.json",
+  "inventory_path": "/root/ralf/inventory.json",
+  "secrets_dir": "/root/ralf/secrets",
+  "links_path": "/root/ralf/links.txt",
+  "omada_path": "/root/ralf/omada.json",
+  "ki_choice_path": "/root/ralf/ki_choice.txt",
+  "resume_flag": "/root/.ralf_resume_needed",
+  "hostname": "pve-du-00",
+  "pve": {
+    "storage": "local",
+    "template_pattern": "debian-12-standard"
+  },
+  "resources": {
+    "ralf-edge":   {"memory": 1024, "cores": 1},
+    "ralf-ki":     {"memory": 8192, "cores": 4},
+    "ralf-gitea":  {"memory": 2048, "cores": 2},
+    "ralf-netbox": {"memory": 4096, "cores": 2},
+    "ralf-db":     {"memory": 4096, "cores": 2},
+    "ralf-n8n":    {"memory": 2048, "cores": 2},
+    "ralf-matrix": {"memory": 2048, "cores": 2},
+    "ralf-secrets": {"memory": 1024, "cores": 1},
+    "ralf-foreman": {"memory": 6144, "cores": 4}
+  }
+}
+```
+
+Der TUI (`scripts/plan_tui.sh`) fragt bei Bedarf die Werte grafisch ab, erzeugt/aktualisiert `/root/ralf/config.json` (oder das angepasste State-Verzeichnis) und leitet daraus alle Pfade/Größen ab.
 
 ### Datei: `config/plan.json` (Default-Plan, wird vom TUI überschrieben)
 ```json
@@ -75,10 +110,20 @@ Datei: install.sh
 ```bash
 #!/usr/bin/env bash
 set -euo pipefail
+
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+source "${SCRIPT_DIR}/scripts/common.sh"
+
 require_root(){ [[ $EUID -eq 0 ]] || { echo "Bitte als root (sudo -i) ausführen."; exit 1; }; }
 is_pve(){ command -v pveversion >/dev/null 2>&1; }
 is_debian(){ [[ -f /etc/debian_version ]]; }
 pkg(){ apt-get update -y; DEBIAN_FRONTEND=noninteractive apt-get install -y "$@"; }
+set_hostname(){
+  local t
+  t=$(config_get '.hostname')
+  hostnamectl set-hostname "$t"
+  grep -q "$t" /etc/hosts || echo "127.0.1.1 $t" >> /etc/hosts
+}
 set_hostname(){ local t="pve-du-00"; hostnamectl set-hostname "$t"; grep -q "$t" /etc/hosts || echo "127.0.1.1 $t" >> /etc/hosts; }
 
 phase2_pve(){
@@ -87,6 +132,9 @@ phase2_pve(){
   bash scripts/install_services.sh
   bash scripts/setup_edge_caddy.sh
   bash scripts/omada_integrate.sh || true
+  local plan_path=$(config_get '.plan_path')
+  local links_path=$(config_get '.links_path')
+  whiptail --title "RALF v5.1" --msgbox "Fertig. Plan: ${plan_path}\nLinks: ${links_path}" 10 70
   whiptail --title "RALF v5.1" --msgbox "Fertig. Plan: /root/ralf/plan.json\nLinks: /root/ralf/links.txt" 10 70
 }
 
@@ -104,6 +152,19 @@ main "$@"
 
 Hinweise zur Nutzung
 
+Erstlauf auf Debian: `bash ./install.sh` → PVE-Install, Reboot, dann TUI automatisch. Die Konfig-TUI fragt zuerst das State-Verzeichnis, Hostname, Storage/Template & Ressourcengrößen ab.
+
+Plan oder globale Variablen anpassen: `bash scripts/plan_tui.sh` (Konfigurationsdialog + Plan-Editor).
+
+Erneut ausrollen: `bash providers/pve_provider.sh && bash scripts/install_services.sh && bash scripts/setup_edge_caddy.sh`.
+
+
+- Standardpfade (per Defaults, änderbar im TUI):
+  - Konfiguration: `/root/ralf/config.json` (oder eigener Pfad via `$RALF_CONFIG`)
+  - Plan: `/root/ralf/plan.json`
+  - Inventar: `/root/ralf/inventory.json`
+  - DB-Secrets: `/root/ralf/secrets/db.env`
+  - Links: `/root/ralf/links.txt`
 Erstlauf auf Debian: `bash ./install.sh` → PVE-Install, Reboot, dann TUI automatisch.
 
 Plan anpassen: `bash scripts/plan_tui.sh` (CTIDs/IPs/Tags/Domain/Expose/PXE/Omada).

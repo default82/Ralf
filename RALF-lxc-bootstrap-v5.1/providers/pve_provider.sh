@@ -1,6 +1,11 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
+source "$(dirname "$0")/../scripts/common.sh"
+
+PLAN=""
+INV=""
+KI_CHOICE_FILE=""
 PLAN="/root/ralf/plan.json"
 INV="/root/ralf/inventory.json"
 
@@ -8,6 +13,14 @@ pkg(){ apt-get update -y; DEBIAN_FRONTEND=noninteractive apt-get install -y "$@"
 
 ensure_template(){
   pveam update
+  local storage template_pattern best
+  storage=$(jq -r '.pve.storage' "$CONFIG_FILE")
+  template_pattern=$(jq -r '.pve.template_pattern' "$CONFIG_FILE")
+  best=$(pveam available | awk -v pat="$template_pattern" '$2 ~ pat {print $2}' | tail -n1)
+  if [[ -z "$best" ]]; then
+    echo "[!] Kein Template gefunden für Muster ${template_pattern}" >&2
+    exit 1
+  fi
   local storage="local"
   local best=$(pveam available | awk '/debian-12-standard/ {print $2}' | tail -n1)
   if ! pveam list "$storage" | grep -q "$best"; then pveam download "$storage" "$best"; fi
@@ -50,6 +63,8 @@ choose_ki_stack(){
     "GPU_INTEL_EXPERIMENTAL" "Intel iGPU (experimentell, CPU Fallback)" $( [[ $reco == "GPU_INTEL_EXPERIMENTAL" ]] && echo ON || echo OFF ) \
     "REMOTE"                 "Kein lokales Modell"                   OFF \
     3>&1 1>&2 2>&3) || CHOICE="$reco"
+  mkdir -p "$(dirname "$KI_CHOICE_FILE")"
+  echo "$CHOICE" > "$KI_CHOICE_FILE"
   echo "$CHOICE" > /root/ralf_ki_choice.txt
 }
 
@@ -86,6 +101,19 @@ setup_ki_in_ct(){
   esac
 }
 
+resource_value(){
+  local svc="$1" field="$2" fallback="$3"
+  local val
+  val=$(jq -r --arg svc "$svc" --arg field "$field" '.resources[$svc][$field] // empty' "$CONFIG_FILE")
+  if [[ -z "$val" || "$val" == "null" ]]; then
+    echo "$fallback"
+  else
+    echo "$val"
+  fi
+}
+
+collect_ips(){
+  mkdir -p "$(dirname "$INV")"
 collect_ips(){
   mkdir -p /root/ralf
   echo '{}' | jq '.' > "$INV"
@@ -100,6 +128,9 @@ collect_ips(){
 
 main(){
   pkg jq whiptail
+  PLAN=$(jq -r '.plan_path' "$CONFIG_FILE")
+  INV=$(jq -r '.inventory_path' "$CONFIG_FILE")
+  KI_CHOICE_FILE=$(jq -r '.ki_choice_path' "$CONFIG_FILE")
   [[ -f "$PLAN" ]] || { echo "Plan fehlt: $PLAN"; exit 1; }
   ensure_template
   hw_scan
@@ -110,6 +141,8 @@ main(){
     ctid=$(jq -r ".services[\"$name\"].ctid" "$PLAN")
     catcode=$(jq -r ".services[\"$name\"].category" "$PLAN")
     host=$(jq -r ".services[\"$name\"].host_octet" "$PLAN")
+    mem=$(resource_value "$name" "memory" 2048)
+    cores=$(resource_value "$name" "cores" 2)
     mem=2048; cores=2
     [[ "$name" == "ralf-ki" ]] && mem=8192 cores=4
     [[ "$name" == "ralf-db" ]] && mem=4096 cores=2
@@ -132,6 +165,7 @@ main(){
   [[ $HAS_AMD -eq 1 ]] && map_amd "$ki_ctid" || true
   [[ $HAS_INTEL -eq 1 ]] && map_intel "$ki_ctid" || true
 
+  setup_ki_in_ct "$ki_ctid" "$(cat "$KI_CHOICE_FILE")"
   setup_ki_in_ct "$ki_ctid" "$(cat /root/ralf_ki_choice.txt)"
   collect_ips
 }

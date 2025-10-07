@@ -1,6 +1,10 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
+source "$(dirname "$0")/common.sh"
+
+PLAN=""
+INV=""
 PLAN="/root/ralf/plan.json"
 INV="/root/ralf/inventory.json"
 
@@ -69,6 +73,8 @@ apply_caddyfile(){
 }
 
 main(){
+  PLAN=$(jq -r '.plan_path' "$CONFIG_FILE")
+  INV=$(jq -r '.inventory_path' "$CONFIG_FILE")
   install_caddy
   apply_caddyfile
   echo "[*] Caddy konfiguriert."

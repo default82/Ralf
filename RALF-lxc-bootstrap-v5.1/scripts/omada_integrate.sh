@@ -1,6 +1,13 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
+source "$(dirname "$0")/common.sh"
+
+PLAN=$(jq -r '.plan_path' "$CONFIG_FILE")
+INV=$(jq -r '.inventory_path' "$CONFIG_FILE")
+OMADA_JSON=$(jq -r '.omada_path' "$CONFIG_FILE")
+
+mkdir -p "$(dirname "$OMADA_JSON")"
 PLAN="/root/ralf/plan.json"
 OMADA_JSON="/root/ralf/omada.json"
 INV="/root/ralf/inventory.json"
