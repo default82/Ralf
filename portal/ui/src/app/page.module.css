@@ -1,0 +1,37 @@
+.section {
+  display: grid;
+  gap: 1.5rem;
+}
+
+.list {
+  list-style: none;
+  display: grid;
+  gap: 1rem;
+  padding: 0;
+  margin: 0;
+}
+
+.card {
+  background: rgba(30, 41, 59, 0.8);
+  border: 1px solid rgba(148, 163, 184, 0.25);
+  border-radius: 0.75rem;
+  padding: 1.5rem;
+  transition: border-color 0.2s ease, transform 0.2s ease;
+}
+
+.card:hover,
+.card:focus-within {
+  border-color: #38bdf8;
+  transform: translateY(-2px);
+}
+
+.card strong {
+  display: block;
+  font-size: 1.25rem;
+  margin-bottom: 0.5rem;
+}
+
+.card p {
+  margin: 0;
+  color: #cbd5f5;
+}
