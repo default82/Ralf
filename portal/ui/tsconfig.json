@@ -17,7 +17,8 @@
     "types": ["node"],
     "paths": {
       "@/components/*": ["./src/components/*"],
-      "@/app/*": ["./src/app/*"]
+      "@/app/*": ["./src/app/*"],
+      "@/lib/*": ["./src/lib/*"]
     }
   },
   "include": ["next-env.d.ts", "**/*.ts", "**/*.tsx"],
