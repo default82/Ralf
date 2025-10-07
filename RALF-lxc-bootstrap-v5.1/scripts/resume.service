@@ -1,0 +1,12 @@
+[Unit]
+Description=RALF Bootstrap Resume v5.1
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+Type=oneshot
+ConditionPathExists=@RESUME_FLAG@
+ExecStart=/root/RALF-lxc-bootstrap-v5.1/scripts/resume.sh
+
+[Install]
+WantedBy=multi-user.target
