@@ -1,7 +1,10 @@
-import styles from './page.module.css';
+import { getServerSession } from 'next-auth';
 import Layout from '@/components/Layout';
+import HomePageContent, { type ServiceLink } from './homeContent';
+import styles from './page.module.css';
+import { authOptions } from '@/lib/auth/options';
 
-const services = [
+const services: ServiceLink[] = [
   {
     name: 'Automation Runner',
     description: 'Executes GitOps workflows and infrastructure pipelines.',
@@ -19,22 +22,14 @@ const services = [
   }
 ];
 
-const HomePage = () => (
-  <Layout>
-    <section className={styles.section}>
-      <h2>Featured Services</h2>
-      <ul className={styles.list}>
-        {services.map((service) => (
-          <li key={service.name} className={styles.card}>
-            <a href={service.href}>
-              <strong>{service.name}</strong>
-              <p>{service.description}</p>
-            </a>
-          </li>
-        ))}
-      </ul>
-    </section>
-  </Layout>
-);
+const HomePage = async () => {
+  const session = await getServerSession(authOptions);
+
+  return (
+    <Layout>
+      <HomePageContent session={session} services={services} styles={styles} />
+    </Layout>
+  );
+};
 
 export default HomePage;

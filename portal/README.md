@@ -11,14 +11,39 @@ The portal provides a lightweight UI for service discovery, status visibility, a
 - [pnpm](https://pnpm.io/) (Corepack-enabled Node versions work out of the box)
 
 ### Environment variables
-Create a `.env.local` file in `portal/ui/` (not committed) and provide the following values:
+Create a `.env.local` file in `portal/ui/` (not committed) and provide the following values. An annotated template is available at the repository root as `.env.example`.
 
 | Variable | Description | Example |
 | --- | --- | --- |
-| `NEXT_PUBLIC_STATUS_API` | Base URL used by the UI to fetch health summaries. | `https://status.example.com/api` |
-| `PORTAL_AUTH_PROVIDER` | Identifier for the authentication provider that should be highlighted to operators. | `keycloak` |
+| `AUTH_ISSUER_URL` | OIDC issuer URL for your Keycloak realm or Authelia deployment. | `https://id.example.com/realms/operations` |
+| `AUTH_CLIENT_ID` | Client ID configured in the identity provider for the portal. | `ralf-portal` |
+| `AUTH_CLIENT_SECRET` | Confidential client secret issued by the provider. | `super-secret` |
+| `AUTH_SECRET` | Random 32+ byte string used by NextAuth for session encryption. | `generate-with-openssl` |
+| `PORTAL_BASE_URL` | Public base URL of the portal; used for redirect validation. | `https://portal.example.com` |
+| `NEXTAUTH_URL` | Optional override if the portal is served behind a proxy. | `https://portal.example.com` |
 
-Additional variables can be added as integrations evolve; defaults are safe for static builds.
+Existing UI variables such as `NEXT_PUBLIC_STATUS_API` remain supported for downstream integrations.
+
+### Authentication setup
+
+1. **Create an OIDC client** in your identity provider.
+   - **Keycloak**
+     - Realm: select the realm that should house the portal.
+     - Client type: `OpenID Connect` → `Confidential`.
+     - Access type: enable `Standard Flow` and `Refresh Tokens`.
+     - Redirect URIs: add `https://<portal-host>/api/auth/callback/keycloak` and the local development URL `http://localhost:3000/api/auth/callback/keycloak`.
+     - Web origins: include the portal origin (e.g. `https://portal.example.com`).
+   - **Authelia**
+     - Define a client in `configuration.yml` with `authorization_policy: two_factor` (or appropriate policy).
+     - Set `redirect_uris` to `https://<portal-host>/api/auth/callback/keycloak` and `http://localhost:3000/api/auth/callback/keycloak`.
+     - Ensure the client `scopes` include `openid`, `profile`, and `email` so user details are propagated into the session.
+2. **Configure credentials** by copying `.env.example` to `.env.local` and filling the values described above.
+3. **Token renewal**
+   - The portal uses JWT sessions backed by NextAuth. Refresh tokens from Keycloak/Authelia are stored server-side and exchanged automatically when they expire.
+   - To force eager renewal (e.g. before 5 minutes of expiry) configure Keycloak `Access Token Lifespan` or Authelia `access_token_lifespan` accordingly; NextAuth will refresh when the identity provider indicates expiration.
+4. **Testing callbacks**
+   - Start the UI via `pnpm dev` and browse to `http://localhost:3000`.
+   - Trigger the login flow; successful authentication should redirect back to the catalog and display the signed-in identity in the header menu.
 
 ### Local development workflow
 1. Install dependencies:
@@ -54,4 +79,4 @@ Schema evolution should be accompanied by fixtures and tests (`pnpm test`) to ke
 
 ## TODO
 - [ ] Implement UI build pipeline
-- [ ] Integrate authentication (Keycloak/Authelia)
+- [x] Integrate authentication (Keycloak/Authelia)
