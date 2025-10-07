@@ -1,2 +1,91 @@
 ---
 # Default variables for monitoring
+
+# Control flags
+monitoring_manage_user: true
+monitoring_manage_docker: true
+
+# User and group configuration
+monitoring_user: monitoring
+monitoring_group: monitoring
+
+# Base directories
+monitoring_base_dir: /opt/monitoring
+monitoring_config_dir: "{{ monitoring_base_dir }}/config"
+monitoring_data_dir: "{{ monitoring_base_dir }}/data"
+monitoring_runtime_dir: "{{ monitoring_base_dir }}/run"
+
+# Service specific directories
+monitoring_prometheus_config_dir: "{{ monitoring_config_dir }}/prometheus"
+monitoring_prometheus_rules_dir: "{{ monitoring_prometheus_config_dir }}/rules"
+monitoring_prometheus_data_dir: "{{ monitoring_data_dir }}/prometheus"
+
+monitoring_alertmanager_config_dir: "{{ monitoring_config_dir }}/alertmanager"
+monitoring_alertmanager_data_dir: "{{ monitoring_data_dir }}/alertmanager"
+
+monitoring_grafana_config_dir: "{{ monitoring_config_dir }}/grafana"
+monitoring_grafana_data_dir: "{{ monitoring_data_dir }}/grafana"
+
+# Docker Compose configuration
+monitoring_compose_project_name: monitoring
+monitoring_compose_file: "{{ monitoring_base_dir }}/docker-compose.yml"
+monitoring_compose_pull: false
+
+# Container users (UID:GID or names)
+monitoring_prometheus_container_user: "0:0"
+monitoring_alertmanager_container_user: "0:0"
+monitoring_grafana_container_user: "0:0"
+monitoring_node_exporter_container_user: "0:0"
+
+# Prometheus container image
+monitoring_prometheus_image_repo: prom/prometheus
+monitoring_prometheus_image_tag: v2.49.1
+monitoring_prometheus_image: "{{ monitoring_prometheus_image_repo }}:{{ monitoring_prometheus_image_tag }}"
+monitoring_prometheus_retention_time: 15d
+
+# Alertmanager container image
+monitoring_alertmanager_image_repo: prom/alertmanager
+monitoring_alertmanager_image_tag: v0.27.0
+monitoring_alertmanager_image: "{{ monitoring_alertmanager_image_repo }}:{{ monitoring_alertmanager_image_tag }}"
+
+# Grafana container image
+monitoring_grafana_image_repo: grafana/grafana
+monitoring_grafana_image_tag: 10.4.0
+monitoring_grafana_image: "{{ monitoring_grafana_image_repo }}:{{ monitoring_grafana_image_tag }}"
+monitoring_grafana_admin_user: admin
+monitoring_grafana_admin_password: admin
+
+# node_exporter container image
+monitoring_node_exporter_image_repo: prom/node-exporter
+monitoring_node_exporter_image_tag: v1.7.0
+monitoring_node_exporter_image: "{{ monitoring_node_exporter_image_repo }}:{{ monitoring_node_exporter_image_tag }}"
+
+# Ports
+monitoring_prometheus_port: 9090
+monitoring_alertmanager_port: 9093
+monitoring_grafana_port: 3000
+monitoring_node_exporter_port: 9100
+
+# Prometheus configuration
+monitoring_prometheus_scrape_interval: 15s
+monitoring_prometheus_evaluation_interval: 15s
+monitoring_prometheus_alertmanager_targets:
+  - "alertmanager:{{ monitoring_alertmanager_port }}"
+monitoring_prometheus_node_exporter_targets:
+  - "node-exporter:{{ monitoring_node_exporter_port }}"
+monitoring_prometheus_additional_scrape_configs: []
+monitoring_prometheus_rule_files: []
+
+# Alertmanager configuration
+monitoring_alertmanager_route:
+  receiver: default
+monitoring_alertmanager_receivers:
+  - name: default
+    webhook_configs: []
+
+# Grafana configuration overrides
+monitoring_grafana_server_domain: localhost
+monitoring_grafana_server_root_url: "%(protocol)s://%(domain)s:%(http_port)s/"
+monitoring_grafana_security_disable_gravatar: true
+monitoring_grafana_auth_anonymous_enabled: false
+
