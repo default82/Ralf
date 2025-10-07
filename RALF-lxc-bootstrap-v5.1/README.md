@@ -1,7 +1,7 @@
 # R.A.L.F. – LXC Bootstrap **v5.1**
 
-**Neu:** 
-- **Globale Konfig-Datei**: Alle Pfade, Ressourcen-Größen, Storage/Template und Hostname landen in `config/defaults.json` → der TUI-Fragebogen legt `config.json` unterhalb des State-Verzeichnisses ab.
+**Neu:**
+- **Globale Konfig-Datei**: Alle Pfade, Ressourcen-Größen, Storage/Template und Hostname landen in `config/defaults.json` → der TUI-Fragebogen legt eine editierbare `config.json` (Standard: `/root/ralf/config.json`, via `$RALF_CONFIG` überschreibbar) ab.
 - **GPU-Profile**: NVIDIA/AMD/Intel (best effort) in der KI-Auswahl.
 - **Caddy Edge (ralf-edge)**: Reverse Proxy in eigenem LXC, pro Dienst **public/local** steuerbar.
 - **Domain/ACME**: Basis-Domain & E-Mail; Caddy versucht automatisch TLS (Let’s Encrypt).
@@ -157,6 +157,7 @@ Erneut ausrollen: `bash providers/pve_provider.sh && bash scripts/install_servic
 
 
 - Standardpfade (per Defaults, änderbar im TUI):
+  - Konfiguration: `/root/ralf/config.json` (oder eigener Pfad via `$RALF_CONFIG`)
   - Plan: `/root/ralf/plan.json`
   - Inventar: `/root/ralf/inventory.json`
   - DB-Secrets: `/root/ralf/secrets/db.env`

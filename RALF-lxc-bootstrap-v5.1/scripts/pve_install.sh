@@ -39,13 +39,17 @@ install_pve(){
   DEBIAN_FRONTEND=noninteractive apt-get install -y proxmox-ve postfix open-iscsi
   rm -f /etc/apt/sources.list.d/pve-enterprise.list || true
   apt-get -y full-upgrade
+  mkdir -p "$(dirname "$RESUME_FLAG")"
   touch "$RESUME_FLAG"
   echo "[*] Proxmox VE installiert. Reboot nötig."
 }
 register_resume(){
+  local unit="/etc/systemd/system/ralf-bootstrap-resume.service"
+  local tmpl="$(dirname "$0")/resume.service"
+
   install -d -m 0755 "${PROJECT_ROOT}/scripts"
   cp "$(dirname "$0")/resume.sh" "${PROJECT_ROOT}/scripts/resume.sh"
-  cp "$(dirname "$0")/resume.service" /etc/systemd/system/ralf-bootstrap-resume.service
+  sed "s|@RESUME_FLAG@|${RESUME_FLAG}|g" "$tmpl" > "$unit"
   systemctl daemon-reload
   systemctl enable ralf-bootstrap-resume.service
 }

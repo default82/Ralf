@@ -5,7 +5,7 @@ Wants=network-online.target
 
 [Service]
 Type=oneshot
-ConditionPathExists=/root/.ralf_resume_needed
+ConditionPathExists=@RESUME_FLAG@
 ExecStart=/root/RALF-lxc-bootstrap-v5.1/scripts/resume.sh
 
 [Install]
