@@ -31,16 +31,27 @@ Additional variables can be added as integrations evolve; defaults are safe for 
    pnpm dev
    ```
 3. Run quality gates before committing:
-   ```bash
-   pnpm run lint
-   pnpm run typecheck
-   pnpm run build
-   ```
+    ```bash
+    pnpm run lint
+    pnpm run lint:catalog
+    pnpm run typecheck
+    pnpm test
+    pnpm run build
+    ```
+
+### Service catalog data model
+
+Service metadata for the UI is defined as YAML in `ui/data/services.yaml` and must conform to the JSON Schema published at `api/schema/service_catalog.schema.json`. Validate changes locally with:
+
+```bash
+pnpm run lint:catalog
+```
+
+Schema evolution should be accompanied by fixtures and tests (`pnpm test`) to keep the catalog maintainable.
 
 ## Automation
 - `make portal-build` – Install dependencies and produce a production build of the UI (`pnpm install --frozen-lockfile && pnpm run build`).
 
 ## TODO
 - [ ] Implement UI build pipeline
-- [ ] Define service catalog schema
 - [ ] Integrate authentication (Keycloak/Authelia)
