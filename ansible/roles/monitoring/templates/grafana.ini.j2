@@ -1,0 +1,17 @@
+[paths]
+data = /var/lib/grafana
+logs = /var/log/grafana
+plugins = /var/lib/grafana/plugins
+provisioning = /etc/grafana/provisioning
+
+[server]
+http_addr = 0.0.0.0
+http_port = {{ monitoring_grafana_port }}
+domain = {{ monitoring_grafana_server_domain }}
+root_url = {{ monitoring_grafana_server_root_url }}
+
+[security]
+disable_gravatar = {{ monitoring_grafana_security_disable_gravatar | ternary('true', 'false') }}
+
+[auth.anonymous]
+enabled = {{ monitoring_grafana_auth_anonymous_enabled | ternary('true', 'false') }}

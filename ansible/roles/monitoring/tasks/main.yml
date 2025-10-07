@@ -1,4 +1,81 @@
 ---
-- name: Placeholder for monitoring role
-  ansible.builtin.debug:
-    msg: "monitoring role tasks to be implemented"
+- name: Ensure monitoring group exists
+  ansible.builtin.group:
+    name: "{{ monitoring_group }}"
+    system: true
+  when: monitoring_manage_user
+
+- name: Ensure monitoring user exists
+  ansible.builtin.user:
+    name: "{{ monitoring_user }}"
+    group: "{{ monitoring_group }}"
+    system: true
+    create_home: false
+    shell: /usr/sbin/nologin
+  when: monitoring_manage_user
+
+- name: Ensure monitoring directories exist
+  ansible.builtin.file:
+    path: "{{ item.path }}"
+    state: directory
+    owner: "{{ monitoring_user }}"
+    group: "{{ monitoring_group }}"
+    mode: "{{ item.mode | default('0755') }}"
+  loop:
+    - { path: "{{ monitoring_base_dir }}", mode: '0755' }
+    - { path: "{{ monitoring_config_dir }}" }
+    - { path: "{{ monitoring_data_dir }}" }
+    - { path: "{{ monitoring_runtime_dir }}" }
+    - { path: "{{ monitoring_runtime_dir }}/grafana" }
+    - { path: "{{ monitoring_runtime_dir }}/grafana/log" }
+    - { path: "{{ monitoring_prometheus_config_dir }}" }
+    - { path: "{{ monitoring_prometheus_rules_dir }}" }
+    - { path: "{{ monitoring_prometheus_data_dir }}", mode: '0775' }
+    - { path: "{{ monitoring_alertmanager_config_dir }}" }
+    - { path: "{{ monitoring_alertmanager_data_dir }}", mode: '0775' }
+    - { path: "{{ monitoring_grafana_config_dir }}" }
+    - { path: "{{ monitoring_grafana_data_dir }}", mode: '0775' }
+
+- name: Deploy Prometheus configuration
+  ansible.builtin.template:
+    src: prometheus.yml.j2
+    dest: "{{ monitoring_prometheus_config_dir }}/prometheus.yml"
+    owner: "{{ monitoring_user }}"
+    group: "{{ monitoring_group }}"
+    mode: '0644'
+  notify: "{{ ['Reload prometheus service'] if monitoring_manage_docker else [] }}"
+
+- name: Deploy Alertmanager configuration
+  ansible.builtin.template:
+    src: alertmanager.yml.j2
+    dest: "{{ monitoring_alertmanager_config_dir }}/alertmanager.yml"
+    owner: "{{ monitoring_user }}"
+    group: "{{ monitoring_group }}"
+    mode: '0644'
+  notify: "{{ ['Restart alertmanager service'] if monitoring_manage_docker else [] }}"
+
+- name: Deploy Grafana configuration
+  ansible.builtin.template:
+    src: grafana.ini.j2
+    dest: "{{ monitoring_grafana_config_dir }}/grafana.ini"
+    owner: "{{ monitoring_user }}"
+    group: "{{ monitoring_group }}"
+    mode: '0644'
+  notify: "{{ ['Restart grafana service'] if monitoring_manage_docker else [] }}"
+
+- name: Deploy monitoring docker-compose definition
+  ansible.builtin.template:
+    src: docker-compose.yml.j2
+    dest: "{{ monitoring_compose_file }}"
+    owner: "{{ monitoring_user }}"
+    group: "{{ monitoring_group }}"
+    mode: '0644'
+  notify: "{{ ['Reload prometheus service', 'Restart alertmanager service', 'Restart grafana service', 'Restart node-exporter service'] if monitoring_manage_docker else [] }}"
+
+- name: Ensure monitoring stack is running
+  community.docker.docker_compose:
+    project_src: "{{ monitoring_base_dir }}"
+    project_name: "{{ monitoring_compose_project_name }}"
+    pull: {{ monitoring_compose_pull | bool }}
+    state: present
+  when: monitoring_manage_docker
