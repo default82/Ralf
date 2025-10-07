@@ -1,0 +1,12 @@
+#jinja2: lstrip_blocks: True
+route:
+{{ monitoring_alertmanager_route | to_nice_yaml(indent=2) | indent(2, False) }}
+
+receivers:
+{% if monitoring_alertmanager_receivers %}
+{% for receiver in monitoring_alertmanager_receivers %}
+  - {{ receiver | to_nice_yaml(indent=4) | trim | indent(4, False) }}
+{% endfor %}
+{% else %}
+  []
+{% endif %}

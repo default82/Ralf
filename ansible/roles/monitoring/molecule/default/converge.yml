@@ -1,0 +1,9 @@
+---
+- name: Converge
+  hosts: all
+  connection: local
+  gather_facts: false
+  vars:
+    monitoring_manage_docker: false
+  roles:
+    - role: monitoring
