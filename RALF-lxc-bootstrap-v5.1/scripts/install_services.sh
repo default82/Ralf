@@ -7,6 +7,10 @@ PLAN=""
 INV=""
 SECDIR=""
 LINKS_FILE=""
+PLAN="/root/ralf/plan.json"
+INV="/root/ralf/inventory.json"
+SECDIR="/root/ralf/secrets"
+mkdir -p "$SECDIR"
 
 req(){ command -v "$1" >/dev/null 2>&1 || { echo "Fehlt: $1"; exit 1; }; }
 pw(){ tr -dc 'A-Za-z0-9' </dev/urandom | head -c 24; echo; }
@@ -236,6 +240,8 @@ install_foreman(){
 write_links(){
   mkdir -p "$(dirname "$LINKS_FILE")"
   cat > "$LINKS_FILE" <<EOF_LINKS
+  local f="/root/ralf/links.txt"
+  cat > "$f" <<EOF_LINKS
 === RALF Dienste ===
 Edge (Caddy):             http://$(ip_of ralf-edge) (80/443 ggf. via FQDN)
 KI (ralf-ki):             http://$(ip_of ralf-ki):11434    (Ollama) | vLLM ggf.: http://$(ip_of ralf-ki):8000/v1
@@ -262,6 +268,15 @@ main(){
   mkdir -p "$SECDIR"
   ensure_inv
   gen_db_pw
+Plan:    /root/ralf/plan.json
+Secrets: /root/ralf/secrets/
+Inventar:/root/ralf/inventory.json
+EOF_LINKS
+  echo "[*] Summary: $f"; cat "$f"
+}
+
+main(){
+  req jq; ensure_inv; gen_db_pw
   setup_db
   install_gitea
   install_netbox

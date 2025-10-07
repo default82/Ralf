@@ -14,6 +14,7 @@ set_hostname(){
   hostnamectl set-hostname "$t"
   grep -q "$t" /etc/hosts || echo "127.0.1.1 $t" >> /etc/hosts
 }
+set_hostname(){ local t="pve-du-00"; hostnamectl set-hostname "$t"; grep -q "$t" /etc/hosts || echo "127.0.1.1 $t" >> /etc/hosts; }
 
 phase2_pve(){
   bash scripts/plan_tui.sh
@@ -25,6 +26,7 @@ phase2_pve(){
   plan_path=$(config_get '.plan_path')
   links_path=$(config_get '.links_path')
   whiptail --title "RALF v5.1" --msgbox "Fertig. Plan: ${plan_path}\nLinks: ${links_path}" 10 70
+  whiptail --title "RALF v5.1" --msgbox "Fertig. Plan: /root/ralf/plan.json\nLinks: /root/ralf/links.txt" 10 70
 }
 
 main(){
