@@ -35,6 +35,36 @@ calc_ip(){
   echo "${o1}.${o2}.${cat}.${host}"
 }
 
+next_mp_index(){
+  local cfg="$1" idx max=-1
+  while IFS=: read -r key _; do
+    if [[ $key =~ ^mp([0-9]+)$ ]]; then
+      idx=${BASH_REMATCH[1]}
+      (( idx > max )) && max=$idx
+    fi
+  done <<< "$cfg"
+  echo $((max + 1))
+}
+
+map_devices(){
+  local ctid="$1"; shift
+  local cfg="$(pct config "$ctid" 2>/dev/null || true)"
+  local idx="$(next_mp_index "$cfg")"
+  local dev
+  for dev in "$@"; do
+    [[ -e "$dev" ]] || continue
+    if grep -q "mp[0-9]\+: ${dev}," <<< "$cfg"; then
+      continue
+    fi
+    pct set "$ctid" "-mp${idx}" "$dev",mp="$dev" || true
+    cfg+=$'\n'"mp${idx}: ${dev},mp=${dev}"
+    idx=$((idx + 1))
+  done
+}
+
+map_nvidia(){ local ctid="$1"; map_devices "$ctid" /dev/nvidiactl /dev/nvidia0 /dev/nvidia-uvm /dev/nvidia-uvm-tools; { echo "lxc.cgroup2.devices.allow: c 195:* rwm"; echo "lxc.cgroup2.devices.allow: c 507:* rwm"; } >> "/etc/pve/lxc/${ctid}.conf"; }
+map_amd(){ local ctid="$1"; map_devices "$ctid" /dev/kfd /dev/dri; { echo "lxc.cgroup2.devices.allow: c 226:* rwm"; echo "lxc.cgroup2.devices.allow: c 235:* rwm"; } >> "/etc/pve/lxc/${ctid}.conf"; }
+map_intel(){ local ctid="$1"; map_devices "$ctid" /dev/dri; { echo "lxc.cgroup2.devices.allow: c 226:* rwm"; } >> "/etc/pve/lxc/${ctid}.conf"; }
 map_nvidia(){ local ctid="$1"; for dev in /dev/nvidiactl /dev/nvidia0 /dev/nvidia-uvm /dev/nvidia-uvm-tools; do [[ -e "$dev" ]] && pct set "$ctid" -mp0 "$dev",mp="$dev" || true; done; { echo "lxc.cgroup2.devices.allow: c 195:* rwm"; echo "lxc.cgroup2.devices.allow: c 507:* rwm"; } >> "/etc/pve/lxc/${ctid}.conf"; }
 map_amd(){ local ctid="$1"; for dev in /dev/kfd /dev/dri; do [[ -e "$dev" ]] && pct set "$ctid" -mp0 "$dev",mp="$dev" || true; done; { echo "lxc.cgroup2.devices.allow: c 226:* rwm"; echo "lxc.cgroup2.devices.allow: c 235:* rwm"; } >> "/etc/pve/lxc/${ctid}.conf"; }
 map_intel(){ local ctid="$1"; for dev in /dev/dri; do [[ -e "$dev" ]] && pct set "$ctid" -mp0 "$dev",mp="$dev" || true; done; { echo "lxc.cgroup2.devices.allow: c 226:* rwm"; } >> "/etc/pve/lxc/${ctid}.conf"; }
