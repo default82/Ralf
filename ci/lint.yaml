@@ -18,6 +18,22 @@ jobs:
         run: |
           pip install ansible ansible-lint yamllint molecule molecule-plugins
           sudo apt-get update && sudo apt-get install -y packer shellcheck opentofu
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'pnpm'
+          cache-dependency-path: portal/ui/pnpm-lock.yaml
+      - name: Install and check portal UI
+        working-directory: portal/ui
+        run: |
+          corepack enable
+          pnpm install --frozen-lockfile
+          pnpm run lint
+          pnpm run lint:catalog
+          pnpm run typecheck
+          pnpm test
+          pnpm run build
       - name: Run lint
         run: |
           make lint

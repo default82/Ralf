@@ -8,6 +8,9 @@ INV=$(jq -r '.inventory_path' "$CONFIG_FILE")
 OMADA_JSON=$(jq -r '.omada_path' "$CONFIG_FILE")
 
 mkdir -p "$(dirname "$OMADA_JSON")"
+PLAN="/root/ralf/plan.json"
+OMADA_JSON="/root/ralf/omada.json"
+INV="/root/ralf/inventory.json"
 
 jq '.omada' "$PLAN" > "$OMADA_JSON"
 

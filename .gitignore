@@ -8,3 +8,7 @@ images/golden/vars.pkr.hcl
 .env
 __pycache__/
 /ci/.cache/
+# Portal UI artifacts
+portal/ui/node_modules/
+portal/ui/.next/
+portal/ui/out/

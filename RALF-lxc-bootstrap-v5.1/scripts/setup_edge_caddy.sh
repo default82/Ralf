@@ -5,6 +5,8 @@ source "$(dirname "$0")/common.sh"
 
 PLAN=""
 INV=""
+PLAN="/root/ralf/plan.json"
+INV="/root/ralf/inventory.json"
 
 ctid_of(){ jq -r ".services[\"$1\"].ctid" "$PLAN"; }
 ip_of(){ jq -r --arg n "$1" '.[$n].ip // empty' "$INV"; }

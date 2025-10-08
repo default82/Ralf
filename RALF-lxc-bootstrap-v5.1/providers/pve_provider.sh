@@ -6,6 +6,8 @@ source "$(dirname "$0")/../scripts/common.sh"
 PLAN=""
 INV=""
 KI_CHOICE_FILE=""
+PLAN="/root/ralf/plan.json"
+INV="/root/ralf/inventory.json"
 
 pkg(){ apt-get update -y; DEBIAN_FRONTEND=noninteractive apt-get install -y "$@"; }
 
@@ -19,6 +21,8 @@ ensure_template(){
     echo "[!] Kein Template gefunden für Muster ${template_pattern}" >&2
     exit 1
   fi
+  local storage="local"
+  local best=$(pveam available | awk '/debian-12-standard/ {print $2}' | tail -n1)
   if ! pveam list "$storage" | grep -q "$best"; then pveam download "$storage" "$best"; fi
   echo "$storage" > /tmp/pve_storage.txt
   echo "$best" > /tmp/pve_template.txt
@@ -61,6 +65,9 @@ map_devices(){
 map_nvidia(){ local ctid="$1"; map_devices "$ctid" /dev/nvidiactl /dev/nvidia0 /dev/nvidia-uvm /dev/nvidia-uvm-tools; { echo "lxc.cgroup2.devices.allow: c 195:* rwm"; echo "lxc.cgroup2.devices.allow: c 507:* rwm"; } >> "/etc/pve/lxc/${ctid}.conf"; }
 map_amd(){ local ctid="$1"; map_devices "$ctid" /dev/kfd /dev/dri; { echo "lxc.cgroup2.devices.allow: c 226:* rwm"; echo "lxc.cgroup2.devices.allow: c 235:* rwm"; } >> "/etc/pve/lxc/${ctid}.conf"; }
 map_intel(){ local ctid="$1"; map_devices "$ctid" /dev/dri; { echo "lxc.cgroup2.devices.allow: c 226:* rwm"; } >> "/etc/pve/lxc/${ctid}.conf"; }
+map_nvidia(){ local ctid="$1"; for dev in /dev/nvidiactl /dev/nvidia0 /dev/nvidia-uvm /dev/nvidia-uvm-tools; do [[ -e "$dev" ]] && pct set "$ctid" -mp0 "$dev",mp="$dev" || true; done; { echo "lxc.cgroup2.devices.allow: c 195:* rwm"; echo "lxc.cgroup2.devices.allow: c 507:* rwm"; } >> "/etc/pve/lxc/${ctid}.conf"; }
+map_amd(){ local ctid="$1"; for dev in /dev/kfd /dev/dri; do [[ -e "$dev" ]] && pct set "$ctid" -mp0 "$dev",mp="$dev" || true; done; { echo "lxc.cgroup2.devices.allow: c 226:* rwm"; echo "lxc.cgroup2.devices.allow: c 235:* rwm"; } >> "/etc/pve/lxc/${ctid}.conf"; }
+map_intel(){ local ctid="$1"; for dev in /dev/dri; do [[ -e "$dev" ]] && pct set "$ctid" -mp0 "$dev",mp="$dev" || true; done; { echo "lxc.cgroup2.devices.allow: c 226:* rwm"; } >> "/etc/pve/lxc/${ctid}.conf"; }
 
 hw_scan(){
   GPU_INFO="$(lspci | grep -i -E 'vga|3d' || true)"
@@ -88,6 +95,7 @@ choose_ki_stack(){
     3>&1 1>&2 2>&3) || CHOICE="$reco"
   mkdir -p "$(dirname "$KI_CHOICE_FILE")"
   echo "$CHOICE" > "$KI_CHOICE_FILE"
+  echo "$CHOICE" > /root/ralf_ki_choice.txt
 }
 
 create_ct(){
@@ -136,6 +144,8 @@ resource_value(){
 
 collect_ips(){
   mkdir -p "$(dirname "$INV")"
+collect_ips(){
+  mkdir -p /root/ralf
   echo '{}' | jq '.' > "$INV"
   for name in $(jq -r '.services | keys[]' "$PLAN"); do
     ctid=$(jq -r ".services[\"$name\"].ctid" "$PLAN")
@@ -163,6 +173,12 @@ main(){
     host=$(jq -r ".services[\"$name\"].host_octet" "$PLAN")
     mem=$(resource_value "$name" "memory" 2048)
     cores=$(resource_value "$name" "cores" 2)
+    mem=2048; cores=2
+    [[ "$name" == "ralf-ki" ]] && mem=8192 cores=4
+    [[ "$name" == "ralf-db" ]] && mem=4096 cores=2
+    [[ "$name" == "ralf-netbox" ]] && mem=4096 cores=2
+    [[ "$name" == "ralf-foreman" ]] && mem=6144 cores=4
+    [[ "$name" == "ralf-edge" ]] && mem=1024 cores=1
     tags=$(jq -r ".services[\"$name\"].tags | join(\";\")" "$PLAN")
 
     if [[ "$addr" == "static" ]]; then
@@ -180,6 +196,7 @@ main(){
   [[ $HAS_INTEL -eq 1 ]] && map_intel "$ki_ctid" || true
 
   setup_ki_in_ct "$ki_ctid" "$(cat "$KI_CHOICE_FILE")"
+  setup_ki_in_ct "$ki_ctid" "$(cat /root/ralf_ki_choice.txt)"
   collect_ips
 }
 main "$@"

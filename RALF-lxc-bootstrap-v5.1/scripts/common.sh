@@ -17,6 +17,19 @@ CONFIG_FILE="$(load_config_file)"
 
 config_get(){
   local query="$1"
+refresh_config(){
+  if [[ -f "$CONFIG_PATH" ]]; then
+    CONFIG_FILE="$CONFIG_PATH"
+  else
+    CONFIG_FILE="$DEFAULT_CONFIG"
+  fi
+}
+
+refresh_config
+
+config_get(){
+  local query="$1"
+  refresh_config
   jq -r "$query" "$CONFIG_FILE"
 }
 

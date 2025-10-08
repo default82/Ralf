@@ -2,6 +2,7 @@
 
 **Neu:**
 - **Globale Konfig-Datei**: Alle Pfade, Ressourcen-Größen, Storage/Template und Hostname landen in `config/defaults.json` → der TUI-Fragebogen legt eine editierbare `config.json` (Standard: `/root/ralf/config.json`, via `$RALF_CONFIG` überschreibbar) ab.
+**Neu:** 
 - **GPU-Profile**: NVIDIA/AMD/Intel (best effort) in der KI-Auswahl.
 - **Caddy Edge (ralf-edge)**: Reverse Proxy in eigenem LXC, pro Dienst **public/local** steuerbar.
 - **Domain/ACME**: Basis-Domain & E-Mail; Caddy versucht automatisch TLS (Let’s Encrypt).
@@ -123,6 +124,7 @@ set_hostname(){
   hostnamectl set-hostname "$t"
   grep -q "$t" /etc/hosts || echo "127.0.1.1 $t" >> /etc/hosts
 }
+set_hostname(){ local t="pve-du-00"; hostnamectl set-hostname "$t"; grep -q "$t" /etc/hosts || echo "127.0.1.1 $t" >> /etc/hosts; }
 
 phase2_pve(){
   bash scripts/plan_tui.sh
@@ -133,6 +135,7 @@ phase2_pve(){
   local plan_path=$(config_get '.plan_path')
   local links_path=$(config_get '.links_path')
   whiptail --title "RALF v5.1" --msgbox "Fertig. Plan: ${plan_path}\nLinks: ${links_path}" 10 70
+  whiptail --title "RALF v5.1" --msgbox "Fertig. Plan: /root/ralf/plan.json\nLinks: /root/ralf/links.txt" 10 70
 }
 
 main(){
@@ -162,3 +165,15 @@ Erneut ausrollen: `bash providers/pve_provider.sh && bash scripts/install_servic
   - Inventar: `/root/ralf/inventory.json`
   - DB-Secrets: `/root/ralf/secrets/db.env`
   - Links: `/root/ralf/links.txt`
+Erstlauf auf Debian: `bash ./install.sh` → PVE-Install, Reboot, dann TUI automatisch.
+
+Plan anpassen: `bash scripts/plan_tui.sh` (CTIDs/IPs/Tags/Domain/Expose/PXE/Omada).
+
+Erneut ausrollen: `bash providers/pve_provider.sh && bash scripts/install_services.sh && bash scripts/setup_edge_caddy.sh`.
+
+Ergebnisse:
+
+- Plan: `/root/ralf/plan.json`
+- Inventar: `/root/ralf/inventory.json`
+- DB-Secrets: `/root/ralf/secrets/db.env`
+- Links: `/root/ralf/links.txt`
