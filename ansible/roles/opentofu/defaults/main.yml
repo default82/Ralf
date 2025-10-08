@@ -1,7 +1,0 @@
----
-# Default variables for the OpenTofu role
-opentofu_packages:
-  - opentofu
-opentofu_config_path: /etc/opentofu/opentofu.hcl
-opentofu_workspace: homelab
-opentofu_state_path: /var/lib/opentofu

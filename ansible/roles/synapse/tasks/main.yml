@@ -1,7 +1,0 @@
----
-- name: Placeholder for synapse role
-  ansible.builtin.debug:
-    msg: |
-      Synapse role tasks to be implemented. Provision matrix-synapse with
-      configuration in {{ synapse_config_dir }}, manage workers {{ synapse_workers }},
-      and expose client & federation ports {{ synapse_client_port }}/{{ synapse_federation_port }}.

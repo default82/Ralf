@@ -1,4 +1,0 @@
----
-- name: Placeholder for backups role
-  ansible.builtin.debug:
-    msg: "backups role tasks to be implemented"

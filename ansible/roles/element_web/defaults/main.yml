@@ -1,9 +1,0 @@
----
-# Default variables for the Element Web client deployment
-element_web_user: "www-data"
-element_web_group: "www-data"
-element_web_root: "/var/www/element"
-element_web_config_path: "{{ element_web_root }}/config.json"
-element_web_base_url: "https://element.homelab.lan"
-element_web_matrix_homeserver: "https://matrix.homelab.lan"
-element_web_assets_version: "latest"

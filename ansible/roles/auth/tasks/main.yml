@@ -1,4 +1,0 @@
----
-- name: Placeholder for auth role
-  ansible.builtin.debug:
-    msg: "auth role tasks to be implemented"

@@ -1,5 +1,0 @@
-{
-{% for key, value in vaultwarden_config_effective.items() | sort %}
-  "{{ key }}": {{ value | to_json }}{% if not loop.last %},{% endif %}
-{% endfor %}
-}

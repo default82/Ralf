@@ -1,7 +1,0 @@
----
-- name: Placeholder for element-web role
-  ansible.builtin.debug:
-    msg: |
-      Element Web role tasks to be implemented. Should publish the static client
-      under {{ element_web_root }}, render {{ element_web_config_path }}, and align
-      homeserver links with {{ element_web_matrix_homeserver }}.

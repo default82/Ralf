@@ -1,4 +1,0 @@
----
-- name: Placeholder for dns role
-  ansible.builtin.debug:
-    msg: "dns role tasks to be implemented"

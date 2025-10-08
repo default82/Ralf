@@ -1,4 +1,0 @@
----
-- name: Placeholder for homeassistant role
-  ansible.builtin.debug:
-    msg: "homeassistant role tasks to be implemented"
