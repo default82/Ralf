@@ -1,4 +1,57 @@
 ---
-- name: Placeholder for base role
-  ansible.builtin.debug:
-    msg: "base role tasks to be implemented"
+- name: Ensure running on a supported platform
+  ansible.builtin.assert:
+    that:
+      - (ansible_facts['os_family'] | default('')) in base_supported_os_families
+    fail_msg: >-
+      Unsupported operating system family {{ ansible_facts['os_family'] | default('unknown') }}.
+      Supported families: {{ base_supported_os_families | join(', ') }}
+
+- name: Update apt cache
+  ansible.builtin.apt:
+    update_cache: true
+    cache_valid_time: "{{ base_apt_cache_valid_time | int }}"
+  when: (ansible_facts['pkg_mgr'] | default('')) == 'apt'
+
+- name: Build effective package list
+  ansible.builtin.set_fact:
+    base_effective_packages: "{{ (base_packages + base_additional_packages) | unique | list }}"
+  changed_when: false
+
+- name: Ensure base packages are installed
+  ansible.builtin.package:
+    name: "{{ base_effective_packages }}"
+    state: present
+  when: base_effective_packages | length > 0
+
+- name: Capture current timezone
+  ansible.builtin.command: timedatectl show --property=Timezone --value
+  register: base_current_timezone
+  changed_when: false
+  when: base_manage_timezone
+
+- name: Configure system timezone
+  ansible.builtin.command: "timedatectl set-timezone {{ base_timezone }}"
+  when:
+    - base_manage_timezone
+    - base_current_timezone.stdout != base_timezone
+
+- name: Ensure systemd-timesyncd is enabled
+  ansible.builtin.service:
+    name: systemd-timesyncd
+    state: started
+    enabled: true
+  when:
+    - base_manage_timesyncd
+    - (ansible_facts['service_mgr'] | default('')) == 'systemd'
+
+- name: Configure automatic APT maintenance
+  ansible.builtin.template:
+    src: 20auto-upgrades.j2
+    dest: /etc/apt/apt.conf.d/20auto-upgrades
+    owner: root
+    group: root
+    mode: '0644'
+  when:
+    - base_manage_apt_periodic
+    - (ansible_facts['pkg_mgr'] | default('')) == 'apt'

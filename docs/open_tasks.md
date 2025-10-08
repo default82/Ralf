@@ -14,10 +14,12 @@ Die folgenden Rollen benötigen jeweils eine vollständige Ausarbeitung der Stan
 - auth (`ansible/roles/auth/README.md`)
 - homeassistant (`ansible/roles/homeassistant/README.md`)
 - caddy (`ansible/roles/caddy/README.md`)
-- base (`ansible/roles/base/README.md`)
 - backups (`ansible/roles/backups/README.md`)
 
-Für jede dieser Rollen sind folgende Arbeitsschritte offen:
+✅ Erledigt:
+- base (`ansible/roles/base/README.md`)
+
+Für jede der oben genannten offenen Rollen sind folgende Arbeitsschritte zu erledigen:
 - [ ] Variablen in `defaults/main.yml` definieren.
 - [ ] Aufgaben in `tasks/main.yml` implementieren.
 - [ ] Benötigte Handler/Templates hinzufügen.
