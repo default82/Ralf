@@ -1,7 +1,7 @@
 import { describe, expect, it } from "vitest";
 import Ajv from "ajv";
 import addFormats from "ajv-formats";
-import schemaJson from "../api/schema/service_catalog.schema.json";
+import schemaJson from "../../api/schema/service_catalog.schema.json";
 import {
   ServiceCatalog,
   readCatalog,
