@@ -1,2 +1,31 @@
 ---
-# Default variables for base
+# Default variables for the base role
+base_supported_os_families:
+  - Debian
+
+base_packages:
+  - ca-certificates
+  - curl
+  - git
+  - htop
+  - python3
+  - python3-pip
+  - unattended-upgrades
+  - unzip
+  - vim
+
+base_additional_packages: []
+
+base_apt_cache_valid_time: 3600
+
+base_manage_timezone: true
+base_timezone: Europe/Berlin
+
+base_manage_timesyncd: true
+
+base_manage_apt_periodic: true
+base_apt_periodic_settings:
+  "APT::Periodic::Update-Package-Lists": "1"
+  "APT::Periodic::Download-Upgradeable-Packages": "1"
+  "APT::Periodic::AutocleanInterval": "7"
+  "APT::Periodic::Unattended-Upgrade": "1"
