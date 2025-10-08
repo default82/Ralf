@@ -1,6 +1,6 @@
 #jinja2: lstrip_blocks: True
 route:
-{{ monitoring_alertmanager_route | to_nice_yaml(indent=2) | indent(2, False) }}
+{{ monitoring_alertmanager_route | to_nice_yaml(indent=2) | indent(2, True) }}
 
 receivers:
 {% if monitoring_alertmanager_receivers %}
