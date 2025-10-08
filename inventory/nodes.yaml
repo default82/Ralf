@@ -1,6 +1,0 @@
-nodes:
-  pve01:
-    management_ip: "<mgmt-ip>"
-    pools:
-      - "<pool-name>"
-      - "<pool-name-2>"
