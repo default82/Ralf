@@ -194,6 +194,69 @@ RALF-lxc-bootstrap-v5.1/
                 │ - Automatisierte Reports (JSON/MD)             │
                 └─────────────────┬──────────────────────────────┘
                                   │
+                          ┌──────▼──────┐
+                          │    ENDE     │
+                          └─────────────┘
+```
+
+## Aufgaben aus dem Ablaufplan
+
+Die folgende Aufgabenliste überträgt die einzelnen Schritte des Ablaufplans in konkret zu erledigende Arbeitspakete. Sie kann als
+Checkliste oder Grundlage für Ticket-Systeme dienen.
+
+### 1. Vorbereitungsphase
+
+- [ ] Ausgangshost identifizieren (z. B. `pve01`) und Hardwaredaten erfassen.
+- [ ] Netzwerk- und VLAN-Schema dokumentieren, inklusive Subnetzen und Gateway-Konzept.
+- [ ] CTID/VMID-Bereiche pro Kategorie (10er bis 90er Block) festlegen.
+- [ ] Verfügbarkeit einer öffentlichen Domain und gewünschter FQDNs prüfen.
+- [ ] Prüfen, ob Router PXE-Weiterleitung unterstützt.
+- [ ] Status eines TP-Link-Omada-Controllers und API-Zugangsdaten klären.
+- [ ] Repositories für Inventar/Dokumentation vorbereiten.
+
+### 2. Infrastruktur-Basis schaffen
+
+- [ ] Notwendige Bridges (`vmbr*`) und VLANs auf dem Proxmox-Host anlegen.
+- [ ] Storage-Pools (z. B. ZFS, LVM, Directory) für LXC-Container prüfen oder einrichten.
+- [ ] Basis-LXC "R.A.L.F." aufsetzen und Automatisierungs-Tooling (Ansible/Taskrunner) sowie SSH-Zugänge konfigurieren.
+
+### 3. Kern-Stack provisionieren
+
+- [ ] Interne DNS-Lösung (unbound/dnsmasq) vorbereiten.
+- [ ] Reverse-Proxy-Struktur mit Caddy planen.
+- [ ] PKI/TLS-Strategie definieren (Let's Encrypt vs. interne CA).
+- [ ] Logging- und Monitoring-Agenten auswählen und integrieren.
+
+### 4. Domain-abhängige Schritte
+
+- [ ] **Wenn öffentliche Domain verfügbar:** ACME-Validierungsmethode (HTTP-01/DNS-01) wählen und öffentliche vHosts vorbereiten.
+- [ ] **Wenn keine öffentliche Domain:** Interne Zertifikatsstelle konfigurieren und `.home.arpa`-Namensschema festlegen.
+
+### 5. Netzwerkservices & Integrationen
+
+- [ ] Router-Fähigkeit für PXE überprüfen und Netboot-Dienste (DHCP/TFTP/NBP) planen.
+- [ ] Omada-Controller-Schnittstellen abstimmen, Site-/Netzprofile sowie VLAN-/SSID-Zuordnung vorbereiten.
+
+### 6. Kategorien und Container
+
+- [ ] Für jede ausgewählte Kategorie entscheiden, ob Dienste öffentlich oder nur intern bereitgestellt werden.
+- [ ] CTID/VMID je Dienst vergeben und IP-Adressierung (DHCP oder statisch) nach dem Schema `192.168.<Kategorie>.<Host>` planen.
+- [ ] Container/VMs provisionieren, Pakete installieren und Dienste konfigurieren.
+- [ ] Caddy-vHosts samt TLS-Handling für öffentliche Dienste anlegen.
+- [ ] Interne DNS-Einträge bzw. mTLS/ACLs für rein lokale Dienste konfigurieren.
+
+### 7. Betrieb & Absicherung
+
+- [ ] Firewall-Regeln, Fail2ban, Update-Strategien und Secrets-Rotation implementieren.
+- [ ] Backup-Jobs (restic/Borg/Proxmox) definieren und testen.
+- [ ] Monitoring- und Logging-Anbindung prüfen, Alarme und Benachrichtigungen einrichten.
+
+### 8. Validierung & Dokumentation
+
+- [ ] Smoke-Tests durchführen (DNS, TLS, Portprüfungen, Login-/API-Checks, Routing Innen/Außen).
+- [ ] Inventar- und Dokumentationsdateien (`hosts.yml`, `services.yml`, `networks.yml`, Runbooks) aktualisieren.
+- [ ] Automatisierte Reports (JSON/Markdown) erzeugen und in Git einchecken.
+
                            ┌──────▼──────┐
                            │    ENDE     │
                            └─────────────┘
