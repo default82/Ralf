@@ -68,12 +68,20 @@ while read -r row; do
   if [[ "$exposure" == "public" && "$HAS_PUBLIC" == "true" ]]; then
     tls_block="tls ${ACME_EMAIL}"
   fi
+  if [[ -n "$CADDY_CFG" ]]; then
+    CADDY_CFG+=$'\n'
+  fi
+  entry=$(cat <<EOF
+${fqdn} {
   CADDY_CFG+=$'
 '"${fqdn} {
     ${tls_block}
     encode gzip
     reverse_proxy ${ip}:${port}
 }
+EOF
+)
+  CADDY_CFG+="$entry"
 "
 done < <(jq -c '.containers[]' "$INVENTORY_FILE")
 

@@ -65,6 +65,16 @@ pct_exec() {
   pct exec "$ctid" -- bash -lc "$*"
 }
 
+pct_push_content() {
+  local ctid=$1
+  local destination=$2
+  local tmp
+  tmp=$(mktemp)
+  cat >"$tmp"
+  pct push "$ctid" "$tmp" "$destination"
+  rm -f "$tmp"
+}
+
 install_db() {
   echo "[services] Installiere ralf-db (CTID $DB_CTI)"
   pct_exec "$DB_CTI" "set -e; apt-get update; apt-get install -y postgresql redis-server jq"
@@ -75,6 +85,21 @@ install_db() {
   pct_exec "$DB_CTI" "systemctl restart postgresql"
   pct_exec "$DB_CTI" "systemctl enable --now redis-server"
   local sql_file=$(mktemp)
+  SQL_FILE="$sql_file" \
+    DB_PASS_NETBOX="$DB_PASS_NETBOX" \
+    DB_PASS_N8N="$DB_PASS_N8N" \
+    DB_PASS_MATRIX="$DB_PASS_MATRIX" \
+    DB_PASS_GITEA="$DB_PASS_GITEA" \
+    python - <<'PY'
+import os
+from pathlib import Path
+
+sql = f"""DO $$
+BEGIN
+  IF NOT EXISTS (SELECT 1 FROM pg_roles WHERE rolname = 'netbox') THEN
+    EXECUTE format('CREATE USER netbox WITH PASSWORD %L', '{os.environ["DB_PASS_NETBOX"]}');
+  ELSE
+    EXECUTE format('ALTER USER netbox WITH PASSWORD %L', '{os.environ["DB_PASS_NETBOX"]}');
   SQL_FILE="$sql_file" python - <<'PY'
 import os
 from pathlib import Path
@@ -89,6 +114,9 @@ BEGIN
     EXECUTE 'CREATE DATABASE netbox OWNER netbox';
   END IF;
   IF NOT EXISTS (SELECT 1 FROM pg_roles WHERE rolname = 'n8n') THEN
+    EXECUTE format('CREATE USER n8n WITH PASSWORD %L', '{os.environ["DB_PASS_N8N"]}');
+  ELSE
+    EXECUTE format('ALTER USER n8n WITH PASSWORD %L', '{os.environ["DB_PASS_N8N"]}');
     EXECUTE format('CREATE USER n8n WITH PASSWORD %L', '{DB_PASS_N8N}');
   ELSE
     EXECUTE format('ALTER USER n8n WITH PASSWORD %L', '{DB_PASS_N8N}');
@@ -97,6 +125,9 @@ BEGIN
     EXECUTE 'CREATE DATABASE n8n OWNER n8n';
   END IF;
   IF NOT EXISTS (SELECT 1 FROM pg_roles WHERE rolname = 'synapse') THEN
+    EXECUTE format('CREATE USER synapse WITH PASSWORD %L', '{os.environ["DB_PASS_MATRIX"]}');
+  ELSE
+    EXECUTE format('ALTER USER synapse WITH PASSWORD %L', '{os.environ["DB_PASS_MATRIX"]}');
     EXECUTE format('CREATE USER synapse WITH PASSWORD %L', '{DB_PASS_MATRIX}');
   ELSE
     EXECUTE format('ALTER USER synapse WITH PASSWORD %L', '{DB_PASS_MATRIX}');
@@ -105,6 +136,9 @@ BEGIN
     EXECUTE 'CREATE DATABASE synapse OWNER synapse';
   END IF;
   IF NOT EXISTS (SELECT 1 FROM pg_roles WHERE rolname = 'gitea') THEN
+    EXECUTE format('CREATE USER gitea WITH PASSWORD %L', '{os.environ["DB_PASS_GITEA"]}');
+  ELSE
+    EXECUTE format('ALTER USER gitea WITH PASSWORD %L', '{os.environ["DB_PASS_GITEA"]}');
     EXECUTE format('CREATE USER gitea WITH PASSWORD %L', '{DB_PASS_GITEA}');
   ELSE
     EXECUTE format('ALTER USER gitea WITH PASSWORD %L', '{DB_PASS_GITEA}');
@@ -114,6 +148,8 @@ BEGIN
   END IF;
 END
 $$;"""
+
+Path(os.environ["SQL_FILE"]).write_text(sql)
 Path(os.environ['SQL_FILE']).write_text(sql)
 PY
   pct push "$DB_CTI" "$sql_file" /tmp/ralf_db_setup.sql
@@ -129,6 +165,7 @@ install_gitea() {
   pct_exec "$ctid" "id -u git >/dev/null 2>&1 || adduser --system --group --home /var/lib/gitea git"
   pct_exec "$ctid" "set -e; mkdir -p /etc/gitea /var/lib/gitea/{custom,data,log}; chown -R git:git /var/lib/gitea"
   pct_exec "$ctid" "set -e; wget -qO /usr/local/bin/gitea https://dl.gitea.com/gitea/1.21.6/gitea-1.21.6-linux-amd64 && chmod +x /usr/local/bin/gitea"
+  pct_push_content "$ctid" "/etc/systemd/system/gitea.service" <<'EOS'
   pct_exec "$ctid" "cat >/etc/systemd/system/gitea.service <<'EOS'
 [Unit]
 Description=Gitea Service
@@ -145,6 +182,8 @@ Environment=USER=git HOME=/var/lib/gitea GITEA_WORK_DIR=/var/lib/gitea
 
 [Install]
 WantedBy=multi-user.target
+EOS
+  pct_push_content "$ctid" "/etc/gitea/app.ini.tmpl" <<'EOS'
 EOS"
   pct_exec "$ctid" "cat >/etc/gitea/app.ini.tmpl <<'EOS'
 [database]
@@ -165,6 +204,8 @@ ROOT_URL=https://${FQDN}/
 INSTALL_LOCK=true
 SECRET_KEY=${SECRET}
 INTERNAL_TOKEN=${TOKEN}
+EOS
+  pct_exec "$ctid" "chmod 644 /etc/systemd/system/gitea.service"
 EOS"
   local secret=$(generate_password)
   local token=$(generate_password)
@@ -183,12 +224,15 @@ install_netbox() {
   pct_exec "$ctid" "id -u netbox >/dev/null 2>&1 || useradd --system --home /opt/netbox --shell /bin/bash netbox"
   pct_exec "$ctid" "set -e; mkdir -p /opt/netbox && python3 -m venv /opt/netbox/venv"
   pct_exec "$ctid" "set -e; /opt/netbox/venv/bin/pip install --upgrade pip wheel && /opt/netbox/venv/bin/pip install netbox==3.6.8 gunicorn psycopg2-binary"
+  pct_push_content "$ctid" "/opt/netbox/gunicorn.py" <<'EOS'
   pct_exec "$ctid" "cat >/opt/netbox/gunicorn.py <<'EOS'
 command = '/opt/netbox/venv/bin/gunicorn'
 pythonpath = '/opt/netbox/venv/lib/python3.11/site-packages/netbox'
 bind = '0.0.0.0:8001'
 workers = 3
 user = 'netbox'
+EOS
+  pct_push_content "$ctid" "/etc/systemd/system/netbox.service" <<'EOS'
 EOS"
   pct_exec "$ctid" "cat >/etc/systemd/system/netbox.service <<'EOS'
 [Unit]
@@ -204,6 +248,8 @@ Restart=always
 
 [Install]
 WantedBy=multi-user.target
+EOS
+  pct_push_content "$ctid" "/opt/netbox/config.tmpl" <<'EOS'
 EOS"
   pct_exec "$ctid" "cat >/opt/netbox/config.tmpl <<'EOS'
 DATABASE = {
@@ -229,6 +275,11 @@ REDIS = {
 }
 SECRET_KEY = '${SECRET}'
 ALLOWED_HOSTS = ['${FQDN}', '${IP}']
+EOS
+  pct_exec "$ctid" "chmod 644 /etc/systemd/system/netbox.service"
+  pct_exec "$ctid" "DB_PASS='${DB_PASS_NETBOX}' DB_HOST='${DB_IP}' SECRET='${secret}' FQDN='${fqdn}' IP='${ip}' envsubst < /opt/netbox/config.tmpl > /opt/netbox/local_config.py"
+  pct_exec "$ctid" "systemctl daemon-reload && systemctl enable --now netbox"
+  pct_push_content "$ctid" "/etc/nginx/sites-available/netbox" <<'EOS'
 EOS"
   pct_exec "$ctid" "DB_PASS='${DB_PASS_NETBOX}' DB_HOST='${DB_IP}' SECRET='${secret}' FQDN='${fqdn}' IP='${ip}' envsubst < /opt/netbox/config.tmpl > /opt/netbox/local_config.py"
   pct_exec "$ctid" "systemctl daemon-reload && systemctl enable --now netbox"
@@ -243,6 +294,7 @@ server {
         proxy_set_header X-Forwarded-Proto $scheme;
     }
 }
+EOS
 EOS"
   pct_exec "$ctid" "FQDN='${fqdn}' envsubst < /etc/nginx/sites-available/netbox > /etc/nginx/sites-enabled/netbox"
   pct_exec "$ctid" "nginx -t"
@@ -256,6 +308,7 @@ install_n8n() {
   pct_exec "$ctid" "set -e; curl -fsSL https://deb.nodesource.com/setup_18.x | bash -"
   pct_exec "$ctid" "set -e; apt-get install -y nodejs build-essential"
   pct_exec "$ctid" "npm install -g n8n"
+  pct_push_content "$ctid" "/etc/systemd/system/n8n.service" <<'EOS'
   pct_exec "$ctid" "cat >/etc/systemd/system/n8n.service <<'EOS'
 [Unit]
 Description=n8n Automation
@@ -277,6 +330,7 @@ Restart=always
 
 [Install]
 WantedBy=multi-user.target
+EOS
 EOS"
   pct_exec "$ctid" "DB_HOST='${DB_IP}' DB_PASS='${DB_PASS_N8N}' envsubst < /etc/systemd/system/n8n.service > /etc/systemd/system/n8n.service.tmp"
   pct_exec "$ctid" "mv /etc/systemd/system/n8n.service.tmp /etc/systemd/system/n8n.service"
@@ -290,6 +344,8 @@ install_synapse() {
   pct_exec "$ctid" "set -e; debconf-set-selections <<<\"matrix-synapse-py3 matrix-synapse-py3/server-name string ralf.local\""
   pct_exec "$ctid" "set -e; apt-get update; apt-get install -y matrix-synapse-py3 python3-psycopg2"
   pct_exec "$ctid" "set -e; sed -i \"s/^server_name: .*/server_name: ${fqdn}/\" /etc/matrix-synapse/homeserver.yaml"
+  pct_exec "$ctid" "mkdir -p /etc/matrix-synapse/conf.d"
+  pct_push_content "$ctid" "/etc/matrix-synapse/conf.d/database.yaml" <<'EOS'
   pct_exec "$ctid" "cat >/etc/matrix-synapse/conf.d/database.yaml <<'EOS'
 database:
   name: psycopg2
@@ -299,6 +355,7 @@ database:
     database: synapse
     host: ${DB_HOST}
     port: 5432
+EOS
 EOS"
   pct_exec "$ctid" "DB_PASS='${DB_PASS_MATRIX}' DB_HOST='${DB_IP}' envsubst < /etc/matrix-synapse/conf.d/database.yaml > /etc/matrix-synapse/conf.d/database.yaml.tmp"
   pct_exec "$ctid" "mv /etc/matrix-synapse/conf.d/database.yaml.tmp /etc/matrix-synapse/conf.d/database.yaml"
@@ -310,6 +367,7 @@ install_vaultwarden() {
   echo "[services] Installiere Vaultwarden (CTID $ctid)"
   pct_exec "$ctid" "set -e; apt-get update; apt-get install -y wget unzip"
   pct_exec "$ctid" "set -e; mkdir -p /opt/vaultwarden && cd /opt/vaultwarden && wget -qO vaultwarden.zip https://github.com/dani-garcia/vaultwarden/releases/download/1.29.2/vaultwarden-1.29.2-x86_64-unknown-linux-gnu.zip && unzip -o vaultwarden.zip && chmod +x vaultwarden"
+  pct_push_content "$ctid" "/etc/systemd/system/vaultwarden.service" <<'EOS'
   pct_exec "$ctid" "cat >/etc/systemd/system/vaultwarden.service <<'EOS'
 [Unit]
 Description=Vaultwarden
@@ -323,6 +381,7 @@ Restart=always
 
 [Install]
 WantedBy=multi-user.target
+EOS
 EOS"
   pct_exec "$ctid" "systemctl daemon-reload && systemctl enable --now vaultwarden"
 }
