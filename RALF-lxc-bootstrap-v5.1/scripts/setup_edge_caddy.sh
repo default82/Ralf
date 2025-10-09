@@ -73,6 +73,8 @@ while read -r row; do
   fi
   entry=$(cat <<EOF
 ${fqdn} {
+  CADDY_CFG+=$'
+'"${fqdn} {
     ${tls_block}
     encode gzip
     reverse_proxy ${ip}:${port}
@@ -80,6 +82,7 @@ ${fqdn} {
 EOF
 )
   CADDY_CFG+="$entry"
+"
 done < <(jq -c '.containers[]' "$INVENTORY_FILE")
 
 TMP_CADDY=$(mktemp)
