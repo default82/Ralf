@@ -70,6 +70,135 @@ RALF-lxc-bootstrap-v5.1/
 4. Container werden angelegt, Dienste installiert, Links erzeugt.
 5. Optional werden Omada-Schritte ausgegeben.
 
+## Visueller Ablaufplan
+
+```
+                                   ┌───────────────────────────┐
+                                   │          START            │
+                                   └─────────────┬─────────────┘
+                                                 │
+                           ┌─────────────────────▼─────────────────────┐
+                           │ PRECHECKS / INPUTS SAMMELN                │
+                           │ - Host: pve01                             │
+                           │ - IP-/VLAN-Schema, Subnetze               │
+                           │ - CTID/VMID-Bereiche je Kategorie         │
+                           │ - Domain extern vorhanden? (FQDN)         │
+                           │ - Router PXE-fähig?                       │
+                           │ - Omada Controller vorhanden?             │
+                           │ - Git-Repo (Inventar/Doku)                │
+                           └─────────────┬─────────────┬───────────────┘
+                                         │             │
+                                         │             │
+                           ┌─────────────▼───────┐     │
+                           │ NETZWERK/BRIDGES    │     │
+                           │ - vmbr/VLAN anlegen │     │
+                           │ - Storage-Pools     │     │
+                           └─────────────┬───────┘     │
+                                         │             │
+                     ┌───────────────────▼───────────────────┐
+                     │ BASIS-LXC "R.A.L.F." PROVISIONIEREN   │
+                     │ - Debian/Ubuntu LXC                   │
+                     │ - Ansible/Taskrunner bereitstellen    │
+                     │ - SSH / Benutzer / Secrets            │
+                     └───────────────────┬───────────────────┘
+                                         │
+                 ┌───────────────────────▼────────────────────────┐
+                 │ CORE-STACK INSTALLIEREN                        │
+                 │ - Interner DNS (z.B. unbound/dnsmasq)          │
+                 │ - Reverse Proxy (Caddy)                        │
+                 │ - PKI/TLS                                      │
+                 │ - zentrales Logging/Monitoring-Agent           │
+                 └───────────────┬────────────────────────────────┘
+                                 │
+             ┌───────────────────▼───────────────────────────────────────────┐
+             │ DOMAIN EXTERN VORHANDEN?                                     │
+             └───────────────┬───────────────────────────────┬──────────────┘
+                             │Ja                             │Nein
+                             │                                │
+        ┌────────────────────▼─────────────┐     ┌────────────▼───────────────────┐
+        │ CADDY + LE-ZERTIFIKATE           │     │ INTERNE CA + .home.arpa        │
+        │ - DNS-01/HTTP-01                 │     │ - Caddy mit internen Zertifik. │
+        │ - öffentl. vHosts vorbereiten    │     │ - nur LAN vHosts               │
+        └──────────────────┬───────────────┘     └───────────┬────────────────────┘
+                           │                                   │
+           ┌───────────────▼──────────────┐         ┌─────────▼─────────┐
+           │ ROUTER PXE-FÄHIG?            │         │ OMADA CONTROLLER? │
+           └───────────┬──────────────────┘         └─────────┬─────────┘
+                       │Ja                                    │Ja
+                       │                                       │
+        ┌──────────────▼───────────────┐          ┌────────────▼────────────────┐
+        │ PXE/NETBOOT EINRICHTEN       │          │ OMADA API/ADOPTION          │
+        │ - DHCP/TFTP/NBP              │          │ - Site/Netz-Profile         │
+        │ - Images/Bootmenüs           │          │ - VLAN/SSID-Mapping         │
+        └──────────────┬───────────────┘          └────────────┬────────────────┘
+                       │                                       │
+                       └─────────────────────┬─────────────────┘
+                                             │
+                 ┌───────────────────────────▼───────────────────────────┐
+                 │ KATEGORIE-AUSWAHL & CTID/VMID-ZUWEISUNG               │
+                 │ (pro gewählter Kategorie Schleife)                    │
+                 │ 10 Netzwerkdienste                                     │
+                 │ 20 Datenbanken                                         │
+                 │ 30 Backup & Sicherheit                                 │
+                 │ 40 Web & Admin-Oberflächen                             │
+                 │ 50 Verzeichnisdienste & Auth                           │
+                 │ 60 Medienserver & Verwaltung                           │
+                 │ 70 Doku- & Wissensmanagement                           │
+                 │ 80 Monitoring & Logging                                │
+                 │ 90 KI & Datenverarbeitung                              │
+                 └───────────────┬────────────────────────────────────────┘
+                                 │
+             ┌───────────────────▼────────────────────────────┐
+             │ PRO KATEGORIE: ÖFFENTLICH ODER NUR LOKAL?      │
+             └───────────────┬──────────────┬────────────────┘
+                             │Öffentlich    │Lokal
+                             │              │
+      ┌──────────────────────▼───────┐   ┌──▼────────────────────────┐
+      │ LXC/VM PROVISIONIEREN       │   │ LXC/VM PROVISIONIEREN      │
+      │ - CTID/VMID aus Pool        │   │ - CTID/VMID aus Pool       │
+      │ - Paket/Container-Install   │   │ - Paket/Container-Install  │
+      │ - Service konfigurieren     │   │ - Service konfigurieren    │
+      └───────────────┬─────────────┘   └───────────────┬────────────┘
+                      │                                 │
+        ┌─────────────▼───────────────┐   ┌─────────────▼───────────────┐
+        │ CADDY vHost + TLS + DNS     │   │ INTERNER DNS-Eintrag        │
+        │ - Extern erreichbar         │   │ - mTLS/ACL optional         │
+        └─────────────┬───────────────┘   └─────────────┬───────────────┘
+                      └───────────┬──────────────────────┘
+                                  │
+                  ┌───────────────▼─────────────────────────┐
+                  │ SECURITY & BACKUP EINBINDEN              │
+                  │ - FW/ACL, Fail2ban, Updates              │
+                  │ - Backup-Job (z.B. restic/Borg/Proxmox)  │
+                  │ - Secrets/Passwörter rotieren            │
+                  └───────────────┬─────────────────────────┘
+                                  │
+                  ┌───────────────▼─────────────────────────┐
+                  │ MONITORING & LOGGING                    │
+                  │ - Agent/Exporter registrieren           │
+                  │ - Zentrales Logging (z.B. Loki/Graylog) │
+                  │ - Alarme/Benachrichtigungen             │
+                  └───────────────┬─────────────────────────┘
+                                  │
+                ┌─────────────────▼──────────────────────────────┐
+                │ VALIDIERUNG / SMOKE TESTS                      │
+                │ - DNS, TLS, Ports, Healthchecks                │
+                │ - Funktion pro Dienst (HTTP 200, Login, API)   │
+                │ - Extern/Intern Routing                        │
+                └─────────────────┬──────────────────────────────┘
+                                  │
+                ┌─────────────────▼──────────────────────────────┐
+                │ INVENTAR & DOKU NACH GIT                       │
+                │ - hosts.yml / services.yml / networks.yml      │
+                │ - README/Runbooks/Changelogs                   │
+                │ - Automatisierte Reports (JSON/MD)             │
+                └─────────────────┬──────────────────────────────┘
+                                  │
+                           ┌──────▼──────┐
+                           │    ENDE     │
+                           └─────────────┘
+```
+
 ## Log-Dateien
 
 * `/root/ralf/logs/install.log` – Hauptlog der Installationsroutine.
