@@ -257,6 +257,11 @@ Checkliste oder Grundlage für Ticket-Systeme dienen.
 - [ ] Inventar- und Dokumentationsdateien (`hosts.yml`, `services.yml`, `networks.yml`, Runbooks) aktualisieren.
 - [ ] Automatisierte Reports (JSON/Markdown) erzeugen und in Git einchecken.
 
+                           ┌──────▼──────┐
+                           │    ENDE     │
+                           └─────────────┘
+```
+
 ## Log-Dateien
 
 * `/root/ralf/logs/install.log` – Hauptlog der Installationsroutine.
