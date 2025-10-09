@@ -111,6 +111,7 @@ echo "[PVE] GPU erkannt: ${GPU_VENDOR}"
 
 inventory_entries=()
 
+while read -r entry; do
 jq -r '.services | to_entries[] | @base64' <<<"$PLAN_JSON" | while read -r entry; do
   _jq() { echo "$entry" | base64 --decode | jq -r "$1"; }
   SERVICE_NAME=$(_jq '.key')
@@ -237,6 +238,7 @@ jq -r '.services | to_entries[] | @base64' <<<"$PLAN_JSON" | while read -r entry
     '{name:$name, ctid:$ctid, ip:$ip, exposure:$exposure, fqdn:$fqdn}')
   inventory_entries+=("$entry_json")
 
+done < <(jq -r '.services | to_entries[] | @base64' <<<"$PLAN_JSON")
 done
 
 printf '%s\n' "${inventory_entries[@]}" | jq -s '{containers: ., generated: now}' > "$INVENTORY_FILE"
