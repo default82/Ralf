@@ -17,32 +17,6 @@ source .venv/bin/activate
 pip install -e .
 ```
 
-## Systemweite Minimalinstallation
-
-Für eine einfache Grundinstallation außerhalb der Entwicklungsumgebung stehen zwei Schritte zur Verfügung:
-
-1. **Self-Installer (`install.sh`)** – lädt das Repository herunter oder aktualisiert es und ruft anschließend den internen
-   Installer auf. Beispielaufruf:
-
-   ```bash
-   curl -O https://example.org/ralf/install.sh
-   chmod +x install.sh
-   sudo ./install.sh --repo-url https://github.com/example/ralf.git --target-dir /opt/ralf
-   ```
-
-   Mit `--dry-run` kann überprüft werden, welche Aktionen ausgeführt würden, ohne Änderungen vorzunehmen. Standardmäßig werden
-   alle Schritte nach `/var/log/ralf/installer.log` protokolliert.
-
-2. **Interner Installer (`scripts/install.sh`)** – richtet `/etc/ralf`, `/var/log/ralf`, `/var/lib/ralf` sowie logrotate ein und
-   prüft, ob `python3` verfügbar ist. Er kann direkt aus dem Repository ausgeführt werden:
-
-   ```bash
-   sudo ./scripts/install.sh
-   ```
-
-Der Self-Installer verwendet das interne Skript automatisch, sodass keine manuellen Schritte notwendig sind, sobald das
-Repository unter dem Zielpfad bereitsteht.
-
 ## Konfiguration
 
 Die Datei `config/default.yml` definiert die zu protokollierenden Bootstrapschritte. Jeder Schritt besteht aus einem `name`

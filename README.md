@@ -21,31 +21,13 @@ Logrotation. Funktionale Module (IPMI, Backups, Multi-Host, Dashboard) werden in
 │   ├── logging.py           # Logging-Initialisierung inkl. Rotationsunterstützung
 │   └── workflow.py          # Ausführungshilfen für die Ablaufliste
 ├── scripts/
-│   ├── bootstrap.sh         # Shell-Platzhalter; loggt alle Schritte sichtbar
-│   └── install.sh           # Minimaler Installer für Verzeichnisse, Konfig & logrotate
+│   └── bootstrap.sh         # Shell-Platzhalter; loggt alle Schritte sichtbar
 ├── LICENSE
 ├── pyproject.toml           # Projekt- und Abhängigkeitsdefinition
 └── README.md
 ```
 
-Weitere Details zum Setup finden sich im Dokument [`docs/SETUP.md`](docs/SETUP.md) sowie in den
-[Legacy-Bootstrap-Notizen](RALF-lxc-bootstrap-v5.1/README.md).
-
-## Schnellstart-Installer
-
-Für eine Erstinstallation auf einem frischen System kann das Repository nun direkt über den
-Self-Installer (`install.sh`) bezogen werden. Das Skript kümmert sich um den Git-Klon, hält ein
-Log unter `/var/log/ralf/installer.log` vor und ruft anschließend den internen Installer des
-Repositories auf:
-
-```bash
-curl -O https://example.org/ralf/install.sh
-chmod +x install.sh
-sudo ./install.sh --repo-url https://github.com/example/ralf.git --target-dir /opt/ralf
-```
-
-Über Parameter lassen sich Repository-URL, Branch und Zielpfad anpassen. Mit `--dry-run` wird nur
-angezeigt, welche Schritte ausgeführt würden, ohne Änderungen vorzunehmen.
+Weitere Details zum Setup finden sich im Dokument [`docs/SETUP.md`](docs/SETUP.md).
 
 ## Nutzung
 
@@ -55,11 +37,6 @@ ralf plan
 ralf bootstrap --dry-run
 ralf bootstrap
 ```
-
-Für eine Systeminstallation außerhalb der Entwicklungsumgebung steht zusätzlich das Skript
-[`scripts/install.sh`](scripts/install.sh) bereit. Es richtet `/etc/ralf`, `/var/log/ralf`,
-`/var/lib/ralf` und die logrotate-Konfiguration ein und prüft, ob `python3` verfügbar ist. Der
-Self-Installer verwendet dieses Skript automatisch nach dem Klonen.
 
 Alle Schritte werden auf der Konsole und in der Datei `/var/log/ralf/ralf.log` protokolliert. Über die Konfiguration kann das
 Logging für Release-Builds abgeschaltet werden (`logging.release_mode` und `RALF_RELEASE_LOGGING`).
