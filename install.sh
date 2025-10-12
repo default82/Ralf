@@ -6,7 +6,6 @@ set -euo pipefail
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 DEFAULT_REPO_URL="https://github.com/default82/Ralf.git"
-DEFAULT_REPO_URL="https://github.com/example/ralf.git"
 DEFAULT_BRANCH="main"
 DEFAULT_TARGET_DIR="/opt/ralf"
 LOG_ROOT="/var/log/ralf"
