@@ -8,6 +8,7 @@ strukturierte Ablaufliste mit umfangreichem Logging. Funktionsmodule (IPMI, Back
 - Ubuntu 22.04 LTS oder kompatible Distribution
 - Python 3.10 oder neuer
 - Schreibrechte für `/var/log/ralf` und `/var/lib/ralf`
+- Möglichkeit, Systembenutzer und -gruppen anzulegen (für den dedizierten Benutzer `ralf`)
 
 ## Installation im Entwicklungsmodus
 
@@ -71,6 +72,14 @@ Release-Builds kann es über `logging.release_mode` oder die Umgebungsvariable `
 
 Unter `config/logrotate/ralf` befindet sich eine Beispielkonfiguration, die nach `/etc/logrotate.d/ralf` kopiert werden kann.
 Sie sorgt dafür, dass bis zu sieben rotierende Dateien aufbewahrt werden – ausreichend für Fehlersuche in frühen Testphasen.
+
+## Servicekonto und Log-Berechtigungen
+
+Das Installationsskript legt einen dedizierten Systembenutzer sowie eine Systemgruppe `ralf` an und überträgt den Besitz von
+`/var/log/ralf` an dieses Konto. Damit kann `logrotate` neue Dateien mit `ralf:ralf` als Besitzer erzeugen und Dienste, die
+unter diesem Konto laufen, behalten Schreibzugriff auf ihre Logdateien. Wer lieber eigene Accounts nutzt, kann die erzeugten
+Benutzer- und Gruppennamen nach der Installation anpassen – die Logrotate-Konfiguration erwartet lediglich, dass der Besitzer
+von `/var/log/ralf` mit den dort hinterlegten Angaben übereinstimmt.
 
 ## Nächste Schritte
 
