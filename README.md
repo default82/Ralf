@@ -1,19 +1,24 @@
 # RALF Automation Repository
 
-Dieses Repository enthält das Projekt **RALF-lxc-bootstrap-v5.1**, welches eine Debian-Installation automatisiert in eine
-Proxmox-Umgebung überführt und den vollständigen RALF-Stack bereitstellt. Alle Skripte, Konfigurationen und Dokumentationen
-finden sich unter `RALF-lxc-bootstrap-v5.1/`.
+Dieses Repository dient als zentrale Ablage für den Neuaufbau des Projekts **RALF-lxc-bootstrap-v5.1**. Ziel ist es,
+Bootstrap- und Automatisierungsskripte zu entwickeln, die eine Debian-Installation in einer Proxmox-Umgebung
+bereitstellen und den kompletten RALF-Stack konfigurieren.
 
-## Inhalte
+Alle aktuellen Informationen, Planungen und künftigen Skripte werden schrittweise im Ordner
+`RALF-lxc-bootstrap-v5.1/` dokumentiert. Die detaillierte Roadmap findest du in `RALF-lxc-bootstrap-v5.1/README.md`.
 
-- Komplettes Installationsskript (`install.sh`) für die zweiphasige Debian→Proxmox-Bootstrap-Kette.
-- Provider- und Service-Skripte für die Erstellung und Konfiguration der LXC-Container.
-- Dokumentation des Ablaufs sowie Standardkonfigurationen.
+## Aktueller Stand
 
-## Verwendung
+- Der vorherige Code wurde entfernt, um mit einer sauberen Basis neu zu beginnen.
+- Es existieren derzeit noch keine lauffähigen Skripte oder Konfigurationsdateien.
+- Entscheidungen zur Architektur und zu den einzelnen Automatisierungsphasen werden im Unterordner festgehalten.
 
-Folge der Setup-Anleitung in `RALF-lxc-bootstrap-v5.1/README.md`, um die Umgebung aufzusetzen. Stelle sicher, dass alle
-notwendigen Abhängigkeiten installiert sind und beachte die Hinweise zur optionalen Omada-Integration.
+## Mitarbeit
+
+1. Lies die Roadmap in `RALF-lxc-bootstrap-v5.1/README.md`.
+2. Dokumentiere neue Erkenntnisse und Konzepte ebenfalls dort, bevor du Code hinzufügst.
+3. Lege neue Skripte oder Konfigurationsdateien innerhalb des Ordners `RALF-lxc-bootstrap-v5.1/` an und dokumentiere ihre
+   Verwendung.
 
 ## Lizenz
 
