@@ -1,0 +1,13 @@
+/var/log/ralf/*.log {
+    rotate 7
+    daily
+    compress
+    delaycompress
+    missingok
+    notifempty
+    create 0640 ralf ralf
+    sharedscripts
+    postrotate
+        systemctl reload ralf.service >/dev/null 2>&1 || true
+    endscript
+}
