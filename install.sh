@@ -6,6 +6,7 @@ set -euo pipefail
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 DEFAULT_REPO_URL="https://github.com/default82/Ralf.git"
+DEFAULT_REPO_URL="https://github.com/example/ralf.git"
 DEFAULT_BRANCH="main"
 DEFAULT_TARGET_DIR="/opt/ralf"
 LOG_ROOT="/var/log/ralf"
@@ -18,6 +19,10 @@ QUIET_MODE="${RALF_INSTALLER_QUIET:-0}"
 TUI_MODE="auto"
 TUI_TOOL=""
 DEFAULT_NOTE=""
+REPO_URL="${DEFAULT_REPO_URL}"
+BRANCH="${DEFAULT_BRANCH}"
+TARGET_DIR="${DEFAULT_TARGET_DIR}"
+QUIET_MODE="${RALF_INSTALLER_QUIET:-0}"
 
 usage() {
   cat <<'USAGE'
@@ -33,6 +38,10 @@ Optionen:
   --tui                Erzwingt den textbasierten Dialog (whiptail/dialog)
   --no-tui             Deaktiviert den textbasierten Dialog explizit
   --quiet              Unterdrückt Konsolenausgaben (Logdatei bleibt aktiv)
+  --repo-url <url>     Git-URL des Ralf-Repositories (Standard: https://github.com/example/ralf.git)
+  --branch <name>      Zu verwendender Git-Branch (Standard: main)
+  --target-dir <path>  Zielpfad für das Repository (Standard: /opt/ralf)
+  --dry-run            Zeigt nur an, welche Schritte ausgeführt würden
   -h, --help           Zeigt diese Hilfe an
 
 Um die Konsolenausgabe zu reduzieren, kann die Variable RALF_INSTALLER_QUIET=1 gesetzt werden.
@@ -397,6 +406,9 @@ main() {
   log "INFO" "Starte Ralf Self-Installer"
   maybe_run_tui
   prefer_ssh_for_github
+  parse_arguments "$@"
+  setup_logging
+  log "INFO" "Starte Ralf Self-Installer"
   log "INFO" "Parameter: repo_url=${REPO_URL}, branch=${BRANCH}, target_dir=${TARGET_DIR}, dry_run=${DRY_RUN}"
   check_prerequisites
   sync_repository
