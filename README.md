@@ -1,82 +1,84 @@
-# Ralf - Automatisierte Systeminstallation
+# Ralf – Neustart des Automatisierungs-Grundgerüsts
 
-Dieses Projekt ermöglicht die automatisierte Installation und Konfiguration von Systemen basierend auf Hardware-Informationen und Benutzerbestätigungen über Synapse.
+Dieses Repository enthält den neu aufgesetzten Projektstand für **Ralf**, ein automatisiertes Provisioning-System ohne Docker.
+Der aktuelle Fokus liegt auf einer klar nachvollziehbaren Ablaufliste inklusive umfassendem Logging und vorbereiteter
+Logrotation. Funktionale Module (IPMI, Backups, Multi-Host, Dashboard) werden in späteren Iterationen ergänzt.
 
-## Voraussetzungen
+## Projektstruktur
 
-- Hardware mit mindestens 8 GB RAM und 100 GB Festplattenspeicher
-- Netzwerkverbindung
-- Proxmox VE installiert auf dem Host-System
+```
+.
+├── config/
+│   ├── default.yml          # Konfiguration für Logging und Bootstrapschritte
+│   └── logrotate/ralf       # Beispielkonfiguration für logrotate
+├── docs/
+│   ├── ARCHITECTURE.md      # Architekturüberblick des Grundgerüsts
+│   └── SETUP.md             # Erste Schritte & Nutzung des CLI
+├── ralf/
+│   ├── __init__.py
+│   ├── cli.py               # Minimalistische CLI mit plan- und bootstrap-Kommandos
+│   ├── config.py            # Datenmodelle für Logging, Pfade und Bootstrapschritte
+│   ├── logging.py           # Logging-Initialisierung inkl. Rotationsunterstützung
+│   └── workflow.py          # Ausführungshilfen für die Ablaufliste
+├── scripts/
+│   ├── bootstrap.sh         # Shell-Platzhalter; loggt alle Schritte sichtbar
+│   └── install.sh           # Minimaler Installer für Verzeichnisse, Konfig & logrotate
+├── LICENSE
+├── pyproject.toml           # Projekt- und Abhängigkeitsdefinition
+└── README.md
+```
 
-## Installationsanweisungen
+Weitere Details zum Setup finden sich im Dokument [`docs/SETUP.md`](docs/SETUP.md) sowie in den
+[Legacy-Bootstrap-Notizen](RALF-lxc-bootstrap-v5.1/README.md).
 
-1. **Proxmox VE Installation**:
-   - Installieren Sie Proxmox VE auf Ihrem Desktop-Rechner.
+## Schnellstart-Installer
 
-2. **Skript ausführen**:
-   - Laden Sie das Installationsskript herunter und führen Sie es auf dem Proxmox VE Host aus.
+Für eine Erstinstallation auf einem frischen System kann das Repository nun direkt über den
+Self-Installer (`install.sh`) bezogen werden. Das Skript kümmert sich um den Git-Klon, hält ein
+Log unter `/var/log/ralf/installer.log` vor und ruft anschließend den internen Installer des
+Repositories auf:
 
-3. **LXC-Container erstellen**:
-   - Das Skript erstellt einen LXC-Container für Ralf und die grundlegenden Dienste.
+```bash
+curl -O https://example.org/ralf/install.sh
+chmod +x install.sh
+sudo ./install.sh --target-dir /opt/ralf
+```
 
-4. **Grundlegende Dienste installieren**:
-   - Das Skript installiert die grundlegenden Dienste, darunter PostgreSQL, Ansible, Caddy, Foreman und einen Fileserver.
+Wird der Self-Installer aus einem bestehenden Git-Checkout gestartet, übernimmt er automatisch die
+`origin`-URL sowie den aktuellen Branch als Standardwerte. Ohne lokale Vorgaben greift er auf das
+offizielle Repository `git@github.com:default82/Ralf.git` zurück. Erkennt er dabei eine
+GitHub-HTTPS-URL, wandelt er sie automatisch in die SSH-Variante (`git@github.com:<org>/<repo>.git`)
+um, damit eine Authentifizierung via SSH-Key ohne Passwortabfrage erfolgt. Beim losgelösten Download
+(wie im obigen Beispiel) sollte die Option `--repo-url` auf das gewünschte Repository zeigen. Über
+die weiteren Parameter lassen sich Branch und Zielpfad anpassen. Mit `--dry-run` wird nur
+angezeigt, welche Schritte ausgeführt würden, ohne Änderungen vorzunehmen. Wenn `whiptail` oder
+`dialog` verfügbar ist und das Skript interaktiv gestartet wird, bietet der Self-Installer
+automatisch einen Textdialog zur Eingabe der Werte an. Der Dialog kann jederzeit mit `--tui`
+erzwungen oder mit `--no-tui` deaktiviert werden; `--quiet` reduziert die Konsolenausgaben auf ein
+Minimum, während das Logfile weitergeschrieben wird.
 
-5. **Fileserver konfigurieren**:
-   - Der Fileserver lädt grundlegende Dateien wie Images herunter, jedoch nicht mehr als 25% des verfügbaren Festplattenplatzes.
+## Nutzung
 
-6. **Netzwerkscan durchführen**:
-   - Ralf führt einen Netzwerkscan durch und stellt die erkannten Einstellungen über Synapse zur Bestätigung bereit.
+```bash
+pip install -e .
+ralf plan
+ralf bootstrap --dry-run
+ralf bootstrap
+```
 
-7. **Arbeitsspeicherverteilung vorschlagen**:
-   - Ralf macht einen automatischen Vorschlag für die Arbeitsspeicherverteilung basierend auf der verfügbaren Hardware und den installierten Diensten.
+Für eine Systeminstallation außerhalb der Entwicklungsumgebung steht zusätzlich das Skript
+[`scripts/install.sh`](scripts/install.sh) bereit. Es richtet `/etc/ralf`, `/var/log/ralf`,
+`/var/lib/ralf` und die logrotate-Konfiguration ein und prüft, ob `python3` verfügbar ist. Der
+Self-Installer verwendet dieses Skript automatisch nach dem Klonen.
 
-## Konfiguration
+Alle Schritte werden auf der Konsole und in der Datei `/var/log/ralf/ralf.log` protokolliert. Über die Konfiguration kann das
+Logging für Release-Builds abgeschaltet werden (`logging.release_mode` und `RALF_RELEASE_LOGGING`).
 
-1. **Netzwerkeinstellungen**:
-   - Ralf führt einen Netzwerkscan durch und stellt die erkannten Einstellungen über Synapse zur Bestätigung bereit.
-   - Der Benutzer kann die Netzwerkeinstellungen bestätigen oder anpassen.
+## Logrotation
 
-2. **Arbeitsspeicherverteilung**:
-   - Ralf macht einen automatischen Vorschlag für die Arbeitsspeicherverteilung basierend auf der verfügbaren Hardware und den installierten Diensten.
-   - Der Benutzer kann diesen Vorschlag bestätigen oder anpassen.
-
-3. **Dienste konfigurieren**:
-   - Konfigurieren Sie die einzelnen Dienste wie PostgreSQL, Ansible, Caddy, Foreman und den Fileserver gemäß Ihren Anforderungen.
-   - Stellen Sie sicher, dass alle Dienste korrekt konfiguriert sind und miteinander kommunizieren können.
-
-## Verwendung
-
-Nach der Installation können Sie Ralf über das Webinterface oder die Kommandozeile verwenden.
-
-### Webinterface
-
-Das Webinterface von Ralf ist unter `http://localhost:8080` erreichbar. Hier können Sie die verschiedenen Dienste und Betriebssysteme verwalten.
-
-### Kommandozeile
-
-Ralf bietet eine Reihe von Kommandozeilenbefehlen zur Verwaltung der Systeme:
-
-- `ralf install <os_name> --memory 2GB`: Installiert ein Betriebssystem mit dem angegebenen Arbeitsspeicher.
-- `ralf configure <service_name> --memory 1GB`: Konfiguriert einen Dienst mit dem angegebenen Arbeitsspeicher.
-- `ralf scan network`: Führt einen Netzwerkscan durch.
-
-## Fehlerbehebung
-
-Hier sind einige häufige Probleme und deren Lösungen:
-
-1. **Netzwerkscan funktioniert nicht**:
-   - Stellen Sie sicher, dass die Netzwerkverbindung aktiv ist.
-   - Überprüfen Sie die Firewall-Einstellungen, um sicherzustellen, dass der Netzwerkscan nicht blockiert wird.
-
-2. **Installation schlägt fehl**:
-   - Überprüfen Sie die Hardwareanforderungen und stellen Sie sicher, dass genug Speicher und Festplattenspeicher verfügbar ist.
-   - Überprüfen Sie die Konfigurationsdateien auf Fehler.
-
-3. **Dienste starten nicht**:
-   - Überprüfen Sie die Logdateien für spezifische Fehlermeldungen.
-   - Stellen Sie sicher, dass alle Abhängigkeiten installiert sind.
+Das Repository enthält unter `config/logrotate/ralf` eine Vorlage für `/etc/logrotate.d/ralf`. Damit bleiben rotierende Logdateien
+verfügbar und die Fehlersuche ist auch nach mehreren Durchläufen möglich.
 
 ## Lizenz
 
-Der vollständige Quellcode steht unter der MIT-Lizenz (siehe `LICENSE`).
+Der Quellcode steht unter der [MIT-Lizenz](LICENSE).
