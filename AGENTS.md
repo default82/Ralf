@@ -8,6 +8,7 @@ Dieses Dokument gilt für das gesamte Repository.
 - Ändere keine Lizenzhinweise; das Projekt bleibt unter der MIT-Lizenz.
 - Halte alle README-Dateien aktuell und verweise auf die Setup-Anleitung unter `RALF-lxc-bootstrap-v5.1/README.md`.
 - Prüfe neue oder geänderte Skripte darauf, dass sie weiterhin ausführbar sind (`chmod +x`).
+- Pflege die Aufgabenübersicht unter `docs/TODO.md` bei jeder relevanten Änderung und stelle sicher, dass sie den aktuellen Projektstand widerspiegelt.
 
 ## Code-Richtlinien
 ### Python
