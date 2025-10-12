@@ -21,15 +21,13 @@ Logrotation. Funktionale Module (IPMI, Backups, Multi-Host, Dashboard) werden in
 │   ├── logging.py           # Logging-Initialisierung inkl. Rotationsunterstützung
 │   └── workflow.py          # Ausführungshilfen für die Ablaufliste
 ├── scripts/
-│   ├── bootstrap.sh         # Shell-Platzhalter; loggt alle Schritte sichtbar
-│   └── install.sh           # Minimaler Installer für Verzeichnisse, Konfig & logrotate
+│   └── bootstrap.sh         # Shell-Platzhalter; loggt alle Schritte sichtbar
 ├── LICENSE
 ├── pyproject.toml           # Projekt- und Abhängigkeitsdefinition
 └── README.md
 ```
 
-Weitere Details zum Setup finden sich im Dokument [`docs/SETUP.md`](docs/SETUP.md) sowie in den
-[Legacy-Bootstrap-Notizen](RALF-lxc-bootstrap-v5.1/README.md).
+Weitere Details zum Setup finden sich im Dokument [`docs/SETUP.md`](docs/SETUP.md).
 
 ## Nutzung
 
@@ -39,10 +37,6 @@ ralf plan
 ralf bootstrap --dry-run
 ralf bootstrap
 ```
-
-Für eine Systeminstallation außerhalb der Entwicklungsumgebung steht das Skript
-[`scripts/install.sh`](scripts/install.sh) bereit. Es richtet `/etc/ralf`, `/var/log/ralf`, `/var/lib/ralf`
-und die logrotate-Konfiguration ein und prüft, ob `python3` verfügbar ist.
 
 Alle Schritte werden auf der Konsole und in der Datei `/var/log/ralf/ralf.log` protokolliert. Über die Konfiguration kann das
 Logging für Release-Builds abgeschaltet werden (`logging.release_mode` und `RALF_RELEASE_LOGGING`).

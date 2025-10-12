@@ -17,18 +17,6 @@ source .venv/bin/activate
 pip install -e .
 ```
 
-## Systemweite Minimalinstallation
-
-Für eine einfache Grundinstallation außerhalb der Entwicklungsumgebung kann das Skript
-[`scripts/install.sh`](../scripts/install.sh) mit Root-Rechten ausgeführt werden:
-
-```bash
-sudo ./scripts/install.sh
-```
-
-Es legt die benötigten Verzeichnisse an, kopiert die Standardkonfiguration nach `/etc/ralf/config.yml`,
-richtet logrotate ein und prüft, ob `python3` verfügbar ist.
-
 ## Konfiguration
 
 Die Datei `config/default.yml` definiert die zu protokollierenden Bootstrapschritte. Jeder Schritt besteht aus einem `name`
