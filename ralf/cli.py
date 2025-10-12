@@ -6,12 +6,27 @@ import logging
 from pathlib import Path
 from typing import Callable
 
+DEFAULT_CONFIG_LOCATIONS: tuple[Path, ...] = (
+    Path("/etc/ralf/config.yml"),
+    Path("/usr/local/etc/ralf/config.yml"),
+    Path(__file__).resolve().parent.parent / "config" / "default.yml",
+)
+
 from .config import RalfConfig
 from .logging import configure_logging
 from .workflow import BootstrapWorkflow, WorkflowStep
 
 
 CommandHandler = Callable[[argparse.Namespace, RalfConfig], None]
+
+
+def _discover_default_config_path() -> Path | None:
+    """Sucht nach einer verfügbaren Standardkonfigurationsdatei."""
+
+    for candidate in DEFAULT_CONFIG_LOCATIONS:
+        if candidate.is_file():
+            return candidate
+    return None
 
 
 def _load_steps(config: RalfConfig) -> list[WorkflowStep]:
@@ -56,7 +71,7 @@ def build_parser() -> argparse.ArgumentParser:
     )
     parser.add_argument(
         "--config",
-        default=Path("config/default.yml"),
+        default=None,
         type=Path,
         help="Pfad zur Konfigurationsdatei",
     )
@@ -94,13 +109,38 @@ def main() -> None:
     parser = build_parser()
     args = parser.parse_args()
 
-    config = RalfConfig.from_file(args.config)
+    config_path = args.config
+    discovered_config = False
+
+    if config_path is None:
+        config_path = _discover_default_config_path()
+        discovered_config = config_path is not None
+
+    if config_path is None:
+        config = RalfConfig()
+    else:
+        try:
+            config = RalfConfig.from_file(config_path)
+        except FileNotFoundError as exc:
+            parser.error(f"Konfigurationsdatei nicht gefunden: {exc.filename}")
+            return
 
     if args.logging_enabled is not None:
         config.logging.enabled = args.logging_enabled
 
     configure_logging(config.logging)
     logger = logging.getLogger(__name__)
+
+    if args.config is None:
+        if config_path is None:
+            logger.warning(
+                "Keine Konfigurationsdatei gefunden, verwende integrierte Standardwerte.",
+            )
+        elif discovered_config:
+            logger.info("Konfiguration aus Standardpfad geladen: %s", config_path)
+    else:
+        logger.info("Konfiguration aus Datei geladen: %s", config_path)
+
     logger.info("Ralf CLI gestartet: Befehl=%s", args.command)
 
     handler: CommandHandler | None = getattr(args, "handler", None)
