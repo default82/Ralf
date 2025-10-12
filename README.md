@@ -38,6 +38,11 @@ ralf bootstrap --dry-run
 ralf bootstrap
 ```
 
+Für eine Systeminstallation außerhalb der Entwicklungsumgebung steht zusätzlich das Skript
+[`scripts/install.sh`](scripts/install.sh) bereit. Es richtet `/etc/ralf`, `/var/log/ralf`,
+`/var/lib/ralf` und die logrotate-Konfiguration ein und prüft, ob `python3` verfügbar ist. Der
+Self-Installer verwendet dieses Skript automatisch nach dem Klonen.
+
 Alle Schritte werden auf der Konsole und in der Datei `/var/log/ralf/ralf.log` protokolliert. Über die Konfiguration kann das
 Logging für Release-Builds abgeschaltet werden (`logging.release_mode` und `RALF_RELEASE_LOGGING`).
 

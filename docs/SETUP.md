@@ -17,6 +17,39 @@ source .venv/bin/activate
 pip install -e .
 ```
 
+## Systemweite Minimalinstallation
+
+Für eine einfache Grundinstallation außerhalb der Entwicklungsumgebung stehen zwei Schritte zur Verfügung:
+
+1. **Self-Installer (`install.sh`)** – lädt das Repository herunter oder aktualisiert es und ruft anschließend den internen
+   Installer auf. Beispielaufruf:
+
+   ```bash
+   curl -O https://example.org/ralf/install.sh
+   chmod +x install.sh
+   sudo ./install.sh --target-dir /opt/ralf
+   ```
+
+   Startet der Self-Installer aus einem bestehenden Checkout, übernimmt er automatisch die `origin`-URL und den aktuellen
+   Branch als Standard. Liegen keine lokalen Vorgaben vor, setzt er auf das offizielle Repository `git@github.com:default82/Ralf.git`.
+   Erkennt er dabei eine GitHub-HTTPS-URL, wechselt er automatisch zur SSH-Variante, sodass vorhandene SSH-Keys ohne Benutzer-/Passworteingabe genutzt werden.
+   Beim separaten Download empfiehlt es sich, `--repo-url` explizit auf das gewünschte Repository zu
+   setzen. Mit `--dry-run` kann überprüft werden, welche Aktionen ausgeführt würden, ohne Änderungen vorzunehmen. Standardmäßig werden
+   alle Schritte nach `/var/log/ralf/installer.log` protokolliert. Wenn `whiptail` oder `dialog` installiert ist und das Skript
+   interaktiv läuft, öffnet sich automatisch eine einfache TUI, über die sich Repository-URL, Branch, Zielpfad und Dry-Run
+   anpassen lassen. Mit `--tui` kann der Dialog auch in nicht-interaktiven Standardsessions erzwungen und mit `--no-tui`
+   vollständig unterdrückt werden. Die Option `--quiet` reduziert die Konsolenausgabe, lässt das Logfile jedoch weiterlaufen.
+
+2. **Interner Installer (`scripts/install.sh`)** – richtet `/etc/ralf`, `/var/log/ralf`, `/var/lib/ralf` sowie logrotate ein und
+   prüft, ob `python3` verfügbar ist. Er kann direkt aus dem Repository ausgeführt werden:
+
+   ```bash
+   sudo ./scripts/install.sh
+   ```
+
+Der Self-Installer verwendet das interne Skript automatisch, sodass keine manuellen Schritte notwendig sind, sobald das
+Repository unter dem Zielpfad bereitsteht.
+
 ## Konfiguration
 
 Die Datei `config/default.yml` definiert die zu protokollierenden Bootstrapschritte. Jeder Schritt besteht aus einem `name`
