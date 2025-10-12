@@ -1,0 +1,25 @@
+[build-system]
+requires = ["setuptools>=61.0"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "ralf"
+version = "0.1.0"
+description = "Neu aufgesetztes Grundgerüst für das Ralf Automatisierungs- und Provisioning-System"
+readme = "README.md"
+requires-python = ">=3.10"
+authors = [
+  {name = "Ralf Maintainers"}
+]
+dependencies = [
+  "pyyaml>=6.0"
+]
+
+[project.optional-dependencies]
+dev = [
+  "mypy>=1.7",
+  "pylint>=3.0"
+]
+
+[project.scripts]
+ralf = "ralf.cli:main"
