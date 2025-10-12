@@ -44,6 +44,30 @@ main() {
     install -m 0644 "${config_src}" "${config_dest}"
   fi
 
+  log "Stelle sicher, dass die Systemgruppe 'ralf' vorhanden ist"
+  if getent group ralf >/dev/null 2>&1; then
+    log "Systemgruppe 'ralf' existiert bereits"
+  else
+    groupadd --system ralf
+    log "Systemgruppe 'ralf' wurde erstellt"
+  fi
+
+  log "Stelle sicher, dass der Systembenutzer 'ralf' vorhanden ist"
+  if id -u ralf >/dev/null 2>&1; then
+    log "Systembenutzer 'ralf' existiert bereits"
+  else
+    useradd --system \
+      --gid ralf \
+      --home-dir "${var_lib_dir}" \
+      --shell /usr/sbin/nologin \
+      --comment "RALF Service Account" \
+      ralf
+    log "Systembenutzer 'ralf' wurde erstellt"
+  fi
+
+  log "Setze Besitzrechte für ${var_log_dir} auf ralf:ralf"
+  chown ralf:ralf "${var_log_dir}"
+
   log "Richte logrotate unter ${logrotate_dest} ein"
   install -m 0644 "${logrotate_src}" "${logrotate_dest}"
 
