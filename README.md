@@ -23,6 +23,7 @@ Logrotation. Funktionale Module (IPMI, Backups, Multi-Host, Dashboard) werden in
 ├── scripts/
 │   ├── bootstrap.sh         # Shell-Platzhalter; loggt alle Schritte sichtbar
 │   └── install.sh           # Minimaler Installer für Verzeichnisse, Konfig & logrotate
+│   └── bootstrap.sh         # Shell-Platzhalter; loggt alle Schritte sichtbar
 ├── LICENSE
 ├── pyproject.toml           # Projekt- und Abhängigkeitsdefinition
 └── README.md
@@ -56,6 +57,7 @@ angezeigt, welche Schritte ausgeführt würden, ohne Änderungen vorzunehmen. We
 automatisch einen Textdialog zur Eingabe der Werte an. Der Dialog kann jederzeit mit `--tui`
 erzwungen oder mit `--no-tui` deaktiviert werden; `--quiet` reduziert die Konsolenausgaben auf ein
 Minimum, während das Logfile weitergeschrieben wird.
+Weitere Details zum Setup finden sich im Dokument [`docs/SETUP.md`](docs/SETUP.md).
 
 ## Nutzung
 

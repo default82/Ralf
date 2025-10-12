@@ -18,7 +18,10 @@ QUIET_MODE="${RALF_INSTALLER_QUIET:-0}"
 TUI_MODE="auto"
 TUI_TOOL=""
 DEFAULT_NOTE=""
-DEFAULT_SOURCE="vorkonfiguriert"
+REPO_URL="${DEFAULT_REPO_URL}"
+BRANCH="${DEFAULT_BRANCH}"
+TARGET_DIR="${DEFAULT_TARGET_DIR}"
+QUIET_MODE="${RALF_INSTALLER_QUIET:-0}"
 
 usage() {
   cat <<'USAGE'
@@ -34,6 +37,10 @@ Optionen:
   --tui                Erzwingt den textbasierten Dialog (whiptail/dialog)
   --no-tui             Deaktiviert den textbasierten Dialog explizit
   --quiet              Unterdrückt Konsolenausgaben (Logdatei bleibt aktiv)
+  --repo-url <url>     Git-URL des Ralf-Repositories (Standard: https://github.com/example/ralf.git)
+  --branch <name>      Zu verwendender Git-Branch (Standard: main)
+  --target-dir <path>  Zielpfad für das Repository (Standard: /opt/ralf)
+  --dry-run            Zeigt nur an, welche Schritte ausgeführt würden
   -h, --help           Zeigt diese Hilfe an
 
 Um die Konsolenausgabe zu reduzieren, kann die Variable RALF_INSTALLER_QUIET=1 gesetzt werden.
@@ -44,7 +51,7 @@ determine_defaults() {
   REPO_URL="${DEFAULT_REPO_URL}"
   BRANCH="${DEFAULT_BRANCH}"
   TARGET_DIR="${DEFAULT_TARGET_DIR}"
-  DEFAULT_SOURCE="vorkonfiguriert"
+  local default_source="vorkonfiguriert"
 
   if command -v git >/dev/null 2>&1; then
     if git -C "${SCRIPT_DIR}" rev-parse --is-inside-work-tree >/dev/null 2>&1; then
@@ -53,7 +60,7 @@ determine_defaults() {
       detected_remote=$(git -C "${SCRIPT_DIR}" config --get remote.origin.url 2>/dev/null || true)
       if [[ -n "${detected_remote}" ]]; then
         REPO_URL="${detected_remote}"
-        DEFAULT_SOURCE="lokales Git-Remote"
+        default_source="lokales Git-Remote"
       fi
 
       detected_branch=$(git -C "${SCRIPT_DIR}" rev-parse --abbrev-ref HEAD 2>/dev/null || true)
@@ -63,11 +70,7 @@ determine_defaults() {
     fi
   fi
 
-  DEFAULT_NOTE="Standardwerte (${DEFAULT_SOURCE}): Repo=${REPO_URL}, Branch=${BRANCH}."
-}
-
-refresh_default_note() {
-  DEFAULT_NOTE="Standardwerte (${DEFAULT_SOURCE}): Repo=${REPO_URL}, Branch=${BRANCH}."
+  DEFAULT_NOTE="Standardwerte (${default_source}): Repo=${REPO_URL}, Branch=${BRANCH}."
 }
 
 prefer_ssh_for_github() {
@@ -78,7 +81,6 @@ prefer_ssh_for_github() {
     repo="${repo%.git}"
     REPO_URL="git@github.com:${owner}/${repo}.git"
     log "INFO" "Erkannte GitHub-URL – verwende SSH-Authentifizierung unter ${REPO_URL}."
-    refresh_default_note
   fi
 }
 
@@ -399,11 +401,13 @@ main() {
   determine_defaults
   parse_arguments "$@"
   setup_logging
-  prefer_ssh_for_github
   log "INFO" "${DEFAULT_NOTE}"
   log "INFO" "Starte Ralf Self-Installer"
   maybe_run_tui
   prefer_ssh_for_github
+  parse_arguments "$@"
+  setup_logging
+  log "INFO" "Starte Ralf Self-Installer"
   log "INFO" "Parameter: repo_url=${REPO_URL}, branch=${BRANCH}, target_dir=${TARGET_DIR}, dry_run=${DRY_RUN}"
   check_prerequisites
   sync_repository
