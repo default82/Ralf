@@ -8,7 +8,7 @@ strukturierte Ablaufliste mit umfangreichem Logging. Funktionsmodule (IPMI, Back
 - Ubuntu 22.04 LTS oder kompatible Distribution
 - Python 3.10 oder neuer
 - Schreibrechte für `/var/log/ralf` und `/var/lib/ralf`
-- Möglichkeit, Systembenutzer und -gruppen anzulegen (für den dedizierten Benutzer `ralf`)
+- Möglichkeit, Systembenutzer und -gruppen anzulegen (für zukünftige Dienste; aktuelle Installer-Schritte verbleiben unter Root)
 
 ## Installation im Entwicklungsmodus
 
