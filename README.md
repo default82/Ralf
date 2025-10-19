@@ -41,13 +41,13 @@ Alle stateful Komponenten besitzen dedizierte Borgmatic-Backups. Smoke-Checks st
 | ------------- | ----------------------------------------------------------------------------- |
 | `lint`        | Führt Pre-Commit-Hooks und statische Analysen auf Skripten und Playbooks aus. |
 | `validate`    | Validiert OpenTofu/Ansible-Konfigurationen ohne Änderungen.                   |
-| `preflight`   | Führt `scripts/preflight.sh` auf dem Proxmox-Host aus.                        |
+| `preflight`   | Führt `scripts/preflight.sh` auf dem Proxmox-Host aus und erstellt einen Hardware/Software-Bericht unter `logs/`. Mit `--install-proxmox` richtet das Skript Proxmox VE auf einem reinen Debian-System ein. |
 | `plan`        | Erstellt Ausführungspläne (OpenTofu, Ansible Check-Mode).                     |
 | `apply`       | Wendet Infrastruktur- und Konfigurationsänderungen an.                        |
 | `smoke`       | Prüft Dienste über `scripts/smoke.sh`.                                        |
 | `backup-check`| Validiert Borgmatic-Backups inkl. Restore-Probe.                              |
 
-`ralfctl` fungiert als CLI-Wrapper und delegiert die Make-Targets für eine einheitliche Nutzererfahrung.
+`ralfctl` fungiert als CLI-Wrapper und delegiert die Make-Targets für eine einheitliche Nutzererfahrung. Der Preflight-Lauf erzeugt zusätzlich einen zeitgestempelten Snapshot (`logs/preflight-report-*.txt`) mit Hardwaredaten, Storage-Zustand und Proxmox-Ressourcenübersichten. Auf einem frischen Debian-Host kannst du `scripts/preflight.sh --install-proxmox` nutzen, um die benötigten Proxmox-Repositories zu setzen und `proxmox-ve` samt Abhängigkeiten automatisch zu installieren.
 
 ## Secrets & Compliance
 
@@ -67,6 +67,6 @@ Für einen vollautomatisierten Erstaufbau steht ein orchestrierendes Skript bere
 ./scripts/install.sh --with-gui
 ```
 
-Der optional übergebene `--with-gui` Parameter startet den Dialog-basierten Installer und füllt die Variablendateien für den Preflight. Weitere Schalter (`--skip-smoke`, `--skip-backup-check`) erlauben es, spezifische Prüfungen bewusst auszulassen.
+Der optional übergebene `--with-gui` Parameter startet den dialog-basierten Installer (benötigt das Paket `dialog`). Dieser führt zunächst durch die Erfassung aller Variablen und präsentiert anschließend ein Maus- und Tastatur-bedienbares Preflight-Dashboard, das jeden Befund von `scripts/preflight.sh` inklusive Handlungsempfehlungen erläutert. Weitere Schalter (`--skip-smoke`, `--skip-backup-check`) erlauben es, spezifische Prüfungen bewusst auszublenden.
 
 Wer die Schritte granular abarbeiten möchte, findet die Einzelkommandos weiterhin in `docs/SETUP.md`. Dort sowie in `docs/ARCHITECTURE.md` sind zusätzliche Details zu Sequenzen, Variablen und Service-Workflows beschrieben.

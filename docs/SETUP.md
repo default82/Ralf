@@ -4,7 +4,7 @@ Diese Anleitung führt durch den kompletten Lebenszyklus des Homelab-Gerüsts. A
 
 ## Voraussetzungen
 
-- Proxmox VE Host (`pve01`) mit unprivilegierten LXC-Containern und `nesting=1`.
+- Proxmox VE Host (`pve01`) mit unprivilegierten LXC-Containern und `nesting=1`. Auf einem frischen Debian-Host installierst du Proxmox automatisch über `scripts/preflight.sh --install-proxmox`.
 - Ubuntu 24.04 Standard-Template im Proxmox-Storage (`local:vztmpl/ubuntu-24.04-standard_*.tar.zst`) – der genaue Name wird zur Laufzeit über Variablen gesetzt.
 - SSH-Schlüssel-basierte Authentifizierung; Passwort-Login ist deaktiviert.
 - Zugang zu einem externen Backup-Host (Borgmatic via SSH/22).
@@ -21,11 +21,11 @@ Vor dem ersten Lauf: Klone dieses Repository nach `/opt/ralf` auf `ralf-lxc` ode
 
 ### Vollautomatischer Durchlauf
 
-Nutze `./scripts/install.sh` für einen end-to-end Lauf inklusive Preflight, Container-Provisionierung sowie `make plan/apply` und nachgelagerter Prüfungen. Mit `--with-gui` wird automatisch `scripts/install-gui.sh` gestartet, um `infra/network/preflight.vars.source` und `infra/network/ip-schema.yml` interaktiv zu befüllen. Optional lassen sich Smoke- bzw. Backup-Checks mit `--skip-smoke` bzw. `--skip-backup-check` ausblenden.
+Nutze `./scripts/install.sh` für einen end-to-end Lauf inklusive Preflight, Container-Provisionierung sowie `make plan/apply` und nachgelagerter Prüfungen. Mit `--with-gui` startet vorab der dialog-basierte Installer (`scripts/install-gui.sh` – benötigt das Paket `dialog`). Dieser erfasst die Variablen aus `infra/network/preflight.vars.source` und `infra/network/ip-schema.yml` und öffnet im Anschluss einen mausbedienbaren Preflight-Dashboard, das jede Prüfung aus `scripts/preflight.sh` inklusive Handlungsempfehlungen durchgeht. Optional lassen sich Smoke- bzw. Backup-Checks mit `--skip-smoke` bzw. `--skip-backup-check` ausblenden.
 
 ### Manuelle Sequenz
 
-1. Führe `make preflight` auf `pve01` aus. Das Skript prüft Proxmox-Dienste, Storage, Netz und SSH-Voraussetzungen.
+1. Führe `make preflight` auf `pve01` aus. Das Skript prüft Proxmox-Dienste, Storage, Netz und SSH-Voraussetzungen und legt einen Bericht unter `logs/preflight-report-<timestamp>.txt` (über `RALF_PREFLIGHT_REPORT_DIR` überschreibbar) ab. Falls Proxmox noch nicht installiert ist, nutze `scripts/preflight.sh --install-proxmox` direkt auf dem Host und wiederhole anschließend den Preflight.
 2. Erstelle die LXC-Container mit den `scripts/pct-create-*.sh` Skripten in der angegebenen Reihenfolge. Sie lesen Variablen aus `infra/network/` und fragen bei Bedarf CTIDs, Ressourcen und IPs interaktiv ab.
 3. Setze `export SOPS_AGE_KEY_FILE=/pfad/zum/key` und stelle sicher, dass SOPS Zugriff auf deine age-Identität hat.
 4. Führe `make plan` gefolgt von `make apply` aus `ralf-lxc` aus. `make plan` beinhaltet `terraform plan`/`tofu plan` (sobald Module vorhanden sind) und `ansible-playbook --check` Läufe. `make apply` startet `tofu apply` gefolgt von `ansible-playbook` Runs.
