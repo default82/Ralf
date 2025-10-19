@@ -6,7 +6,7 @@
 - [ ] `infra/network/preflight.vars.source` mit Proxmox-Storage, Template-Namen und Netzwerkparametern füllen.
 - [x] age-Recipient in `secrets/.sops.yaml` eintragen und Schlüssel bereitstellen.
 - [x] Secrets in `ansible/group_vars/all/*.enc.yml` mit SOPS verschlüsselt pflegen.
-- [ ] Ressourcenprofile (CPU/RAM/Disk) in den `scripts/pct-create-*.sh` Skripten überprüfen und bei Bedarf anpassen.
+- [x] Ressourcenprofile (CPU/RAM/Disk) in den `scripts/pct-create-*.sh` Skripten überprüfen, Zielwerte dokumentieren und Defaults anpassen (`docs/SETUP.md`).
 
 ## Mittelfristig
 - [ ] OpenTofu-Module unter `infra/` ergänzen (Netzwerk, DNS, Storage-Automatisierung).

@@ -9,6 +9,21 @@ Diese Anleitung führt durch den kompletten Lebenszyklus des Homelab-Gerüsts. A
 - SSH-Schlüssel-basierte Authentifizierung; Passwort-Login ist deaktiviert.
 - Zugang zu einem externen Backup-Host (Borgmatic via SSH/22).
 
+## Ressourcenprofile & Hostkapazitäten
+
+Die aktuellen Hostmesswerte (3 vCPUs, 17 GiB RAM, 63 GiB Root-Storage) erlauben konsolidierte Default-Profile für die `pct-create-*.sh`-Skripte. Die Werte wurden über `lscpu`, `free -h` und `df -h` erhoben und müssen bei wachsender Auslastung erneut überprüft werden.
+
+| Container             | vCPUs | RAM (MB) | Disk  | Kommentar                                     |
+| --------------------- | ----- | -------- | ----- | --------------------------------------------- |
+| `ralf-lxc`            | 2     | 3072     | 12 G | Control Plane, behält ~25 % CPU-Reserve.      |
+| `svc-postgres`        | 2     | 4096     | 20 G | Größter Storage-Need, Platz für WAL-Rotation. |
+| `svc-foreman`         | 2     | 4096     | 12 G | Reserven für Applikations-Updates.            |
+| `svc-n8n`             | 1     | 2048     | 6 G  | Workflow-Engine, moderate Queue-Größe.        |
+| `svc-semaphore`       | 1     | 2048     | 6 G  | CI-Agent, behält Reserve für Artefakte.       |
+| `svc-vaultwarden`     | 1     | 1536     | 4 G  | Enthält DB+Backups, >10 % Storage-Puffer.     |
+
+> **Hinweis:** Steigen die SLA-Anforderungen (z. B. mehr gleichzeitige Semaphore-Jobs), erhöhe zunächst vCPUs/RAM der betroffenen Container und validiere anschließend das Overcommit-Verhältnis auf dem Host (`pct list`).
+
 ## Variablen & Struktur
 
 1. **Netzwerk:** Pflege `infra/network/ip-schema.yml` mit Hostnamen, FQDNs und Platzhalter-Variablen.

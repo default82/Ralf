@@ -14,9 +14,9 @@ PROJECT_ROOT=$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)
 VARS_FILE="${PROJECT_ROOT}/infra/network/preflight.vars.source"
 LOGGER_BIN=$(command -v logger || true)
 LOG_TAG=${LOG_TAG:-pct-${CONTAINER_NAME}}
-DEFAULT_CPUS=${DEFAULT_CPUS:-4}
-DEFAULT_MEMORY=${DEFAULT_MEMORY:-4096}
-DEFAULT_DISK=${DEFAULT_DISK:-32G}
+DEFAULT_CPUS=${DEFAULT_CPUS:-2}
+DEFAULT_MEMORY=${DEFAULT_MEMORY:-3072}
+DEFAULT_DISK=${DEFAULT_DISK:-12G}
 
 tlog(){
   local level=$1; shift
