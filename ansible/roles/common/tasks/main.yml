@@ -1,0 +1,106 @@
+---
+- name: Ensure apt cache is up to date
+  ansible.builtin.apt:
+    update_cache: true
+    cache_valid_time: 3600
+
+- name: Install base packages
+  ansible.builtin.apt:
+    name: "{{ common_packages + common_optional_packages }}"
+    state: present
+
+- name: Configure timezone
+  community.general.timezone:
+    name: "{{ common_timezone }}"
+
+- name: Configure locale
+  community.general.locale_gen:
+    name: "{{ common_locale }}"
+    state: present
+
+- name: Ensure default locale is set
+  ansible.builtin.copy:
+    dest: /etc/default/locale
+    content: |
+      LANG={{ common_locale }}
+    owner: root
+    group: root
+    mode: '0644'
+
+- name: Enable systemd-timesyncd NTP servers
+  ansible.builtin.template:
+    src: timesyncd.conf.j2
+    dest: /etc/systemd/timesyncd.conf
+    owner: root
+    group: root
+    mode: '0644'
+  notify: Restart systemd-timesyncd
+
+- name: Ensure timesyncd service is enabled
+  ansible.builtin.systemd:
+    name: systemd-timesyncd
+    enabled: true
+    state: started
+
+- name: Configure SSH daemon
+  ansible.builtin.template:
+    src: sshd_config.j2
+    dest: /etc/ssh/sshd_config
+    owner: root
+    group: root
+    mode: '0600'
+  notify: Restart sshd
+
+- name: Deploy SSH login banner
+  ansible.builtin.copy:
+    dest: /etc/issue.net
+    content: "{{ common_login_banner }}\n"
+    owner: root
+    group: root
+    mode: '0644'
+
+- name: Ensure SSHD uses login banner
+  ansible.builtin.lineinfile:
+    path: /etc/ssh/sshd_config
+    regexp: '^Banner'
+    line: 'Banner /etc/issue.net'
+    state: present
+    insertafter: EOF
+  notify: Restart sshd
+
+- name: Create log directory
+  ansible.builtin.file:
+    path: "{{ common_log_dir }}"
+    state: directory
+    owner: root
+    group: root
+    mode: '0750'
+
+- name: Configure logrotate for Ralf logs
+  ansible.builtin.template:
+    src: logrotate_ralf.j2
+    dest: /etc/logrotate.d/ralf
+    owner: root
+    group: root
+    mode: '0644'
+
+- name: Ensure password authentication is disabled
+  ansible.builtin.replace:
+    path: /etc/ssh/sshd_config
+    regexp: '^#?PasswordAuthentication\s+.*'
+    replace: 'PasswordAuthentication no'
+  notify: Restart sshd
+
+- name: Ensure root login via SSH is disabled
+  ansible.builtin.replace:
+    path: /etc/ssh/sshd_config
+    regexp: '^#?PermitRootLogin\s+.*'
+    replace: 'PermitRootLogin prohibit-password'
+  notify: Restart sshd
+
+- name: Ensure additional groups exist
+  ansible.builtin.group:
+    name: "{{ item }}"
+    state: present
+  loop: "{{ common_additional_groups }}"
+

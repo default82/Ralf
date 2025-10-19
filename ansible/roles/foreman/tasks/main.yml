@@ -1,0 +1,46 @@
+---
+- name: Add Foreman apt key
+  ansible.builtin.apt_key:
+    url: "{{ foreman_repo_url }}/pubkey.gpg"
+    state: present
+
+- name: Add Foreman repository
+  ansible.builtin.apt_repository:
+    repo: "deb {{ foreman_repo_url }} {{ foreman_release }} main"
+    state: present
+
+- name: Install Foreman installer
+  ansible.builtin.apt:
+    name:
+      - foreman-installer
+    state: present
+    update_cache: true
+    cache_valid_time: 3600
+
+- name: Run Foreman installer
+  ansible.builtin.command: >-
+    {{ foreman_installer_executable }} --scenario {{ foreman_installer_scenario }} {{ foreman_installer_flags | join(' ') }}
+  args:
+    creates: "{{ foreman_marker_file }}"
+  notify:
+    - Restart foreman
+    - Restart foreman-proxy
+
+- name: Create installation marker
+  ansible.builtin.file:
+    path: "{{ foreman_marker_file }}"
+    state: touch
+    owner: foreman
+    group: foreman
+    mode: '0640'
+
+- name: Ensure Foreman services enabled
+  ansible.builtin.systemd:
+    name: "{{ item }}"
+    enabled: true
+    state: started
+  loop:
+    - foreman
+    - foreman-proxy
+    - apache2
+

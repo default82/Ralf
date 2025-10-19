@@ -1,0 +1,16 @@
+# Managed by Ansible
+listen_addresses = '{{ postgresql_listen_addresses }}'
+port = {{ postgres_port | default(5432) }}
+max_connections = 200
+shared_buffers = '{{ postgresql_shared_buffers }}'
+effective_cache_size = '{{ postgresql_effective_cache_size }}'
+maintenance_work_mem = '{{ postgresql_maintenance_work_mem }}'
+autovacuum_max_workers = {{ postgresql_autovacuum_max_workers }}
+wal_keep_size = '{{ postgresql_wal_keep_size }}'
+logging_collector = on
+log_directory = 'log'
+log_filename = 'postgresql-%a.log'
+log_truncate_on_rotation = on
+log_rotation_age = 1d
+log_rotation_size = 0
+log_statement = 'ddl'

@@ -1,0 +1,12 @@
+# shellcheck shell=bash
+# Variablen, die vom Preflight-Skript gelesen werden. Werte zur Laufzeit ergänzen.
+export RALF_STORAGE_TARGET="${RALF_STORAGE_TARGET:-ASK_RUNTIME}"
+export RALF_TEMPLATE_PATH="${RALF_TEMPLATE_PATH:-local:vztmpl/ubuntu-24.04-standard_current.tar.zst}"
+export RALF_BRIDGE="${RALF_BRIDGE:-vmbr0}"
+export RALF_DNS_RESOLVER="${RALF_DNS_RESOLVER:-1.1.1.1}"
+export RALF_GATEWAY_IPV4="${RALF_GATEWAY_IPV4:-ASK_RUNTIME}"
+export RALF_BACKUP_HOST="${RALF_BACKUP_HOST:-nas.home.arpa}"
+export RALF_BACKUP_PORT="${RALF_BACKUP_PORT:-22}"
+export RALF_EXPECTED_PVE_SERVICES="${RALF_EXPECTED_PVE_SERVICES:-pvedaemon pveproxy pvestatd}"
+
+export RALF_TIMEZONE="${RALF_TIMEZONE:-Europe/Berlin}"

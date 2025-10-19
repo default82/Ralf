@@ -1,0 +1,21 @@
+---
+n8n_user: n8n
+n8n_group: n8n
+n8n_install_dir: /opt/n8n
+n8n_binary_path: /usr/local/bin/n8n
+n8n_environment_file: /etc/n8n/.env
+n8n_service_name: n8n
+n8n_node_version: 20.x
+n8n_env:
+  N8N_BASIC_AUTH_ACTIVE: 'true'
+  N8N_BASIC_AUTH_USER: "{{ apps_secret.n8n_basic_user | default('n8n') }}"
+  N8N_BASIC_AUTH_PASSWORD: "{{ apps_secret.n8n_basic_password | default('CHANGE_ME') }}"
+  DB_TYPE: postgresdb
+  DB_POSTGRESDB_HOST: "{{ postgres_host }}"
+  DB_POSTGRESDB_DATABASE: "{{ postgres_app_users['n8n'].db }}"
+  DB_POSTGRESDB_USER: "{{ postgres_app_users['n8n'].user }}"
+  DB_POSTGRESDB_PASSWORD: "{{ postgres_app_users['n8n'].password }}"
+  DB_POSTGRESDB_PORT: "{{ postgres_port }}"
+  N8N_PORT: '5678'
+  N8N_PROTOCOL: https
+  N8N_ENCRYPTION_KEY: "{{ apps_secret.n8n_encryption_key | default('CHANGE_ME') }}"

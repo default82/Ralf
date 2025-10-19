@@ -1,0 +1,19 @@
+[Unit]
+Description=Semaphore Ansible UI
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+Type=simple
+EnvironmentFile={{ semaphore_environment_file }}
+User={{ semaphore_user }}
+Group={{ semaphore_group }}
+ExecStart={{ semaphore_binary_path }} server --config {{ semaphore_config_file }}
+Restart=on-failure
+RestartSec=5
+WorkingDirectory={{ semaphore_install_dir }}
+StandardOutput=append:{{ common_log_dir }}/semaphore.log
+StandardError=append:{{ common_log_dir }}/semaphore.log
+
+[Install]
+WantedBy=multi-user.target

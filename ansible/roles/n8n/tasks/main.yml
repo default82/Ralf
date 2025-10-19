@@ -1,0 +1,85 @@
+---
+- name: Ensure NodeSource apt key is installed
+  ansible.builtin.apt_key:
+    url: "https://deb.nodesource.com/gpgkey/nodesource-repo.gpg.key"
+    state: present
+
+- name: Configure NodeSource repository
+  ansible.builtin.apt_repository:
+    repo: "deb https://deb.nodesource.com/node_{{ n8n_node_version }} nodistro main"
+    state: present
+
+- name: Install nodejs
+  ansible.builtin.apt:
+    name: nodejs
+    state: present
+    update_cache: true
+    cache_valid_time: 3600
+
+- name: Ensure npm is present
+  ansible.builtin.apt:
+    name: npm
+    state: present
+
+- name: Install n8n globally
+  community.general.npm:
+    name: n8n
+    global: true
+    state: present
+
+- name: Ensure n8n group exists
+  ansible.builtin.group:
+    name: "{{ n8n_group }}"
+    system: true
+
+- name: Ensure n8n user exists
+  ansible.builtin.user:
+    name: "{{ n8n_user }}"
+    group: "{{ n8n_group }}"
+    home: "{{ n8n_install_dir }}"
+    shell: /usr/sbin/nologin
+    system: true
+    create_home: false
+
+- name: Ensure install directory exists
+  ansible.builtin.file:
+    path: "{{ n8n_install_dir }}"
+    state: directory
+    owner: {{ n8n_user }}
+    group: {{ n8n_group }}
+    mode: '0755'
+
+- name: Create configuration directory
+  ansible.builtin.file:
+    path: "{{ n8n_environment_file | dirname }}"
+    state: directory
+    owner: "{{ n8n_user }}"
+    group: "{{ n8n_group }}"
+    mode: '0750'
+
+- name: Render n8n environment file
+  ansible.builtin.template:
+    src: env.j2
+    dest: "{{ n8n_environment_file }}"
+    owner: "{{ n8n_user }}"
+    group: "{{ n8n_group }}"
+    mode: '0640'
+  notify: Restart n8n
+
+- name: Install systemd unit
+  ansible.builtin.template:
+    src: n8n.service.j2
+    dest: /etc/systemd/system/{{ n8n_service_name }}.service
+    owner: root
+    group: root
+    mode: '0644'
+  notify:
+    - Reload systemd
+    - Restart n8n
+
+- name: Ensure n8n service is running
+  ansible.builtin.systemd:
+    name: "{{ n8n_service_name }}"
+    enabled: true
+    state: started
+    daemon_reload: true

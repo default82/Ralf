@@ -1,0 +1,60 @@
+---
+ralf_domain: home.arpa
+ralf_timezone: Europe/Berlin
+ralf_default_locale: en_US.UTF-8
+common_log_dir: /var/log/ralf
+ralf_ntp_servers:
+  - 0.de.pool.ntp.org
+  - 1.de.pool.ntp.org
+ralf_backup_repository: "ssh://backup@nas.home.arpa:22/~/borg/ralf"
+ralf_backup_retention:
+  keep_daily: 7
+  keep_weekly: 4
+  keep_monthly: 6
+postgres_listen_addresses:
+  - 0.0.0.0
+postgresql_version: "16"
+postgresql_shared_buffers: "1GB"
+postgresql_effective_cache_size: "3GB"
+postgresql_maintenance_work_mem: "256MB"
+postgresql_autovacuum_max_workers: 3
+postgresql_wal_keep_size: "1GB"
+postgresql_hba_allowed_subnets:
+  - "10.0.0.0/24"
+  - "fd00::/64"
+vaultwarden_use_postgres: true
+
+# Placeholder values resolved via SOPS secrets
+postgres_admin_user: postgres
+postgres_admin_password: "{{ databases_secret.postgres_admin_password | default('CHANGE_ME') }}"
+postgres_app_users:
+  semaphore:
+    db: semaphore
+    user: semaphore
+    password: "{{ databases_secret.semaphore_password | default('CHANGE_ME') }}"
+  n8n:
+    db: n8n
+    user: n8n
+    password: "{{ databases_secret.n8n_password | default('CHANGE_ME') }}"
+  foreman:
+    db: foreman
+    user: foreman
+    password: "{{ databases_secret.foreman_password | default('CHANGE_ME') }}"
+  vaultwarden:
+    db: vaultwarden
+    user: vaultwarden
+    password: "{{ databases_secret.vaultwarden_password | default('CHANGE_ME') }}"
+
+ralf_services:
+  - name: semaphore
+    url: "https://{{ hostvars['svc-semaphore'].ansible_host | default('semaphore.home.arpa') }}"
+    check: "curl -fkLsS --max-time 5 $url/api/info"
+  - name: foreman
+    url: "https://{{ hostvars['svc-foreman'].ansible_host | default('foreman.home.arpa') }}"
+    check: "curl -fkLsS --max-time 5 $url"
+  - name: n8n
+    url: "https://{{ hostvars['svc-n8n'].ansible_host | default('n8n.home.arpa') }}"
+    check: "curl -fkLsS --max-time 5 $url/healthz"
+  - name: vaultwarden
+    url: "https://{{ hostvars['svc-vaultwarden'].ansible_host | default('vaultwarden.home.arpa') }}/admin"
+    check: "curl -fkI --max-time 5 $url"

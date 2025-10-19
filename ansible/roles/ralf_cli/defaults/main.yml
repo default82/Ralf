@@ -1,0 +1,4 @@
+---
+ralf_cli_install_path: /usr/local/bin/ralfctl
+ralf_cli_make_path: /opt/ralf
+ralf_cli_user: root
