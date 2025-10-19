@@ -1,23 +1,35 @@
-# Verschlüsselte App-Secrets (Platzhalter). Entschlüssele mit SOPS und ergänze Werte.
-# Erwartete Schlüssel:
-#   apps_secret:
-#     semaphore_admin_password
-#     semaphore_session_key
-#     semaphore_checksum (optional SHA256)
-#     smtp_host / smtp_port / smtp_user / smtp_password
-#     n8n_basic_user / n8n_basic_password / n8n_encryption_key
-#     foreman_admin_password
-#     vaultwarden_admin_token
-#     borg_passphrase (für Borgmatic)
-apps_secret: ENC[AES256_GCM,data:PLACEHOLDER,iv:PLACEHOLDER,tag:PLACEHOLDER,type:dict]
-
+#ENC[AES256_GCM,data:Jolkj3TREI7S+lwpzneAKWkpJtHjN7VnBsfGb9toHUqzeD/5kilzfICceX0cGqNlnhXTu04=,iv:VJzTYVxHv6c53V45rqAArUmbCw31XaEoGfmohS91DL8=,tag:kwdc+wX2kd8lCHBWK7Ix4g==,type:comment]
+apps_secret:
+    semaphore_admin_password: ENC[AES256_GCM,data:mj1+XeIU/UsYED3ZH8Af+29eoQLtDWSN,iv:k3Ty4pdPbqkhZZxHFVssWl3slzZAACwLQqLm8gD9gL0=,tag:Ks81MP2BwzgUvPsUe2Fbyw==,type:str]
+    semaphore_session_key: ENC[AES256_GCM,data:+i+2LaBg6ogEpp+Tm4FwA+mSH83Eo/FxCWahwuvCBGX96L879DXR89Z6LtZypeCYCBlvXSGfl5Btt+fx84HY7Q==,iv:MZFL1YiUJvP2xilvB6e2j5Mq8qJaB1kDga+jjfmbDT8=,tag:jTG/j9D/BWMrjlG4txv25Q==,type:str]
+    semaphore_checksum: ENC[AES256_GCM,data:s6ewC6QNSs4Qyf603EfmHjQZGwGpjHFxPHZWdEMkBWxjktVz/OzYnFY/lCpxajKs8KLY7qJ26gUfRtQ11OHsgQ==,iv:o2hmUP6OoTJY8oJQRsY/Wo8z5rdPyjbNkFWLg2MxxSU=,tag:ySCv3Mt1bft4MEsVlwUx0w==,type:str]
+    smtp_host: ENC[AES256_GCM,data:0I/HBWe/Ddr0xQevmE0=,iv:q/M+6LafBdjZRN2csCcsmnQp5N5g/bJLq9E98z7K1M4=,tag:m+w/WLV5G1jhzsi3Da3Mlg==,type:str]
+    smtp_port: ENC[AES256_GCM,data:LBcg,iv:H7K5GVIqn0TjG2RTMqCPxkPQTWsJ4CW0E4CZiknCjY4=,tag:ZQ0Gu926fkNBAakVipTbkw==,type:int]
+    smtp_user: ENC[AES256_GCM,data:5P7aiP2o3hQEjg5glujoZg==,iv:woG9Z1PARpEhNuE4wsiCqYBdCsOLeVn3gsjHvi0Ggoo=,tag:74vvxorPQQ55Wo8PaOXtYQ==,type:str]
+    smtp_password: ENC[AES256_GCM,data:Q+DKZJAeO/UoQjkFCNyL4PDueQGSEZejaGIK+7Z7KW8=,iv:V796hyKp42/7QU7ML96rVioEDN0BykiGFW9a0CvlOtE=,tag:Cwep2khO68QJ9wE+bjFEZg==,type:str]
+    n8n_basic_user: ENC[AES256_GCM,data:tsVTQHm/w3ZpMw==,iv:ABgLU4SI9HMg96X57pCNwz9NFtiO/f04K8fhxjSSK1E=,tag:WxlkQ937EyqgE2aqAm3MhA==,type:str]
+    n8n_basic_password: ENC[AES256_GCM,data:1Y+Bmrfg5Eyxh8GQ04a7knXRs2/vACKph4/ayO8e5e0=,iv:4U1H/VtetuKBj1DL96oaPaBXZkzo92YYe6XF3ziWoW8=,tag:/zkZfyDMlMNk1YTgkkebnw==,type:str]
+    n8n_encryption_key: ENC[AES256_GCM,data:ONmI5PCcNURS3rMrq2mI02WTOUICDtdXFQxxq63hlNUog68ItGz0SH+Xhai4QLqBiQiWT3pEqXh1QAelIoHiZA==,iv:Il9kCqy3ssexFQHQMjDq86YGS6zKtNtLLyiTe84CAtg=,tag:QxzFbI3hxDrGcrvWSaEdDg==,type:str]
+    foreman_admin_password: ENC[AES256_GCM,data:LKPQHXzhvIT62DPK25M8DZmXsSbPPmqIes5pLA==,iv:MRrtuWu0EnfbMKVFWDEMmHYDQadsPA9weLVPEsdvHX0=,tag:03ZaujaYdPGIszd6LRFTIA==,type:str]
+    vaultwarden_admin_token: ENC[AES256_GCM,data:6OjvKoZgjmOi93eFwFQQy5agP2CxGSxkMYKWSuOW2WiCNEWGHoimvNEx7GWa2ZgW,iv:YsLMY12sO4fLUHgJvSZ0xwt4sNubTG8Y9V6NBx1GGaw=,tag:dDfi6z+GFjz155uGXvji+g==,type:str]
+    borg_passphrase: ENC[AES256_GCM,data:rcmW5G8Lag800d8mOa0VvIwzoL4CgHu/RUgIDkF3WVs2b8NtezDOhJNw8v95lfMN,iv:gop9GpWVqZJcvuDek9+7e7CfCrLbMryS/nEdICWOh6A=,tag:ZdrlbXXMYb3X/a1X6XQXfQ==,type:str]
 sops:
-  kms: []
-  gcp_kms: []
-  azure_kv: []
-  hc_vault: []
-  age: []
-  shamir_threshold: 1
-  mac: ENC[AES256_GCM,data:PLACEHOLDER,iv:PLACEHOLDER,tag:PLACEHOLDER,type:str]
-  lastmodified: "1970-01-01T00:00:00Z"
-  version: "3.8.1"
+    kms: []
+    gcp_kms: []
+    azure_kv: []
+    hc_vault: []
+    age:
+        - recipient: age1dhl426fj0xz3cja3gm9avvqmt8e0efmr24xtzejwyzjyqd3kxpdquyfgqf
+          enc: |
+            -----BEGIN AGE ENCRYPTED FILE-----
+            YWdlLWVuY3J5cHRpb24ub3JnL3YxCi0+IFgyNTUxOSB5K1lBQWVPSnRuL2gwQTRS
+            VWVXTEIvZVJhZjltWUc1cmFCVlgxYXdlQVg4CkRpc1JIZjBHT285WGU3anFCZkJx
+            SGs4ME5zZWtxdVlSSmxFY3JpQ2dBd1EKLS0tIEQwem4zbmZIL1FaaVVKZENkVldQ
+            NmthdzBsNkxYSGhYbU9DRm04bTliWjAK6zzou6P0Ci7JMbQRhtIziLQ1ameXOLjs
+            Fmx0vInYJXUZWNX895Pni0JH2dSJ3nKX+Oiwnk3VTJq0kLKZaQS5Jw==
+            -----END AGE ENCRYPTED FILE-----
+    lastmodified: "2025-10-19T12:41:34Z"
+    mac: ENC[AES256_GCM,data:uvvQPiWWLIWRsGgGdtJxmnQbc7wt4S8poZK358wUk57/6Jmc99Nxabvspxy72rK7JJ9X2KLxBVfEm74nDbcpmfkuKUe5xE9OteSjj+aAzUIY/PQRyVEHQPnV+myt1RVEeXyvTDN3iWROK8scdoTZU9TPEsE3hx6shPXmuxDWFrI=,iv:OZO2GzOeA64g4TY9ZlSBtUt1erCaveVKxDLeDUivIIk=,tag:PZ911WaA3Ylogg2FLaYV/Q==,type:str]
+    pgp: []
+    unencrypted_suffix: _unencrypted
+    version: 3.8.1

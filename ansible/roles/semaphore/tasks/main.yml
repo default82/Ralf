@@ -26,7 +26,7 @@
     url: "{{ semaphore_download_url }}"
     dest: "/tmp/semaphore_{{ semaphore_version }}.tar.gz"
     mode: '0644'
-    checksum: {{ apps_secret.semaphore_checksum | default(omit) }}
+    checksum: "{{ apps_secret.semaphore_checksum | default(omit) }}"
   register: semaphore_archive
 
 - name: Extract semaphore archive
@@ -67,8 +67,8 @@
   ansible.builtin.file:
     path: "{{ semaphore_install_dir }}/tmp"
     state: directory
-    owner: {{ semaphore_user }}
-    group: {{ semaphore_group }}
+    owner: "{{ semaphore_user }}"
+    group: "{{ semaphore_group }}"
     mode: '0750'
 
 - name: Render semaphore environment file

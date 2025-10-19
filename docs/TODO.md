@@ -4,8 +4,8 @@
 - [x] Orchestrierendes Installationsskript (`scripts/install.sh`) bereitstellen.
 - [ ] Werte in `infra/network/ip-schema.yml` gemäß aktueller Netzplanung ergänzen.
 - [ ] `infra/network/preflight.vars.source` mit Proxmox-Storage, Template-Namen und Netzwerkparametern füllen.
-- [ ] age-Recipient in `secrets/.sops.yaml` eintragen und Schlüssel bereitstellen.
-- [ ] Secrets in `ansible/group_vars/all/*.enc.yml` mit SOPS verschlüsselt pflegen.
+- [x] age-Recipient in `secrets/.sops.yaml` eintragen und Schlüssel bereitstellen.
+- [x] Secrets in `ansible/group_vars/all/*.enc.yml` mit SOPS verschlüsselt pflegen.
 - [ ] Ressourcenprofile (CPU/RAM/Disk) in den `scripts/pct-create-*.sh` Skripten überprüfen und bei Bedarf anpassen.
 
 ## Mittelfristig

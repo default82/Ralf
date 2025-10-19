@@ -12,7 +12,7 @@ postgresql_hba_allowed_subnets: "{{ postgresql_hba_allowed_subnets }}"
 postgresql_shared_buffers: "{{ postgresql_shared_buffers }}"
 postgresql_effective_cache_size: "{{ postgresql_effective_cache_size }}"
 postgresql_maintenance_work_mem: "{{ postgresql_maintenance_work_mem }}"
-postgresql_autovacuum_max_workers: {{ postgresql_autovacuum_max_workers }}
+postgresql_autovacuum_max_workers: "{{ postgresql_autovacuum_max_workers }}"
 postgresql_wal_keep_size: "{{ postgresql_wal_keep_size }}"
 postgresql_superuser: "{{ postgres_admin_user }}"
 postgresql_superuser_password: "{{ postgres_admin_password }}"
