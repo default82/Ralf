@@ -60,6 +60,3 @@ logs/
 
 # Borgmatic archives
 borgmatic-exports/
-
-# Installer artefacts
-infra/network/installer-summary.txt

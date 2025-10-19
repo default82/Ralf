@@ -11,7 +11,7 @@ PRE_COMMIT ?= pre-commit
 
 export ANSIBLE_CONFIG := $(ANSIBLE_CFG)
 
-.PHONY: lint validate preflight plan apply smoke backup-check tofu-plan ansible-plan install
+.PHONY: lint validate preflight plan apply smoke backup-check tofu-plan ansible-plan
 
 lint:
 @echo "==> Running pre-commit hooks"
@@ -22,10 +22,6 @@ validate: tofu-plan ansible-plan
 preflight:
 @echo "==> Running Proxmox preflight checks"
 ./scripts/preflight.sh
-
-install:
-@echo "==> Launching graphical installer"
-./scripts/install-gui.sh
 
 plan:
 @$(MAKE) tofu-plan PLAN_MODE=plan

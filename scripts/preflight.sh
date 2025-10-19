@@ -32,39 +32,6 @@ load_vars()
   fi
 }
 
-ensure_dialog_tool()
-{
-  if command -v whiptail >/dev/null 2>&1 || command -v dialog >/dev/null 2>&1; then
-    log_info "Dialog-Tool für Installer vorhanden"
-    return 0
-  fi
-
-  log_warn "Weder whiptail noch dialog gefunden."
-  if ! command -v apt-get >/dev/null 2>&1; then
-    log_error "APT nicht verfügbar – Installation von whiptail nicht möglich"
-    return 1
-  fi
-
-  read -rp "whiptail installieren (benötigt für grafischen Installer)? [y/N]: " reply
-  case ${reply,,} in
-    y|yes)
-      log_info "Installiere Paket whiptail"
-      if DEBIAN_FRONTEND=noninteractive apt-get update -y >/dev/null 2>&1 && \
-         DEBIAN_FRONTEND=noninteractive apt-get install -y whiptail >/dev/null 2>&1; then
-        log_info "whiptail erfolgreich installiert"
-        return 0
-      else
-        log_error "Installation von whiptail fehlgeschlagen"
-        return 1
-      fi
-      ;;
-    *)
-      log_error "Grafischer Installer nicht nutzbar ohne Dialog-Tool"
-      return 1
-      ;;
-  esac
-}
-
 check_pve_services()
 {
   local services=(${RALF_EXPECTED_PVE_SERVICES:-pvedaemon pveproxy pvestatd})
@@ -248,7 +215,6 @@ run_checks()
     ["Zeit-Sync"]="check_time_sync"
     ["SSH-Pubkey"]="check_ssh_keys"
     ["Backup-Host erreichbar"]="check_backup_host"
-    ["Installer-Abhängigkeiten"]="ensure_dialog_tool"
   )
 
   for description in "${!checks[@]}"; do

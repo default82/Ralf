@@ -42,26 +42,12 @@ Alle stateful Komponenten besitzen dedizierte Borgmatic-Backups. Smoke-Checks st
 | `lint`        | Führt Pre-Commit-Hooks und statische Analysen auf Skripten und Playbooks aus. |
 | `validate`    | Validiert OpenTofu/Ansible-Konfigurationen ohne Änderungen.                   |
 | `preflight`   | Führt `scripts/preflight.sh` auf dem Proxmox-Host aus.                        |
-| `install`     | Startet den grafischen Installer (`whiptail`/`dialog`) zur Erfassung von Variablen. |
 | `plan`        | Erstellt Ausführungspläne (OpenTofu, Ansible Check-Mode).                     |
 | `apply`       | Wendet Infrastruktur- und Konfigurationsänderungen an.                        |
 | `smoke`       | Prüft Dienste über `scripts/smoke.sh`.                                        |
 | `backup-check`| Validiert Borgmatic-Backups inkl. Restore-Probe.                              |
 
 `ralfctl` fungiert als CLI-Wrapper und delegiert die Make-Targets für eine einheitliche Nutzererfahrung.
-
-### Grafischer Installer
-
-`make install` beziehungsweise `ralfctl install` startet einen dialogbasierten Assistenten. Der Installer sammelt alle Werte,
-die nicht automatisch von Ralf ermittelt werden können (CTIDs, IP-Adressen, Storage etc.), bestätigt automatisch erkennbare
-Parameter (z. B. Standard-Bridge, Default-Gateway) und schreibt die Ergebnisse in:
-
-- `infra/network/preflight.vars.source`
-- `infra/network/ip-schema.yml`
-- `infra/network/installer-summary.txt`
-
-Der Preflight prüft vorab, ob `whiptail` oder `dialog` verfügbar ist und bietet bei Bedarf eine Installation an. Änderungen
-können jederzeit durch erneuten Aufruf überschrieben werden.
 
 ## Secrets & Compliance
 
@@ -73,35 +59,9 @@ Sämtliche sensitiven Werte liegen verschlüsselt unter `secrets/` bzw. `ansible
 - **Smoke-Checks:** HTTP-Statusprüfungen, `psql`-Connectivity sowie Systemd-Statuskontrollen.
 - **Logging:** Skripte nutzen `logger`, Rollen schreiben strukturierte Logs unter `/var/log/ralf/` (siehe `docs/SETUP.md`).
 
-## Offene Aufgaben
-
-Der aktuelle Arbeitsstand wird hier zusammengefasst; Details und Fortschrittspflege erfolgen zusätzlich in `docs/TODO.md`.
-
-### Kurzfristig
-
-- [ ] Werte in `infra/network/ip-schema.yml` gemäß aktueller Netzplanung ergänzen.
-- [ ] `infra/network/preflight.vars.source` mit Proxmox-Storage, Template-Namen und Netzwerkparametern füllen.
-- [ ] age-Recipient in `secrets/.sops.yaml` eintragen und Schlüssel bereitstellen.
-- [ ] Secrets in `ansible/group_vars/all/*.enc.yml` mit SOPS verschlüsselt pflegen.
-- [ ] Ressourcenprofile (CPU/RAM/Disk) in den `scripts/pct-create-*.sh` Skripten überprüfen und bei Bedarf anpassen.
-
-### Mittelfristig
-
-- [ ] OpenTofu-Module unter `infra/` ergänzen (Netzwerk, DNS, Storage-Automatisierung).
-- [ ] CI-Pipeline für `make lint` und `make validate` aufbauen.
-- [ ] Zusätzliche Smoke-Checks für Foreman API und n8n Workflows implementieren.
-- [ ] Logrotate-Konfiguration um Foreman-/n8n-spezifische Logs erweitern.
-
-### Langfristig
-
-- [ ] Integration weiterer Dienste (z. B. Monitoring-Stack) evaluieren.
-- [ ] Disaster-Recovery-Pläne dokumentieren und testen.
-- [ ] Automatisiertes Patch-Management über Foreman/Satellite prüfen.
-
 ## How-to-Run
 
 ```bash
-make install
 make preflight
 ./scripts/pct-create-ralf.sh
 ./scripts/pct-create-svc-postgres.sh

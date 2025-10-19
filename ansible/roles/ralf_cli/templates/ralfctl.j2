@@ -21,7 +21,6 @@ Commands:
   lint            Run make lint
   validate        Run make validate
   preflight       Run make preflight
-  install         Run make install (grafischer Installer)
   plan            Run make plan
   build           Run make plan && make apply
   apply           Run make apply
@@ -46,7 +45,7 @@ main() {
   local cmd=$1; shift
 
   case "${cmd}" in
-    lint|validate|preflight|install|plan|apply|smoke|backup-check)
+    lint|validate|preflight|plan|apply|smoke|backup-check)
       run_make "${cmd}" "$@"
       ;;
     build)

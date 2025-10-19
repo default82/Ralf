@@ -6,7 +6,6 @@
 - [ ] age-Recipient in `secrets/.sops.yaml` eintragen und Schlüssel bereitstellen.
 - [ ] Secrets in `ansible/group_vars/all/*.enc.yml` mit SOPS verschlüsselt pflegen.
 - [ ] Ressourcenprofile (CPU/RAM/Disk) in den `scripts/pct-create-*.sh` Skripten überprüfen und bei Bedarf anpassen.
-- [ ] Grafischen Installer (`make install`) mit produktiven Werten befüllen und Ergebnisse prüfen.
 
 ## Mittelfristig
 - [ ] OpenTofu-Module unter `infra/` ergänzen (Netzwerk, DNS, Storage-Automatisierung).
