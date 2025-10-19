@@ -409,7 +409,7 @@ run_checks()
 
 check_required_commands()
 {
-  local -a commands=(pct qm pveversion pvesh lsblk pvesm pveam)
+  local -a commands=(pct qm pveversion pvesh lsblk)
   local missing=()
   for cmd in "${commands[@]}"; do
     if ! command -v "${cmd}" >/dev/null 2>&1; then
