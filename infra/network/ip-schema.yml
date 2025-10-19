@@ -1,0 +1,43 @@
+---
+# Netzschema für Ralf. Werte werden zur Laufzeit gesetzt.
+# Beispiel:
+#   ralf-lxc:
+#     ctid: 101
+#     ipv4: 10.23.0.10/24
+#     gateway: 10.23.0.1
+#     fqdn: ralf.home.arpa
+# Sortiere CTIDs nach führender Ziffer (1xx=Control, 2xx=Data, 3xx=Apps, ...).
+
+ralf-lxc:
+  ctid: "${RALF_LXC_CTID:-ASK_RUNTIME}"
+  ipv4: "${RALF_LXC_IPV4:-ASK_RUNTIME}"
+  gateway: "${RALF_LXC_GW:-ASK_RUNTIME}"
+  fqdn: "${RALF_LXC_FQDN:-ralf.home.arpa}"
+  dns:
+    - "${RALF_LXC_DNS1:-1.1.1.1}"
+    - "${RALF_LXC_DNS2:-9.9.9.9}"
+svc-postgres:
+  ctid: "${POSTGRES_CTID:-ASK_RUNTIME}"
+  ipv4: "${POSTGRES_IPV4:-ASK_RUNTIME}"
+  gateway: "${POSTGRES_GW:-ASK_RUNTIME}"
+  fqdn: "${POSTGRES_FQDN:-svc-postgres.home.arpa}"
+svc-semaphore:
+  ctid: "${SEMAPHORE_CTID:-ASK_RUNTIME}"
+  ipv4: "${SEMAPHORE_IPV4:-ASK_RUNTIME}"
+  gateway: "${SEMAPHORE_GW:-ASK_RUNTIME}"
+  fqdn: "${SEMAPHORE_FQDN:-svc-semaphore.home.arpa}"
+svc-foreman:
+  ctid: "${FOREMAN_CTID:-ASK_RUNTIME}"
+  ipv4: "${FOREMAN_IPV4:-ASK_RUNTIME}"
+  gateway: "${FOREMAN_GW:-ASK_RUNTIME}"
+  fqdn: "${FOREMAN_FQDN:-svc-foreman.home.arpa}"
+svc-n8n:
+  ctid: "${N8N_CTID:-ASK_RUNTIME}"
+  ipv4: "${N8N_IPV4:-ASK_RUNTIME}"
+  gateway: "${N8N_GW:-ASK_RUNTIME}"
+  fqdn: "${N8N_FQDN:-svc-n8n.home.arpa}"
+svc-vaultwarden:
+  ctid: "${VAULTWARDEN_CTID:-ASK_RUNTIME}"
+  ipv4: "${VAULTWARDEN_IPV4:-ASK_RUNTIME}"
+  gateway: "${VAULTWARDEN_GW:-ASK_RUNTIME}"
+  fqdn: "${VAULTWARDEN_FQDN:-svc-vaultwarden.home.arpa}"

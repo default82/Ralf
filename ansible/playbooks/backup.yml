@@ -1,0 +1,13 @@
+---
+- name: Validate Borgmatic backups
+  hosts:
+    - svc-postgres
+    - svc-foreman
+    - svc-n8n
+    - svc-vaultwarden
+    - svc-semaphore
+  gather_facts: true
+  vars:
+    borgmatic_run_mode: check
+  roles:
+    - role: borgmatic

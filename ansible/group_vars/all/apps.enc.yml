@@ -1,0 +1,23 @@
+# Verschlüsselte App-Secrets (Platzhalter). Entschlüssele mit SOPS und ergänze Werte.
+# Erwartete Schlüssel:
+#   apps_secret:
+#     semaphore_admin_password
+#     semaphore_session_key
+#     semaphore_checksum (optional SHA256)
+#     smtp_host / smtp_port / smtp_user / smtp_password
+#     n8n_basic_user / n8n_basic_password / n8n_encryption_key
+#     foreman_admin_password
+#     vaultwarden_admin_token
+#     borg_passphrase (für Borgmatic)
+apps_secret: ENC[AES256_GCM,data:PLACEHOLDER,iv:PLACEHOLDER,tag:PLACEHOLDER,type:dict]
+
+sops:
+  kms: []
+  gcp_kms: []
+  azure_kv: []
+  hc_vault: []
+  age: []
+  shamir_threshold: 1
+  mac: ENC[AES256_GCM,data:PLACEHOLDER,iv:PLACEHOLDER,tag:PLACEHOLDER,type:str]
+  lastmodified: "1970-01-01T00:00:00Z"
+  version: "3.8.1"

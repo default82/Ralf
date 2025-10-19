@@ -1,0 +1,60 @@
+---
+- name: Install borgmatic dependencies
+  ansible.builtin.apt:
+    name:
+      - borgmatic
+      - borgbackup
+      - python3-yaml
+      - python3-msgpack
+    state: "{{ borgmatic_package_state }}"
+    update_cache: true
+    cache_valid_time: 3600
+
+- name: Ensure borgmatic configuration directory exists
+  ansible.builtin.file:
+    path: "{{ borgmatic_config_dir }}"
+    state: directory
+    owner: root
+    group: root
+    mode: '0750'
+
+- name: Determine borgmatic source paths
+  ansible.builtin.set_fact:
+    borgmatic_sources: "{{ borgmatic_source_map[inventory_hostname] | default([]) }}"
+
+- name: Ensure default backup sources
+  ansible.builtin.set_fact:
+    borgmatic_sources: ['/etc']
+  when: borgmatic_sources | length == 0
+
+- name: Deploy borgmatic configuration
+  ansible.builtin.template:
+    src: borgmatic.yaml.j2
+    dest: "{{ borgmatic_config_file }}"
+    owner: root
+    group: root
+    mode: '0600'
+
+- name: Ensure borgmatic timer is enabled
+  ansible.builtin.systemd:
+    name: borgmatic.timer
+    enabled: true
+    state: started
+
+- name: Ensure borgmatic extract path exists
+  ansible.builtin.file:
+    path: "{{ borgmatic_extract_path }}"
+    state: directory
+    owner: root
+    group: root
+    mode: '0700'
+  when: borgmatic_run_mode == 'check'
+
+- name: Execute borgmatic action
+  ansible.builtin.command: >-
+    borgmatic --config {{ borgmatic_config_file }}
+    {% if borgmatic_run_mode == 'check' %} --verbosity 0 check --extract --destination {{ borgmatic_extract_path }} {% else %} --verbosity 0 --stats {% endif %}
+  changed_when: false
+  environment:
+    BORG_PASSPHRASE: "{{ apps_secret.borg_passphrase | default('') }}"
+  when: borgmatic_run_mode in ['backup', 'check']

@@ -1,0 +1,82 @@
+---
+- name: Install PostgreSQL packages
+  ansible.builtin.apt:
+    name: "{{ postgresql_packages }}"
+    state: present
+    update_cache: true
+    cache_valid_time: 3600
+
+- name: Ensure data directory permissions
+  ansible.builtin.file:
+    path: "{{ postgresql_data_dir }}"
+    state: directory
+    owner: postgres
+    group: postgres
+    mode: '0750'
+
+- name: Deploy postgresql.conf
+  ansible.builtin.template:
+    src: postgresql.conf.j2
+    dest: "{{ postgresql_conf_dir }}/postgresql.conf"
+    owner: postgres
+    group: postgres
+    mode: '0644'
+  notify: Restart postgresql
+
+- name: Deploy pg_hba.conf
+  ansible.builtin.template:
+    src: pg_hba.conf.j2
+    dest: "{{ postgresql_conf_dir }}/pg_hba.conf"
+    owner: postgres
+    group: postgres
+    mode: '0640'
+  notify: Restart postgresql
+
+- name: Ensure PostgreSQL service is enabled
+  ansible.builtin.systemd:
+    name: "{{ postgresql_service_name }}"
+    enabled: true
+    state: started
+
+- name: Wait for PostgreSQL socket
+  ansible.builtin.wait_for:
+    path: /var/run/postgresql/.s.PGSQL.{{ postgres_port | default(5432) }}
+    timeout: 30
+
+- name: Set postgres superuser password
+  community.postgresql.postgresql_user:
+    name: "{{ postgresql_superuser }}"
+    password: "{{ postgresql_superuser_password }}"
+    role_attr_flags: 'SUPERUSER'
+  become: true
+  become_user: postgres
+
+- name: Ensure application databases exist
+  community.postgresql.postgresql_db:
+    name: "{{ item.value.db }}"
+  become: true
+  become_user: postgres
+  loop: "{{ postgresql_app_users | dict2items }}"
+  when: item.key != 'vaultwarden' or vaultwarden_use_postgres
+
+- name: Ensure application roles exist
+  community.postgresql.postgresql_user:
+    name: "{{ item.value.user }}"
+    password: "{{ item.value.password }}"
+    db: "{{ item.value.db }}"
+    priv: ALL
+  become: true
+  become_user: postgres
+  loop: "{{ postgresql_app_users | dict2items }}"
+  when: item.key != 'vaultwarden' or vaultwarden_use_postgres
+
+- name: Grant application schemas
+  community.postgresql.postgresql_privs:
+    database: "{{ item.value.db }}"
+    roles: "{{ item.value.user }}"
+    type: database
+    privs: ALL
+  become: true
+  become_user: postgres
+  loop: "{{ postgresql_app_users | dict2items }}"
+  when: item.key != 'vaultwarden' or vaultwarden_use_postgres

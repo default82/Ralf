@@ -1,0 +1,19 @@
+[Unit]
+Description=n8n Automation
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+Type=simple
+User={{ n8n_user }}
+Group={{ n8n_group }}
+EnvironmentFile={{ n8n_environment_file }}
+ExecStart={{ n8n_binary_path }}
+Restart=on-failure
+RestartSec=5
+WorkingDirectory={{ n8n_install_dir }}
+StandardOutput=append:{{ common_log_dir }}/n8n.log
+StandardError=append:{{ common_log_dir }}/n8n.log
+
+[Install]
+WantedBy=multi-user.target

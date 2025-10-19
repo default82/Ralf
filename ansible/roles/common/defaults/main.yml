@@ -1,0 +1,25 @@
+---
+common_packages:
+  - vim-nox
+  - tmux
+  - curl
+  - wget
+  - git
+  - htop
+  - net-tools
+  - jq
+  - python3
+  - python3-pip
+  - python3-venv
+  - ca-certificates
+  - apt-transport-https
+common_optional_packages: []
+common_timezone: "{{ ralf_timezone }}"
+common_locale: "{{ ralf_default_locale }}"
+common_log_dir: /var/log/ralf
+common_sshd_port: 22
+common_allow_users: []
+common_login_banner: |
+  Authorized access only. All actions are logged.
+common_logrotate_retention: 7
+common_additional_groups: []
