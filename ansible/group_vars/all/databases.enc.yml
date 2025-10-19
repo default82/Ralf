@@ -1,21 +1,27 @@
-# Verschlüsselte Datenbank-Credentials (Platzhalter). Entschlüssele mit SOPS und trage reale Werte ein.
-# Erwartete Schlüssel:
-#   databases_secret:
-#     postgres_admin_password
-#     semaphore_password
-#     n8n_password
-#     foreman_password
-#     vaultwarden_password
-#     additional_passwords (optional)
-databases_secret: ENC[AES256_GCM,data:PLACEHOLDER,iv:PLACEHOLDER,tag:PLACEHOLDER,type:str]
-
+# Verschlüsselte Datenbank-Credentials (aktualisiert via SOPS).
+databases_secret:
+    postgres_admin_password: ENC[AES256_GCM,data:yXL7Btm9b+Cwm53hj8vkXTydvmh+FowlBN/xJlNm2j8=,iv:9jh0FUCBvI+aghBOfDX0UvAL2mNODgoz/KBu4bmuMxg=,tag:LpvQQRM6N8WWcco6mN2oiw==,type:str]
+    semaphore_password: ENC[AES256_GCM,data:ll5/VJ8w3UZx6kUvztWhSd+msVAQ8BPiN6OJZ0Jv8a0=,iv:hezqkV9IF0b+NzXktR1CeUshUHUXTEOHyc/EIMQsIMo=,tag:nmZlcIveeAvcGTPS8+7hwA==,type:str]
+    n8n_password: ENC[AES256_GCM,data:u8GfXeo3UALBYB/utNrb5emp/TsRH526UKdKMzJVENI=,iv:ukOn5XIVyFhtAa+wA5O5hKU5MtNeGIYGBBMrW1Lk/OM=,tag:b59uTnFr15PNMfFd/kC09w==,type:str]
+    foreman_password: ENC[AES256_GCM,data:PfY1cE0LVjnY2WNWPeJlSvRVS8G+TR5/1p9+e5FphkY=,iv:Jm81ZgrAwQoOOt9rScPeYJVR0mQIQnHDMZl8gzFAvIE=,tag:ludEMmNjDJbeKYZnqapimw==,type:str]
+    vaultwarden_password: ENC[AES256_GCM,data:uHVjjZmRt3YZRqqm2mKsxMig82iXzZYS6Ka94neBW5k=,iv:y6jO3v/Q9YYZP3CbqBGhlv2xeh+n4YWqTI7+xw/arY0=,tag:LcatWxpPNQ8G7P9zBomS3g==,type:str]
 sops:
-  kms: []
-  gcp_kms: []
-  azure_kv: []
-  hc_vault: []
-  age: []
-  shamir_threshold: 1
-  mac: ENC[AES256_GCM,data:PLACEHOLDER,iv:PLACEHOLDER,tag:PLACEHOLDER,type:str]
-  lastmodified: "1970-01-01T00:00:00Z"
-  version: "3.8.1"
+    kms: []
+    gcp_kms: []
+    azure_kv: []
+    hc_vault: []
+    age:
+        - recipient: age1dhl426fj0xz3cja3gm9avvqmt8e0efmr24xtzejwyzjyqd3kxpdquyfgqf
+          enc: |
+            -----BEGIN AGE ENCRYPTED FILE-----
+            YWdlLWVuY3J5cHRpb24ub3JnL3YxCi0+IFgyNTUxOSB3NmFGeUFhWHgrUEMxNnR2
+            c25PdEJCQ0lqL3RicGppeHhEZ0hLMUowWWg4Cnd5bVhXWGE4QXVoU3NSQ3RHUGwx
+            ZmRybXVIVmdnT1VBY0FmdXllZW85dk0KLS0tIDJ6QXczdGRrSjlqQTg4Sndyc0xD
+            eUJSMnRMRlQxQnFBNE91TkVYV0c4SDAKRJGEu8pvYADTvubCDnRE3XhzvfscmsUU
+            pKjGlrdp8vlb76PH3M7dtjGAvjzWeXKVPqjFCIleGw1Wr+mhPNTMnA==
+            -----END AGE ENCRYPTED FILE-----
+    lastmodified: "2025-10-19T12:41:53Z"
+    mac: ENC[AES256_GCM,data:NINLQOZcJ/x0sK9h33RWiW+n/c425VKGFZYrQcmFGukfDmfEhXn6cEj/F5/CXrwN14IemFGGm3kguM5VY2tDsTDnpvuFW62ZBVRxm/FijmSu+IiAtueqL1eFXIIKXG2Z8IemnBb2Vz4CBNKalpglxZTsYcJtPGM37T43WD4E7zU=,iv:P4sPt+M4Wqbt7a2ic6EfDy3vS1uWfWC7osBnL1QcMh8=,tag:63m1eyeQkznMQbhUbSYkjA==,type:str]
+    pgp: []
+    encrypted_regex: ^(data$|secrets$|.*_secret$|.*_password$|.*_token$)
+    version: 3.8.1

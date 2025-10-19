@@ -45,8 +45,8 @@
   ansible.builtin.file:
     path: "{{ n8n_install_dir }}"
     state: directory
-    owner: {{ n8n_user }}
-    group: {{ n8n_group }}
+    owner: "{{ n8n_user }}"
+    group: "{{ n8n_group }}"
     mode: '0755'
 
 - name: Create configuration directory

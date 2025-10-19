@@ -17,4 +17,4 @@ vaultwarden_database_url: >-
   {% endif %}
 vaultwarden_admin_token: "{{ apps_secret.vaultwarden_admin_token | default('CHANGE_ME') }}"
 
-vaultwarden_use_postgres_effective: {{ vaultwarden_use_postgres | bool }}
+vaultwarden_use_postgres_effective: "{{ vaultwarden_use_postgres | bool }}"
