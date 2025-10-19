@@ -1,0 +1,54 @@
+---
+- name: Ensure Ralf workspace directory exists
+  ansible.builtin.file:
+    path: "{{ ralf_cli_make_path }}"
+    state: directory
+    owner: "{{ ralf_cli_user }}"
+    group: "{{ ralf_cli_user }}"
+    mode: '0755'
+
+- name: Install ralfctl wrapper
+  ansible.builtin.template:
+    src: ralfctl.j2
+    dest: "{{ ralf_cli_install_path }}"
+    owner: root
+    group: root
+    mode: '0755'
+
+- name: Provide ralfctl manual page
+  ansible.builtin.copy:
+    dest: /usr/local/share/man/man1/ralfctl.1
+    content: |
+      .TH ralfctl 1 "Ralf CLI" "{{ ansible_date_time.date }}" "User Commands"
+      .SH NAME
+      ralfctl \- workflow wrapper for the Ralf Homelab stack
+      .SH SYNOPSIS
+      .B ralfctl
+      [\fICOMMAND\fR]
+      .SH COMMANDS
+      .TP
+      .B lint
+      Run static checks via make lint.
+      .TP
+      .B validate
+      Run validation via make validate.
+      .TP
+      .B preflight
+      Execute infrastructure preflight checks.
+      .TP
+      .B plan
+      Run plan operations.
+      .TP
+      .B apply
+      Apply infrastructure changes.
+      .TP
+      .B smoke
+      Execute service smoke tests.
+      .TP
+      .B backup-check
+      Validate Borgmatic backups.
+      .SH AUTHOR
+      Ralf Automation Team.
+    owner: root
+    group: root
+    mode: '0644'

@@ -1,0 +1,20 @@
+---
+semaphore_version: 2.10.35
+semaphore_download_url: "https://github.com/ansible-semaphore/semaphore/releases/download/v{{ semaphore_version }}/semaphore_{{ semaphore_version }}_linux_amd64.tar.gz"
+semaphore_user: semaphore
+semaphore_group: semaphore
+semaphore_install_dir: /opt/semaphore
+semaphore_binary_path: /usr/local/bin/semaphore
+semaphore_config_dir: /etc/semaphore
+semaphore_config_file: "{{ semaphore_config_dir }}/config.json"
+semaphore_environment_file: /etc/default/semaphore
+semaphore_service_name: semaphore
+semaphore_database:
+  host: "{{ postgres_host }}"
+  port: "{{ postgres_port }}"
+  user: "{{ postgres_app_users['semaphore'].user }}"
+  password: "{{ postgres_app_users['semaphore'].password }}"
+  name: "{{ postgres_app_users['semaphore'].db }}"
+semaphore_admin_user: admin
+semaphore_admin_email: admin@localhost
+semaphore_admin_password: "{{ apps_secret.semaphore_admin_password | default('CHANGE_ME') }}"

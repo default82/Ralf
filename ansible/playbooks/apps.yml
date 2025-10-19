@@ -1,0 +1,32 @@
+---
+- name: Provision Semaphore UI
+  hosts: svc-semaphore
+  gather_facts: true
+  roles:
+    - role: common
+    - role: semaphore
+    - role: borgmatic
+
+- name: Provision Foreman Core
+  hosts: svc-foreman
+  gather_facts: true
+  roles:
+    - role: common
+    - role: foreman
+    - role: borgmatic
+
+- name: Provision n8n automation
+  hosts: svc-n8n
+  gather_facts: true
+  roles:
+    - role: common
+    - role: n8n
+    - role: borgmatic
+
+- name: Provision Vaultwarden
+  hosts: svc-vaultwarden
+  gather_facts: true
+  roles:
+    - role: common
+    - role: vaultwarden
+    - role: borgmatic

@@ -1,0 +1,21 @@
+# Verschlüsselte Datenbank-Credentials (Platzhalter). Entschlüssele mit SOPS und trage reale Werte ein.
+# Erwartete Schlüssel:
+#   databases_secret:
+#     postgres_admin_password
+#     semaphore_password
+#     n8n_password
+#     foreman_password
+#     vaultwarden_password
+#     additional_passwords (optional)
+databases_secret: ENC[AES256_GCM,data:PLACEHOLDER,iv:PLACEHOLDER,tag:PLACEHOLDER,type:str]
+
+sops:
+  kms: []
+  gcp_kms: []
+  azure_kv: []
+  hc_vault: []
+  age: []
+  shamir_threshold: 1
+  mac: ENC[AES256_GCM,data:PLACEHOLDER,iv:PLACEHOLDER,tag:PLACEHOLDER,type:str]
+  lastmodified: "1970-01-01T00:00:00Z"
+  version: "3.8.1"

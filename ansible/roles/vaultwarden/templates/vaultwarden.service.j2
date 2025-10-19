@@ -1,0 +1,20 @@
+[Unit]
+Description=Vaultwarden Password Manager
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+Type=simple
+User={{ vaultwarden_user }}
+Group={{ vaultwarden_group }}
+EnvironmentFile={{ vaultwarden_env_file }}
+ExecStart=/usr/local/bin/vaultwarden
+Restart=on-failure
+RestartSec=5
+LimitNOFILE=65535
+WorkingDirectory={{ vaultwarden_data_dir }}
+StandardOutput=append:{{ common_log_dir }}/vaultwarden.log
+StandardError=append:{{ common_log_dir }}/vaultwarden.log
+
+[Install]
+WantedBy=multi-user.target

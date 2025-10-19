@@ -1,0 +1,49 @@
+# shellcheck shell=bash
+# Variablen, die vom Preflight-Skript gelesen werden. Werte zur Laufzeit ergänzen.
+export RALF_STORAGE_TARGET="${RALF_STORAGE_TARGET:-ASK_RUNTIME}"
+export RALF_TEMPLATE_PATH="${RALF_TEMPLATE_PATH:-local:vztmpl/ubuntu-24.04-standard_current.tar.zst}"
+export RALF_BRIDGE="${RALF_BRIDGE:-vmbr0}"
+export RALF_DNS_RESOLVER="${RALF_DNS_RESOLVER:-1.1.1.1}"
+export RALF_GATEWAY_IPV4="${RALF_GATEWAY_IPV4:-ASK_RUNTIME}"
+export RALF_BACKUP_HOST="${RALF_BACKUP_HOST:-nas.home.arpa}"
+export RALF_BACKUP_PORT="${RALF_BACKUP_PORT:-22}"
+export RALF_EXPECTED_PVE_SERVICES="${RALF_EXPECTED_PVE_SERVICES:-pvedaemon pveproxy pvestatd}"
+
+export RALF_TIMEZONE="${RALF_TIMEZONE:-Europe/Berlin}"
+
+# Container-Variablen (werden vom grafischen Installer überschrieben)
+export RALF_LXC_CTID="${RALF_LXC_CTID:-ASK_RUNTIME}"
+export RALF_LXC_IPV4="${RALF_LXC_IPV4:-ASK_RUNTIME}"
+export RALF_LXC_GW="${RALF_LXC_GW:-ASK_RUNTIME}"
+export RALF_LXC_FQDN="${RALF_LXC_FQDN:-ralf.home.arpa}"
+export RALF_LXC_CPUS="${RALF_LXC_CPUS:-4}"
+export RALF_LXC_MEMORY="${RALF_LXC_MEMORY:-4096}"
+export RALF_LXC_DISK="${RALF_LXC_DISK:-32G}"
+
+export POSTGRES_CTID="${POSTGRES_CTID:-ASK_RUNTIME}"
+export POSTGRES_IPV4="${POSTGRES_IPV4:-ASK_RUNTIME}"
+export POSTGRES_GW="${POSTGRES_GW:-ASK_RUNTIME}"
+export POSTGRES_FQDN="${POSTGRES_FQDN:-svc-postgres.home.arpa}"
+
+export SEMAPHORE_CTID="${SEMAPHORE_CTID:-ASK_RUNTIME}"
+export SEMAPHORE_IPV4="${SEMAPHORE_IPV4:-ASK_RUNTIME}"
+export SEMAPHORE_GW="${SEMAPHORE_GW:-ASK_RUNTIME}"
+export SEMAPHORE_FQDN="${SEMAPHORE_FQDN:-svc-semaphore.home.arpa}"
+
+export FOREMAN_CTID="${FOREMAN_CTID:-ASK_RUNTIME}"
+export FOREMAN_IPV4="${FOREMAN_IPV4:-ASK_RUNTIME}"
+export FOREMAN_GW="${FOREMAN_GW:-ASK_RUNTIME}"
+export FOREMAN_FQDN="${FOREMAN_FQDN:-svc-foreman.home.arpa}"
+
+export N8N_CTID="${N8N_CTID:-ASK_RUNTIME}"
+export N8N_IPV4="${N8N_IPV4:-ASK_RUNTIME}"
+export N8N_GW="${N8N_GW:-ASK_RUNTIME}"
+export N8N_FQDN="${N8N_FQDN:-svc-n8n.home.arpa}"
+
+export VAULTWARDEN_CTID="${VAULTWARDEN_CTID:-ASK_RUNTIME}"
+export VAULTWARDEN_IPV4="${VAULTWARDEN_IPV4:-ASK_RUNTIME}"
+export VAULTWARDEN_GW="${VAULTWARDEN_GW:-ASK_RUNTIME}"
+export VAULTWARDEN_FQDN="${VAULTWARDEN_FQDN:-svc-vaultwarden.home.arpa}"
+
+export RALF_LXC_DNS1="${RALF_LXC_DNS1:-1.1.1.1}"
+export RALF_LXC_DNS2="${RALF_LXC_DNS2:-9.9.9.9}"

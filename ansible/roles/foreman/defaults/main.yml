@@ -1,0 +1,14 @@
+---
+foreman_release: stable
+foreman_installer_executable: /usr/sbin/foreman-installer
+foreman_installer_scenario: foreman
+foreman_installer_flags:
+  - "--foreman-admin-password={{ apps_secret.foreman_admin_password | default('CHANGE_ME') }}"
+  - "--foreman-db-host={{ postgres_host }}"
+  - "--foreman-db-username={{ postgres_app_users['foreman'].user }}"
+  - "--foreman-db-password={{ postgres_app_users['foreman'].password }}"
+  - "--foreman-db-database={{ postgres_app_users['foreman'].db }}"
+  - "--no-enable-foreman-proxy-plugin-pulp"
+foreman_marker_file: /var/lib/foreman/.ansible_installed
+foreman_repo_url: https://deb.theforeman.org
+foreman_repo_components: "{{ foreman_release }}"
