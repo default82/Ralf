@@ -61,17 +61,12 @@ Sämtliche sensitiven Werte liegen verschlüsselt unter `secrets/` bzw. `ansible
 
 ## How-to-Run
 
+Für einen vollautomatisierten Erstaufbau steht ein orchestrierendes Skript bereit:
+
 ```bash
-make preflight
-./scripts/pct-create-ralf.sh
-./scripts/pct-create-svc-postgres.sh
-./scripts/pct-create-svc-semaphore.sh
-./scripts/pct-create-svc-foreman.sh
-./scripts/pct-create-svc-n8n.sh
-./scripts/pct-create-svc-vaultwarden.sh
-make plan && make apply
-make smoke
-make backup-check
+sudo ./scripts/install.sh
 ```
 
-Weitere Details zu Sequenzen, Variablen und Service-Workflows findest du in `docs/SETUP.md` und `docs/ARCHITECTURE.md`.
+Führe das Skript auf dem Proxmox-Host als `root` aus. Der grafische Installer (`scripts/install-gui.sh`) wird automatisch als erster Schritt gestartet, sammelt alle benötigten Netzwerk- und Infrastrukturwerte und legt eine Zusammenfassung unter `infra/network/installer-summary.txt` ab. Das Skript erwartet, dass benötigte Werkzeuge wie `ansible-playbook` bereits in einer Management-Umgebung (z. B. innerhalb des `ralf-lxc` Containers) zur Verfügung stehen – auf dem Proxmox-Host werden keine zusätzlichen Pakete installiert. Weitere Schalter (`--no-gui`, `--skip-smoke`, `--skip-backup-check`) erlauben es, einzelne Phasen bewusst auszulassen.
+
+Wer die Schritte granular abarbeiten möchte, findet die Einzelkommandos weiterhin in `docs/SETUP.md`. Dort sowie in `docs/ARCHITECTURE.md` sind zusätzliche Details zu Sequenzen, Variablen und Service-Workflows beschrieben.
