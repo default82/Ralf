@@ -21,7 +21,7 @@ Vor dem ersten Lauf: Klone dieses Repository nach `/opt/ralf` auf `ralf-lxc` ode
 
 ### Vollautomatischer Durchlauf
 
-Nutze `sudo ./scripts/install.sh` für einen end-to-end Lauf inklusive Preflight, Container-Provisionierung sowie `make plan/apply` und nachgelagerter Prüfungen. Das Skript muss als `root` laufen, startet den grafischen Installer automatisch als erste Phase und legt eine Zusammenfassung der abgefragten Werte unter `infra/network/installer-summary.txt` ab. Host-seitig werden keine zusätzlichen Pakete installiert; stelle sicher, dass Werkzeuge wie `ansible-playbook`, `make`, `pct`, `pvesm` und `pveam` bereits vorhanden sind (z. B. durch Bereitstellung in `ralf-lxc`). Optional lassen sich der GUI-Schritt (`--no-gui`), Smoke-Checks (`--skip-smoke`) und die Backup-Validierung (`--skip-backup-check`) deaktivieren.
+Nutze `./scripts/install.sh` für einen end-to-end Lauf inklusive Preflight, Container-Provisionierung sowie `make plan/apply` und nachgelagerter Prüfungen. Mit `--with-gui` wird automatisch `scripts/install-gui.sh` gestartet, um `infra/network/preflight.vars.source` und `infra/network/ip-schema.yml` interaktiv zu befüllen. Optional lassen sich Smoke- bzw. Backup-Checks mit `--skip-smoke` bzw. `--skip-backup-check` ausblenden.
 
 ### Manuelle Sequenz
 

@@ -1,30 +1,26 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
-DEFAULT_PATH="/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin"
-PATH="${DEFAULT_PATH}:${PATH:-}"
-
 LOG_TAG=${LOG_TAG:-ralf-installer-run}
 LOGGER_BIN=$(command -v logger || true)
 PROJECT_ROOT=$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)
 SCRIPTS_DIR="${PROJECT_ROOT}/scripts"
 MAKE_BIN=$(command -v make || true)
 
-WITH_GUI=1
+WITH_GUI=0
 SKIP_SMOKE=0
 SKIP_BACKUP_CHECK=0
 
 usage() {
   cat <<'USAGE'
-Usage: scripts/install.sh [--no-gui] [--skip-smoke] [--skip-backup-check]
+Usage: scripts/install.sh [--with-gui] [--skip-smoke] [--skip-backup-check]
 
 Startet den vollständigen Ralf-Provisionierungsablauf: Preflight, Container-
-erstellung sowie Ansible/OpenTofu-Läufe. Standardmäßig wird der grafische
-Installer vorab ausgeführt, um Variablen-Dateien zu befüllen.
+erstellung sowie Ansible/OpenTofu-Läufe. Optional kann der grafische Installer
+vorab ausgeführt werden, um Variablen-Dateien zu befüllen.
 
 Optionen:
-  --with-gui           Alias für das Standardverhalten (grafischer Installer).
-  --no-gui             Überspringt den grafischen Installer und nutzt vorhandene Werte.
+  --with-gui           Führt vor dem Preflight den Dialog-basierten Installer aus.
   --skip-smoke         Überspringt abschließende Smoke-Tests.
   --skip-backup-check  Überspringt die Borgmatic-Validierung.
   -h, --help           Zeigt diese Hilfe an.
@@ -42,22 +38,43 @@ log_info() { log "INFO" "$*"; }
 log_warn() { log "WARN" "$*"; }
 log_error() { log "ERROR" "$*"; }
 
-require_command() {
-  local command=$1
-  if ! command -v "${command}" >/dev/null 2>&1; then
-    log_error "Benötigtes Kommando '${command}' wurde nicht gefunden."
+ensure_package() {
+  local package=$1
+  if [[ -z ${APT_GET_BIN:-} ]]; then
+    log_warn "Konnte Paket '${package}' nicht automatisch installieren: apt/apt-get nicht gefunden."
     return 1
   fi
-  return 0
+  if (( APT_UPDATED == 0 )); then
+    log_info "Aktualisiere Paketquellen (apt update)"
+    DEBIAN_FRONTEND=noninteractive "${APT_GET_BIN}" update
+    APT_UPDATED=1
+  fi
+  log_info "Installiere Paket '${package}'"
+  if DEBIAN_FRONTEND=noninteractive "${APT_GET_BIN}" install -y "${package}"; then
+    return 0
+  fi
+  return 1
+}
+
+ensure_command() {
+  local command=$1
+  shift || true
+  local packages=("$@")
+  if command -v "${command}" >/dev/null 2>&1; then
+    return 0
+  fi
+  for pkg in "${packages[@]}"; do
+    if ensure_package "${pkg}" && command -v "${command}" >/dev/null 2>&1; then
+      return 0
+    fi
+  done
+  return 1
 }
 
 while [[ $# -gt 0 ]]; do
   case $1 in
     --with-gui)
       WITH_GUI=1
-      ;;
-    --no-gui)
-      WITH_GUI=0
       ;;
     --skip-smoke)
       SKIP_SMOKE=1
@@ -82,6 +99,18 @@ if [[ ${EUID:-$(id -u)} -ne 0 ]]; then
   log_error "Dieses Skript muss als root ausgeführt werden."
   exit 1
 fi
+
+if [[ -z ${MAKE_BIN:-} ]]; then
+  log_error "make wurde nicht gefunden. Bitte GNU Make installieren."
+  exit 1
+fi
+
+for required in pct pvesm pveam ansible-playbook; do
+  if ! command -v "${required}" >/dev/null 2>&1; then
+    log_error "Benötigtes Kommando '${required}' wurde nicht gefunden."
+    exit 1
+  fi
+done
 
 assert_executable() {
   local path=$1
@@ -118,28 +147,8 @@ if (( WITH_GUI )); then
     exit 1
   fi
   run_step "Grafischer Installer" "${local_gui}"
-  summary_file="${PROJECT_ROOT}/infra/network/installer-summary.txt"
-  if [[ -f ${summary_file} ]]; then
-    log_info "Installationsdaten unter ${summary_file} aktualisiert."
-  else
-    log_warn "Kein Zusammenfassungsdokument ${summary_file} gefunden."
-  fi
 else
   log_info "Grafischer Installer wird übersprungen. Verwende '--with-gui' für interaktive Eingaben."
-fi
-
-if [[ -z ${MAKE_BIN:-} ]]; then
-  log_error "make wurde nicht gefunden. Bitte GNU Make bereitstellen (z. B. innerhalb des Management-Containers)."
-  exit 1
-fi
-
-for required in pct pvesm pveam; do
-  require_command "${required}" || exit 1
-done
-
-if ! command -v ansible-playbook >/dev/null 2>&1; then
-  log_error "ansible-playbook wurde nicht gefunden. Bitte stelle es außerhalb der Proxmox-Host-Umgebung bereit (z. B. im ralf-lxc Container) und starte das Skript erneut."
-  exit 1
 fi
 
 assert_executable "${SCRIPTS_DIR}/preflight.sh"

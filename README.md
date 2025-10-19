@@ -64,9 +64,9 @@ Sämtliche sensitiven Werte liegen verschlüsselt unter `secrets/` bzw. `ansible
 Für einen vollautomatisierten Erstaufbau steht ein orchestrierendes Skript bereit:
 
 ```bash
-sudo ./scripts/install.sh
+./scripts/install.sh --with-gui
 ```
 
-Führe das Skript auf dem Proxmox-Host als `root` aus. Der grafische Installer (`scripts/install-gui.sh`) wird automatisch als erster Schritt gestartet, sammelt alle benötigten Netzwerk- und Infrastrukturwerte und legt eine Zusammenfassung unter `infra/network/installer-summary.txt` ab. Das Skript erwartet, dass benötigte Werkzeuge wie `ansible-playbook` bereits in einer Management-Umgebung (z. B. innerhalb des `ralf-lxc` Containers) zur Verfügung stehen – auf dem Proxmox-Host werden keine zusätzlichen Pakete installiert. Weitere Schalter (`--no-gui`, `--skip-smoke`, `--skip-backup-check`) erlauben es, einzelne Phasen bewusst auszulassen.
+Der optional übergebene `--with-gui` Parameter startet den Dialog-basierten Installer und füllt die Variablendateien für den Preflight. Weitere Schalter (`--skip-smoke`, `--skip-backup-check`) erlauben es, spezifische Prüfungen bewusst auszulassen.
 
 Wer die Schritte granular abarbeiten möchte, findet die Einzelkommandos weiterhin in `docs/SETUP.md`. Dort sowie in `docs/ARCHITECTURE.md` sind zusätzliche Details zu Sequenzen, Variablen und Service-Workflows beschrieben.
