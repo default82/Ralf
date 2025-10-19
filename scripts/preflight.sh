@@ -1,5 +1,6 @@
 #!/usr/bin/env bash
 set -euo pipefail
+# shellcheck disable=SC2317 # Prüf-Funktionen werden indirekt über run_check aufgerufen
 
 LOG_TAG=${LOG_TAG:-ralf-preflight}
 LOGGER_BIN=$(command -v logger || true)
@@ -16,7 +17,10 @@ log()
 {
   local level=$1; shift
   local message=$*
-  [[ -n ${LOGGER_BIN:-} ]] && ${LOGGER_BIN} -t "${LOG_TAG}" "${level}: ${message}" || true
+  if [[ -n ${LOGGER_BIN:-} ]]; then
+    # logger darf nicht zum Abbruch führen
+    "${LOGGER_BIN}" -t "${LOG_TAG}" "${level}: ${message}" || true
+  fi
   printf '%s: %s\n' "${level}" "${message}"
 }
 
@@ -173,9 +177,12 @@ load_vars()
   fi
 }
 
+# shellcheck disable=SC2317
 check_pve_services()
 {
-  local services=(${RALF_EXPECTED_PVE_SERVICES:-pvedaemon pveproxy pvestatd})
+  local services_str=${RALF_EXPECTED_PVE_SERVICES:-"pvedaemon pveproxy pvestatd"}
+  local services=()
+  read -r -a services <<<"${services_str}"
   local missing=()
   for service in "${services[@]}"; do
     if ! systemctl is-active --quiet "${service}"; then
@@ -213,6 +220,7 @@ check_storage()
   fi
 }
 
+# shellcheck disable=SC2317
 check_template()
 {
   if is_placeholder "${RALF_TEMPLATE_PATH:-}"; then
@@ -247,6 +255,7 @@ check_template()
   fi
 }
 
+# shellcheck disable=SC2317
 check_bridge()
 {
   if ip link show "${RALF_BRIDGE}" >/dev/null 2>&1; then
@@ -257,6 +266,7 @@ check_bridge()
   fi
 }
 
+# shellcheck disable=SC2317
 check_gateway()
 {
   if is_placeholder "${RALF_GATEWAY_IPV4:-}"; then
@@ -271,6 +281,7 @@ check_gateway()
   fi
 }
 
+# shellcheck disable=SC2317
 check_dns()
 {
   local resolver=${RALF_DNS_RESOLVER:-1.1.1.1}
@@ -291,6 +302,7 @@ check_dns()
   fi
 }
 
+# shellcheck disable=SC2317
 check_ctids()
 {
   if [[ ! -f ${IP_SCHEMA} ]]; then
@@ -301,7 +313,7 @@ check_ctids()
   mapfile -t ctids < <(grep -E 'ctid:' "${IP_SCHEMA}" | awk '{print $2}' | tr -d '"')
   local conflicts=()
   for ctid in "${ctids[@]}"; do
-    if [[ -z ${ctid} || ${ctid} == *ASK_RUNTIME* || ${ctid} == *'${'* ]]; then
+    if [[ -z ${ctid} || ${ctid} == *ASK_RUNTIME* || ${ctid} == *"\${"* ]]; then
       continue
     fi
     if pct status "${ctid}" >/dev/null 2>&1; then
@@ -315,6 +327,7 @@ check_ctids()
   log_info "CTID-Prüfung erfolgreich"
 }
 
+# shellcheck disable=SC2317
 check_hostnames()
 {
   if [[ ! -f ${IP_SCHEMA} ]]; then
@@ -325,11 +338,13 @@ check_hostnames()
   local duplicates
   duplicates=$(printf '%s\n' "${hostnames[@]}" | sort | uniq -d)
   if [[ -n ${duplicates} ]]; then
-    log_error "Doppelte FQDN-Einträge: ${duplicates}"; return 1
+    log_error "Doppelte FQDN-Einträge: ${duplicates}"
+    return 1
   fi
   log_info "FQDN-Konfiguration ohne Duplikate"
 }
 
+# shellcheck disable=SC2317
 check_time_sync()
 {
   if timedatectl show -p NTPSynchronized --value 2>/dev/null | grep -qiE 'yes|1'; then
@@ -340,6 +355,7 @@ check_time_sync()
   fi
 }
 
+# shellcheck disable=SC2317
 check_ssh_keys()
 {
   local ssh_dir=${SSH_KEY_DIR:-$HOME/.ssh}
@@ -355,6 +371,7 @@ check_ssh_keys()
   return 1
 }
 
+# shellcheck disable=SC2317
 check_backup_host()
 {
   if is_placeholder "${RALF_BACKUP_HOST:-}"; then
@@ -375,6 +392,18 @@ check_backup_host()
   else
     log_warn "nc nicht verfügbar; überspringe TCP-Check"
   fi
+}
+
+run_check()
+{
+  local description=$1
+  local fn=$2
+  if "${fn}"; then
+    printf 'PASS: %s\n' "${description}"
+    return 0
+  fi
+  printf 'FAIL: %s\n' "${description}"
+  return 1
 }
 
 run_checks()
@@ -404,7 +433,11 @@ run_checks()
       ((failures++))
     fi
   done
-  return ${failures}
+  if [[ ${#missing[@]} -gt 0 ]]; then
+    log_error "Pflichtprogramme fehlen: ${missing[*]}"
+    return 1
+  fi
+  log_info "Alle Pflichtprogramme verfügbar"
 }
 
 check_required_commands()
