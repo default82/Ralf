@@ -41,13 +41,13 @@ Alle stateful Komponenten besitzen dedizierte Borgmatic-Backups. Smoke-Checks st
 | ------------- | ----------------------------------------------------------------------------- |
 | `lint`        | Führt Pre-Commit-Hooks und statische Analysen auf Skripten und Playbooks aus. |
 | `validate`    | Validiert OpenTofu/Ansible-Konfigurationen ohne Änderungen.                   |
-| `preflight`   | Führt `scripts/preflight.sh` auf dem Proxmox-Host aus.                        |
+| `preflight`   | Führt `scripts/preflight.sh` auf dem Proxmox-Host aus und erstellt einen Hardware/Software-Bericht unter `logs/`. Mit `--install-proxmox` richtet das Skript Proxmox VE auf einem reinen Debian-System ein. |
 | `plan`        | Erstellt Ausführungspläne (OpenTofu, Ansible Check-Mode).                     |
 | `apply`       | Wendet Infrastruktur- und Konfigurationsänderungen an.                        |
 | `smoke`       | Prüft Dienste über `scripts/smoke.sh`.                                        |
 | `backup-check`| Validiert Borgmatic-Backups inkl. Restore-Probe.                              |
 
-`ralfctl` fungiert als CLI-Wrapper und delegiert die Make-Targets für eine einheitliche Nutzererfahrung.
+`ralfctl` fungiert als CLI-Wrapper und delegiert die Make-Targets für eine einheitliche Nutzererfahrung. Der Preflight-Lauf erzeugt zusätzlich einen zeitgestempelten Snapshot (`logs/preflight-report-*.txt`) mit Hardwaredaten, Storage-Zustand und Proxmox-Ressourcenübersichten. Auf einem frischen Debian-Host kannst du `scripts/preflight.sh --install-proxmox` nutzen, um die benötigten Proxmox-Repositories zu setzen und `proxmox-ve` samt Abhängigkeiten automatisch zu installieren.
 
 ## Secrets & Compliance
 
