@@ -9,35 +9,35 @@
 # Sortiere CTIDs nach führender Ziffer (1xx=Control, 2xx=Data, 3xx=Apps, ...).
 
 ralf-lxc:
-  ctid: "${RALF_LXC_CTID:-ASK_RUNTIME}"
-  ipv4: "${RALF_LXC_IPV4:-ASK_RUNTIME}"
-  gateway: "${RALF_LXC_GW:-ASK_RUNTIME}"
+  ctid: "${RALF_LXC_CTID:-101}"
+  ipv4: "${RALF_LXC_IPV4:-10.23.0.10/24}"
+  gateway: "${RALF_LXC_GW:-10.23.0.1}"
   fqdn: "${RALF_LXC_FQDN:-ralf.home.arpa}"
   dns:
     - "${RALF_LXC_DNS1:-1.1.1.1}"
     - "${RALF_LXC_DNS2:-9.9.9.9}"
 svc-postgres:
-  ctid: "${POSTGRES_CTID:-ASK_RUNTIME}"
-  ipv4: "${POSTGRES_IPV4:-ASK_RUNTIME}"
-  gateway: "${POSTGRES_GW:-ASK_RUNTIME}"
+  ctid: "${POSTGRES_CTID:-201}"
+  ipv4: "${POSTGRES_IPV4:-10.23.0.20/24}"
+  gateway: "${POSTGRES_GW:-10.23.0.1}"
   fqdn: "${POSTGRES_FQDN:-svc-postgres.home.arpa}"
 svc-semaphore:
-  ctid: "${SEMAPHORE_CTID:-ASK_RUNTIME}"
-  ipv4: "${SEMAPHORE_IPV4:-ASK_RUNTIME}"
-  gateway: "${SEMAPHORE_GW:-ASK_RUNTIME}"
+  ctid: "${SEMAPHORE_CTID:-301}"
+  ipv4: "${SEMAPHORE_IPV4:-10.23.0.30/24}"
+  gateway: "${SEMAPHORE_GW:-10.23.0.1}"
   fqdn: "${SEMAPHORE_FQDN:-svc-semaphore.home.arpa}"
 svc-foreman:
-  ctid: "${FOREMAN_CTID:-ASK_RUNTIME}"
-  ipv4: "${FOREMAN_IPV4:-ASK_RUNTIME}"
-  gateway: "${FOREMAN_GW:-ASK_RUNTIME}"
+  ctid: "${FOREMAN_CTID:-302}"
+  ipv4: "${FOREMAN_IPV4:-10.23.0.31/24}"
+  gateway: "${FOREMAN_GW:-10.23.0.1}"
   fqdn: "${FOREMAN_FQDN:-svc-foreman.home.arpa}"
 svc-n8n:
-  ctid: "${N8N_CTID:-ASK_RUNTIME}"
-  ipv4: "${N8N_IPV4:-ASK_RUNTIME}"
-  gateway: "${N8N_GW:-ASK_RUNTIME}"
+  ctid: "${N8N_CTID:-303}"
+  ipv4: "${N8N_IPV4:-10.23.0.32/24}"
+  gateway: "${N8N_GW:-10.23.0.1}"
   fqdn: "${N8N_FQDN:-svc-n8n.home.arpa}"
 svc-vaultwarden:
-  ctid: "${VAULTWARDEN_CTID:-ASK_RUNTIME}"
-  ipv4: "${VAULTWARDEN_IPV4:-ASK_RUNTIME}"
-  gateway: "${VAULTWARDEN_GW:-ASK_RUNTIME}"
+  ctid: "${VAULTWARDEN_CTID:-304}"
+  ipv4: "${VAULTWARDEN_IPV4:-10.23.0.33/24}"
+  gateway: "${VAULTWARDEN_GW:-10.23.0.1}"
   fqdn: "${VAULTWARDEN_FQDN:-svc-vaultwarden.home.arpa}"
