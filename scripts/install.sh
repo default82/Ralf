@@ -38,6 +38,39 @@ log_info() { log "INFO" "$*"; }
 log_warn() { log "WARN" "$*"; }
 log_error() { log "ERROR" "$*"; }
 
+ensure_package() {
+  local package=$1
+  if [[ -z ${APT_GET_BIN:-} ]]; then
+    log_warn "Konnte Paket '${package}' nicht automatisch installieren: apt/apt-get nicht gefunden."
+    return 1
+  fi
+  if (( APT_UPDATED == 0 )); then
+    log_info "Aktualisiere Paketquellen (apt update)"
+    DEBIAN_FRONTEND=noninteractive "${APT_GET_BIN}" update
+    APT_UPDATED=1
+  fi
+  log_info "Installiere Paket '${package}'"
+  if DEBIAN_FRONTEND=noninteractive "${APT_GET_BIN}" install -y "${package}"; then
+    return 0
+  fi
+  return 1
+}
+
+ensure_command() {
+  local command=$1
+  shift || true
+  local packages=("$@")
+  if command -v "${command}" >/dev/null 2>&1; then
+    return 0
+  fi
+  for pkg in "${packages[@]}"; do
+    if ensure_package "${pkg}" && command -v "${command}" >/dev/null 2>&1; then
+      return 0
+    fi
+  done
+  return 1
+}
+
 while [[ $# -gt 0 ]]; do
   case $1 in
     --with-gui)
@@ -61,6 +94,11 @@ while [[ $# -gt 0 ]]; do
   esac
   shift
 done
+
+if [[ ${EUID:-$(id -u)} -ne 0 ]]; then
+  log_error "Dieses Skript muss als root ausgeführt werden."
+  exit 1
+fi
 
 if [[ -z ${MAKE_BIN:-} ]]; then
   log_error "make wurde nicht gefunden. Bitte GNU Make installieren."
