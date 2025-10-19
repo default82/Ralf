@@ -19,20 +19,56 @@ log(){
 }
 
 UI_BIN=""
+UI_TOOL=""
 
-init_ui(){
-  if command -v dialog >/dev/null 2>&1; then
-    UI_BIN=$(command -v dialog)
-    export DIALOGOPTS="--clear --no-collapse --visit-items --mouse"
+is_remote_session(){
+  if [[ -n ${SSH_CONNECTION:-} || -n ${SSH_CLIENT:-} || -n ${SSH_TTY:-} || -n ${REMOTEHOST:-} ]]; then
     return 0
   fi
-  log "ERROR" "Das Paket 'dialog' ist nicht installiert. Bitte 'apt install dialog' ausführen und den Installer erneut starten."
-  exit 1
+  return 1
+}
+
+init_ui(){
+  local preferred fallback
+  if is_remote_session; then
+    preferred="whiptail"
+    fallback="dialog"
+    log "INFO" "Entfernte Sitzung erkannt – bevorzuge 'whiptail' als UI."
+  else
+    preferred="dialog"
+    fallback="whiptail"
+    log "INFO" "Lokale Sitzung erkannt – bevorzuge 'dialog' als UI."
+  fi
+
+  for candidate in "${preferred}" "${fallback}"; do
+    if [[ -n ${candidate} ]] && command -v "${candidate}" >/dev/null 2>&1; then
+      UI_BIN=$(command -v "${candidate}")
+      UI_TOOL="${candidate}"
+      break
+    fi
+  done
+
+  if [[ -z ${UI_BIN} ]]; then
+    log "ERROR" "Weder 'dialog' noch 'whiptail' wurde gefunden. Bitte 'apt install dialog whiptail' ausführen und den Installer erneut starten."
+    exit 1
+  fi
+
+  if [[ ${UI_TOOL} == dialog ]]; then
+    export DIALOGOPTS="--clear --no-collapse --visit-items --mouse"
+    log "INFO" "Verwende 'dialog' mit aktivierter Mausunterstützung."
+  else
+    export NEWT_COLORS=${NEWT_COLORS:-}
+    log "INFO" "Verwende 'whiptail'. Mausunterstützung wird bereitgestellt, sofern Terminal und libnewt dies ermöglichen."
+  fi
 }
 
 ui_msg(){
   local title=$1 text=$2
-  "${UI_BIN}" --title "${title}" --ok-label "Weiter" --msgbox "${text}" 12 78
+  if [[ ${UI_TOOL} == dialog ]]; then
+    "${UI_BIN}" --title "${title}" --ok-label "Weiter" --msgbox "${text}" 12 78
+  else
+    "${UI_BIN}" --title "${title}" --ok-button "Weiter" --msgbox "${text}" 12 78
+  fi
 }
 
 ui_yesno(){
@@ -40,6 +76,11 @@ ui_yesno(){
   local opts=(--title "${title}" --yesno "${text}" 12 78)
   if [[ ${default} == No ]]; then
     opts+=(--defaultno)
+  fi
+  if [[ ${UI_TOOL} == dialog ]]; then
+    opts+=(--yes-label "Ja" --no-label "Nein")
+  else
+    opts+=(--yes-button "Ja" --no-button "Nein")
   fi
   if "${UI_BIN}" "${opts[@]}" 3>&1 1>&2 2>&3; then
     return 0
@@ -50,7 +91,11 @@ ui_yesno(){
 ui_input(){
   local title=$1 text=$2 default=$3
   local result
-  result=$("${UI_BIN}" --title "${title}" --inputbox "${text}" 12 78 "${default}" 3>&1 1>&2 2>&3) || exit 1
+  if [[ ${UI_TOOL} == dialog ]]; then
+    result=$("${UI_BIN}" --title "${title}" --inputbox "${text}" 12 78 "${default}" 3>&1 1>&2 2>&3) || exit 1
+  else
+    result=$("${UI_BIN}" --title "${title}" --ok-button "Weiter" --cancel-button "Abbrechen" --inputbox "${text}" 12 78 "${default}" 3>&1 1>&2 2>&3) || exit 1
+  fi
   printf '%s' "${result}"
 }
 
@@ -58,8 +103,14 @@ ui_menu(){
   local title=$1 text=$2
   shift 2
   local options=("$@")
+  local base_opts=(--title "${title}" --menu "${text}" 18 78 10)
+  if [[ ${UI_TOOL} == dialog ]]; then
+    base_opts+=(--ok-label "Weiter" --cancel-label "Abbrechen")
+  else
+    base_opts+=(--ok-button "Weiter" --cancel-button "Abbrechen")
+  fi
   local result
-  result=$("${UI_BIN}" --title "${title}" --menu "${text}" 18 78 10 "${options[@]}" 3>&1 1>&2 2>&3) || exit 1
+  result=$("${UI_BIN}" "${base_opts[@]}" "${options[@]}" 3>&1 1>&2 2>&3) || exit 1
   printf '%s' "${result}"
 }
 
@@ -68,7 +119,11 @@ ui_textbox(){
   local tmp
   tmp=$(mktemp)
   printf '%s\n' "${text}" >"${tmp}"
-  "${UI_BIN}" --title "${title}" --ok-label "Zurück" --textbox "${tmp}" 20 90
+  if [[ ${UI_TOOL} == dialog ]]; then
+    "${UI_BIN}" --title "${title}" --ok-label "Zurück" --textbox "${tmp}" 20 90
+  else
+    "${UI_BIN}" --title "${title}" --ok-button "Zurück" --textbox "${tmp}" 20 90
+  fi
   rm -f "${tmp}"
 }
 
@@ -76,8 +131,14 @@ ui_menu_optional(){
   local title=$1 text=$2
   shift 2
   local options=("$@")
+  local base_opts=(--title "${title}" --menu "${text}" 20 90 12)
+  if [[ ${UI_TOOL} == dialog ]]; then
+    base_opts+=(--ok-label "Auswählen" --cancel-label "Zurück")
+  else
+    base_opts+=(--ok-button "Auswählen" --cancel-button "Zurück")
+  fi
   local result
-  if result=$("${UI_BIN}" --title "${title}" --menu "${text}" 20 90 12 "${options[@]}" 3>&1 1>&2 2>&3); then
+  if result=$("${UI_BIN}" "${base_opts[@]}" "${options[@]}" 3>&1 1>&2 2>&3); then
     printf '%s' "${result}"
     return 0
   fi
