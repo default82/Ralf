@@ -19,6 +19,12 @@ Diese Anleitung führt durch den kompletten Lebenszyklus des Homelab-Gerüsts. A
 
 Vor dem ersten Lauf: Klone dieses Repository nach `/opt/ralf` auf `ralf-lxc` oder passe `ralf_cli_make_path` in den Variablen an.
 
+### Vollautomatischer Durchlauf
+
+Nutze `./scripts/install.sh` für einen end-to-end Lauf inklusive Preflight, Container-Provisionierung sowie `make plan/apply` und nachgelagerter Prüfungen. Mit `--with-gui` wird automatisch `scripts/install-gui.sh` gestartet, um `infra/network/preflight.vars.source` und `infra/network/ip-schema.yml` interaktiv zu befüllen. Optional lassen sich Smoke- bzw. Backup-Checks mit `--skip-smoke` bzw. `--skip-backup-check` ausblenden.
+
+### Manuelle Sequenz
+
 1. Führe `make preflight` auf `pve01` aus. Das Skript prüft Proxmox-Dienste, Storage, Netz und SSH-Voraussetzungen.
 2. Erstelle die LXC-Container mit den `scripts/pct-create-*.sh` Skripten in der angegebenen Reihenfolge. Sie lesen Variablen aus `infra/network/` und fragen bei Bedarf CTIDs, Ressourcen und IPs interaktiv ab.
 3. Setze `export SOPS_AGE_KEY_FILE=/pfad/zum/key` und stelle sicher, dass SOPS Zugriff auf deine age-Identität hat.
