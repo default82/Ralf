@@ -189,11 +189,21 @@ check_pve_services()
   log_info "Alle erwarteten PVE-Dienste sind aktiv"
 }
 
+is_placeholder()
+{
+  local value=${1:-}
+  [[ -z ${value} || ${value} == ASK_RUNTIME || ${value} == *ASK_RUNTIME* ]]
+}
+
 check_storage()
 {
-  if [[ -z ${RALF_STORAGE_TARGET:-} ]]; then
-    log_warn "RALF_STORAGE_TARGET ist nicht gesetzt"
-    return 1
+  if is_placeholder "${RALF_STORAGE_TARGET:-}"; then
+    log_warn "RALF_STORAGE_TARGET ist nicht gesetzt; überspringe Storage-Prüfung"
+    return 0
+  fi
+  if ! command -v pvesm >/dev/null 2>&1; then
+    log_warn "pvesm nicht verfügbar; überspringe Storage-Prüfung"
+    return 0
   fi
   if pvesm status --storage "${RALF_STORAGE_TARGET}" >/dev/null 2>&1; then
     log_info "Storage ${RALF_STORAGE_TARGET} verfügbar"
@@ -205,13 +215,31 @@ check_storage()
 
 check_template()
 {
-  if [[ -z ${RALF_TEMPLATE_PATH:-} ]]; then
-    log_warn "RALF_TEMPLATE_PATH ist nicht gesetzt"
+  if is_placeholder "${RALF_TEMPLATE_PATH:-}"; then
+    log_warn "RALF_TEMPLATE_PATH ist nicht gesetzt; überspringe Template-Prüfung"
+    return 0
+  fi
+  if ! command -v pveam >/dev/null 2>&1; then
+    log_warn "pveam nicht verfügbar; überspringe Template-Prüfung"
+    return 0
+  fi
+
+  local template_name template_storage
+  template_name=${RALF_TEMPLATE_PATH##*/}
+  template_storage=${RALF_TEMPLATE_PATH%%:*}
+
+  if [[ -z ${template_storage} || ${template_storage} == "${template_name}" ]] || is_placeholder "${template_storage}"; then
+    log_warn "Template-Storage konnte nicht bestimmt werden; überspringe Template-Prüfung"
+    return 0
+  fi
+
+  local output
+  if ! output=$(pveam list "${template_storage}" 2>&1); then
+    log_error "pveam list ${template_storage} fehlgeschlagen: ${output}"
     return 1
   fi
-  local template_name
-  template_name=${RALF_TEMPLATE_PATH##*/}
-  if pveam list | grep -Fq "${template_name}"; then
+
+  if grep -Fq "${template_name}" <<<"${output}"; then
     log_info "Ubuntu-Template ${template_name} verfügbar"
   else
     log_error "Template ${template_name} nicht gefunden"
@@ -231,7 +259,7 @@ check_bridge()
 
 check_gateway()
 {
-  if [[ -z ${RALF_GATEWAY_IPV4:-} || ${RALF_GATEWAY_IPV4} == ASK_RUNTIME ]]; then
+  if is_placeholder "${RALF_GATEWAY_IPV4:-}"; then
     log_warn "Gateway wurde nicht gesetzt; überspringe Ping"
     return 0
   fi
@@ -329,6 +357,14 @@ check_ssh_keys()
 
 check_backup_host()
 {
+  if is_placeholder "${RALF_BACKUP_HOST:-}"; then
+    log_warn "RALF_BACKUP_HOST ist nicht gesetzt; überspringe Backup-Prüfung"
+    return 0
+  fi
+  if is_placeholder "${RALF_BACKUP_PORT:-}"; then
+    log_warn "RALF_BACKUP_PORT ist nicht gesetzt; überspringe Backup-Prüfung"
+    return 0
+  fi
   if command -v nc >/dev/null 2>&1; then
     if nc -z "${RALF_BACKUP_HOST}" "${RALF_BACKUP_PORT}" >/dev/null 2>&1; then
       log_info "Backup-Host ${RALF_BACKUP_HOST}:${RALF_BACKUP_PORT} erreichbar"
