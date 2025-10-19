@@ -181,27 +181,39 @@ load_vars()
 check_pve_services()
 {
   local services_str=${RALF_EXPECTED_PVE_SERVICES:-"pvedaemon pveproxy pvestatd"}
+  local -a services=()
+  read -r -a services <<<"${services_str}"
+  local missing=""
+  local service
   local services=()
   read -r -a services <<<"${services_str}"
   local missing=()
   for service in "${services[@]}"; do
+    if [[ -z ${service} ]]; then
+      continue
+    fi
     if ! systemctl is-active --quiet "${service}"; then
-      missing+=("${service}")
+      if [[ -n ${missing} ]]; then
+        missing+=" "
+      fi
+      missing+="${service}"
     fi
   done
-  if [[ ${#missing[@]} -gt 0 ]]; then
-    log_error "Folgende PVE-Dienste sind inaktiv: ${missing[*]}"
+  if [[ -n ${missing} ]]; then
+    log_error "Folgende PVE-Dienste sind inaktiv: ${missing}"
     return 1
   fi
   log_info "Alle erwarteten PVE-Dienste sind aktiv"
 }
 
+# shellcheck disable=SC2317
 is_placeholder()
 {
   local value=${1:-}
   [[ -z ${value} || ${value} == ASK_RUNTIME || ${value} == *ASK_RUNTIME* ]]
 }
 
+# shellcheck disable=SC2317
 check_storage()
 {
   if is_placeholder "${RALF_STORAGE_TARGET:-}"; then
@@ -226,6 +238,11 @@ check_template()
   if is_placeholder "${RALF_TEMPLATE_PATH:-}"; then
     log_warn "RALF_TEMPLATE_PATH ist nicht gesetzt; überspringe Template-Prüfung"
     return 0
+  fi
+  if ! command -v pveam >/dev/null 2>&1; then
+    log_warn "pveam nicht verfügbar; überspringe Template-Prüfung"
+    return 0
+  fi
   fi
   if ! command -v pveam >/dev/null 2>&1; then
     log_warn "pveam nicht verfügbar; überspringe Template-Prüfung"
@@ -409,6 +426,37 @@ run_check()
 run_checks()
 {
   local failures=0
+  run_check "Pflichtprogramme verfügbar" check_required_commands || ((failures++))
+  run_check "Proxmox Dienste" check_pve_services || ((failures++))
+  run_check "Storage vorhanden" check_storage || ((failures++))
+  run_check "Template verfügbar" check_template || ((failures++))
+  run_check "Bridge vorhanden" check_bridge || ((failures++))
+  run_check "Gateway erreichbar" check_gateway || ((failures++))
+  run_check "DNS-Auflösung" check_dns || ((failures++))
+  run_check "CTIDs frei" check_ctids || ((failures++))
+  run_check "FQDN-Validierung" check_hostnames || ((failures++))
+  run_check "Zeit-Sync" check_time_sync || ((failures++))
+  run_check "SSH-Pubkey" check_ssh_keys || ((failures++))
+  run_check "Backup-Host erreichbar" check_backup_host || ((failures++))
+  return ${failures}
+}
+
+# shellcheck disable=SC2317
+check_required_commands()
+{
+  local -a commands=(pct qm pveversion pvesh lsblk pvesm pveam)
+  local missing=""
+  local cmd
+  for cmd in "${commands[@]}"; do
+    if ! command -v "${cmd}" >/dev/null 2>&1; then
+      if [[ -n ${missing} ]]; then
+        missing+=" "
+      fi
+      missing+="${cmd}"
+    fi
+  done
+  if [[ -n ${missing} ]]; then
+    log_error "Pflichtprogramme fehlen: ${missing}"
   local -A checks=(
     ["Pflichtprogramme verfügbar"]="check_required_commands"
     ["Proxmox Dienste"]="check_pve_services"
@@ -491,6 +539,17 @@ main()
   load_vars
   if ! collect_system_snapshot; then
     log_warn "Systembericht konnte nicht erzeugt werden"
+  fi
+  if ! ensure_proxmox_available; then
+    exit 1
+  fi
+  if [[ ${PROXMOX_INSTALL_PERFORMED} -eq 1 ]]; then
+    REPORT_TIMESTAMP=$(date +%Y%m%d-%H%M%S)
+    REPORT_FILE="${REPORT_DIR}/preflight-report-${REPORT_TIMESTAMP}.txt"
+    log_info "Erzeuge aktualisierten Systembericht nach Proxmox-Installation"
+    if ! collect_system_snapshot; then
+      log_warn "Aktualisierter Systembericht konnte nicht erzeugt werden"
+    fi
   fi
   if run_checks; then
     log_info "Preflight erfolgreich"
