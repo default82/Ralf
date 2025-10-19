@@ -6,8 +6,6 @@ LOGGER_BIN=$(command -v logger || true)
 PROJECT_ROOT=$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)
 SCRIPTS_DIR="${PROJECT_ROOT}/scripts"
 MAKE_BIN=$(command -v make || true)
-APT_GET_BIN=$(command -v apt-get || command -v apt || true)
-APT_UPDATED=0
 
 WITH_GUI=0
 SKIP_SMOKE=0
@@ -40,38 +38,6 @@ log_info() { log "INFO" "$*"; }
 log_warn() { log "WARN" "$*"; }
 log_error() { log "ERROR" "$*"; }
 
-ensure_package() {
-  local package=$1
-  if [[ -z ${APT_GET_BIN:-} ]]; then
-    return 1
-  fi
-  if (( APT_UPDATED == 0 )); then
-    log_info "Aktualisiere Paketquellen (apt update)"
-    DEBIAN_FRONTEND=noninteractive "${APT_GET_BIN}" update
-    APT_UPDATED=1
-  fi
-  log_info "Installiere Paket '${package}'"
-  if DEBIAN_FRONTEND=noninteractive "${APT_GET_BIN}" install -y "${package}"; then
-    return 0
-  fi
-  return 1
-}
-
-ensure_command() {
-  local command=$1
-  shift || true
-  local packages=("$@")
-  if command -v "${command}" >/dev/null 2>&1; then
-    return 0
-  fi
-  for pkg in "${packages[@]}"; do
-    if ensure_package "${pkg}" && command -v "${command}" >/dev/null 2>&1; then
-      return 0
-    fi
-  done
-  return 1
-}
-
 while [[ $# -gt 0 ]]; do
   case $1 in
     --with-gui)
@@ -96,27 +62,17 @@ while [[ $# -gt 0 ]]; do
   shift
 done
 
-if [[ ${EUID:-$(id -u)} -ne 0 ]]; then
-  log_error "Dieses Skript muss als root ausgeführt werden."
-  exit 1
-fi
-
 if [[ -z ${MAKE_BIN:-} ]]; then
   log_error "make wurde nicht gefunden. Bitte GNU Make installieren."
   exit 1
 fi
 
-for required in pct pvesm pveam; do
+for required in pct pvesm pveam ansible-playbook; do
   if ! command -v "${required}" >/dev/null 2>&1; then
     log_error "Benötigtes Kommando '${required}' wurde nicht gefunden."
     exit 1
   fi
 done
-
-if ! ensure_command ansible-playbook ansible-core ansible; then
-  log_error "ansible-playbook wurde nicht gefunden und konnte nicht automatisch installiert werden."
-  exit 1
-fi
 
 assert_executable() {
   local path=$1

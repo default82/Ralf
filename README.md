@@ -64,9 +64,9 @@ Sämtliche sensitiven Werte liegen verschlüsselt unter `secrets/` bzw. `ansible
 Für einen vollautomatisierten Erstaufbau steht ein orchestrierendes Skript bereit:
 
 ```bash
-sudo ./scripts/install.sh --with-gui
+./scripts/install.sh --with-gui
 ```
 
-Führe das Skript auf dem Proxmox-Host als `root` aus; fehlende Abhängigkeiten wie `ansible-core` werden automatisch via `apt-get` nachinstalliert. Der optional übergebene `--with-gui` Parameter startet den Dialog-basierten Installer und füllt die Variablendateien für den Preflight. Weitere Schalter (`--skip-smoke`, `--skip-backup-check`) erlauben es, spezifische Prüfungen bewusst auszulassen.
+Der optional übergebene `--with-gui` Parameter startet den Dialog-basierten Installer und füllt die Variablendateien für den Preflight. Weitere Schalter (`--skip-smoke`, `--skip-backup-check`) erlauben es, spezifische Prüfungen bewusst auszulassen.
 
 Wer die Schritte granular abarbeiten möchte, findet die Einzelkommandos weiterhin in `docs/SETUP.md`. Dort sowie in `docs/ARCHITECTURE.md` sind zusätzliche Details zu Sequenzen, Variablen und Service-Workflows beschrieben.
