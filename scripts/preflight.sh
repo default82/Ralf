@@ -215,6 +215,27 @@ collect_pvesh_json()
   fi
 }
 
+append_command_output()
+{
+  local title=$1
+  shift
+  local -a cmd=("$@")
+  local cmd_name=${cmd[0]:-}
+  if [[ -z ${cmd_name} ]]; then
+    return
+  fi
+  if ! command -v "${cmd_name}" >/dev/null 2>&1; then
+    append_block "${title}" <<<"${cmd_name} nicht verfügbar"
+    return
+  fi
+  local output
+  if output=$("${cmd[@]}" 2>&1); then
+    append_block "${title}" <<<"${output}"
+  else
+    append_block "${title}" <<<"${cmd[*]} fehlgeschlagen\n${output}"
+  fi
+}
+
 collect_system_snapshot()
 {
   if ! ensure_report_directory; then
@@ -227,119 +248,16 @@ collect_system_snapshot()
     printf '# Generiert: %s\n\n' "${REPORT_TIMESTAMP}"
   } >"${REPORT_FILE}"
 
-  local output
-
-  if output=$(hostnamectl 2>&1); then
-    append_block 'Systemübersicht' <<<"${output}"
-  else
-    append_block 'Systemübersicht' <<<"hostnamectl fehlgeschlagen\n${output}"
-  fi
-
-  if command -v lscpu >/dev/null 2>&1; then
-    if output=$(lscpu 2>&1); then
-      append_block 'CPU-Informationen' <<<"${output}"
-    else
-      append_block 'CPU-Informationen' <<<"lscpu fehlgeschlagen\n${output}"
-    fi
-  if command -v lscpu >/dev/null 2>&1 && output=$(lscpu 2>&1); then
-    append_block 'CPU-Informationen' <<<"${output}"
-  else
-    append_block 'CPU-Informationen' <<<"lscpu nicht verfügbar"
-  fi
-
-  if command -v free >/dev/null 2>&1; then
-    if output=$(free -h 2>&1); then
-      append_block 'Arbeitsspeicher' <<<"${output}"
-    else
-      append_block 'Arbeitsspeicher' <<<"free fehlgeschlagen\n${output}"
-    fi
-  if command -v free >/dev/null 2>&1 && output=$(free -h 2>&1); then
-    append_block 'Arbeitsspeicher' <<<"${output}"
-  else
-    append_block 'Arbeitsspeicher' <<<"free nicht verfügbar"
-  fi
-
-  if command -v lspci >/dev/null 2>&1; then
-    if output=$(lspci 2>&1); then
-      append_block 'PCI-Geräte' <<<"${output}"
-    else
-      append_block 'PCI-Geräte' <<<"lspci fehlgeschlagen\n${output}"
-    fi
-  fi
-
-  if command -v lsblk >/dev/null 2>&1; then
-    if output=$(lsblk --output NAME,FSTYPE,SIZE,MOUNTPOINT,TYPE 2>&1); then
-      append_block 'Blockgeräte' <<<"${output}"
-    else
-      append_block 'Blockgeräte' <<<"lsblk fehlgeschlagen\n${output}"
-    fi
-  if command -v lspci >/dev/null 2>&1 && output=$(lspci 2>&1); then
-    append_block 'PCI-Geräte' <<<"${output}"
-  fi
-
-  if command -v lsblk >/dev/null 2>&1 && output=$(lsblk --output NAME,FSTYPE,SIZE,MOUNTPOINT,TYPE 2>&1); then
-    append_block 'Blockgeräte' <<<"${output}"
-  else
-    append_block 'Blockgeräte' <<<"lsblk nicht verfügbar"
-  fi
-
-  if command -v df >/dev/null 2>&1; then
-    if output=$(df -hT 2>&1); then
-      append_block 'Dateisystemauslastung' <<<"${output}"
-    else
-      append_block 'Dateisystemauslastung' <<<"df fehlgeschlagen\n${output}"
-    fi
-  fi
-
-  if command -v zpool >/dev/null 2>&1; then
-    if output=$(zpool status 2>&1); then
-      append_block 'ZFS Zpool Status' <<<"${output}"
-    else
-      append_block 'ZFS Zpool Status' <<<"zpool status fehlgeschlagen\n${output}"
-    fi
-  fi
-
-  if command -v pveversion >/dev/null 2>&1; then
-    if output=$(pveversion -v 2>&1); then
-      append_block 'Proxmox VE Version' <<<"${output}"
-    else
-      append_block 'Proxmox VE Version' <<<"pveversion -v fehlgeschlagen\n${output}"
-    fi
-  fi
-
-  if command -v pct >/dev/null 2>&1; then
-    if output=$(pct list 2>&1); then
-      append_block 'Vorhandene Container' <<<"${output}"
-    else
-      append_block 'Vorhandene Container' <<<"pct list fehlgeschlagen\n${output}"
-    fi
-  fi
-
-  if command -v qm >/dev/null 2>&1; then
-    if output=$(qm list 2>&1); then
-      append_block 'Vorhandene VMs' <<<"${output}"
-    else
-      append_block 'Vorhandene VMs' <<<"qm list fehlgeschlagen\n${output}"
-    fi
-  if command -v df >/dev/null 2>&1 && output=$(df -hT 2>&1); then
-    append_block 'Dateisystemauslastung' <<<"${output}"
-  fi
-
-  if command -v zpool >/dev/null 2>&1 && output=$(zpool status 2>&1); then
-    append_block 'ZFS Zpool Status' <<<"${output}"
-  fi
-
-  if command -v pveversion >/dev/null 2>&1 && output=$(pveversion -v 2>&1); then
-    append_block 'Proxmox VE Version' <<<"${output}"
-  fi
-
-  if command -v pct >/dev/null 2>&1 && output=$(pct list 2>&1); then
-    append_block 'Vorhandene Container' <<<"${output}"
-  fi
-
-  if command -v qm >/dev/null 2>&1 && output=$(qm list 2>&1); then
-    append_block 'Vorhandene VMs' <<<"${output}"
-  fi
+  append_command_output 'Systemübersicht' hostnamectl
+  append_command_output 'CPU-Informationen' lscpu
+  append_command_output 'Arbeitsspeicher' free -h
+  append_command_output 'PCI-Geräte' lspci
+  append_command_output 'Blockgeräte' lsblk --output NAME,FSTYPE,SIZE,MOUNTPOINT,TYPE
+  append_command_output 'Dateisystemauslastung' df -hT
+  append_command_output 'ZFS Zpool Status' zpool status
+  append_command_output 'Proxmox VE Version' pveversion -v
+  append_command_output 'Vorhandene Container' pct list
+  append_command_output 'Vorhandene VMs' qm list
 
   collect_pvesh_json "Cluster Status" "/cluster/status"
   collect_pvesh_json "Cluster Ressourcen (Nodes)" "/cluster/resources" --type node
@@ -367,24 +285,18 @@ check_pve_services()
   local services_str=${RALF_EXPECTED_PVE_SERVICES:-"pvedaemon pveproxy pvestatd"}
   local -a services=()
   read -r -a services <<<"${services_str}"
-  local missing=""
+  local -a missing=()
   local service
-  local services=()
-  read -r -a services <<<"${services_str}"
-  local missing=()
   for service in "${services[@]}"; do
     if [[ -z ${service} ]]; then
       continue
     fi
     if ! systemctl is-active --quiet "${service}"; then
-      if [[ -n ${missing} ]]; then
-        missing+=" "
-      fi
-      missing+="${service}"
+      missing+=("${service}")
     fi
   done
-  if [[ -n ${missing} ]]; then
-    log_error "Folgende PVE-Dienste sind inaktiv: ${missing}"
+  if [[ ${#missing[@]} -gt 0 ]]; then
+    log_error "Folgende PVE-Dienste sind inaktiv: ${missing[*]}"
     return 1
   fi
   log_info "Alle erwarteten PVE-Dienste sind aktiv"
@@ -422,16 +334,6 @@ check_template()
   if is_placeholder "${RALF_TEMPLATE_PATH:-}"; then
     log_warn "RALF_TEMPLATE_PATH ist nicht gesetzt; überspringe Template-Prüfung"
     return 0
-  fi
-  if ! command -v pveam >/dev/null 2>&1; then
-    log_warn "pveam nicht verfügbar; überspringe Template-Prüfung"
-    return 0
-  fi
-  fi
-  if ! command -v pveam >/dev/null 2>&1; then
-    log_warn "pveam nicht verfügbar; überspringe Template-Prüfung"
-    return 0
-  fi
   fi
   if ! command -v pveam >/dev/null 2>&1; then
     log_warn "pveam nicht verfügbar; überspringe Template-Prüfung"
@@ -634,57 +536,8 @@ run_checks()
 check_required_commands()
 {
   local -a commands=(pct qm pveversion pvesh lsblk pvesm pveam)
-  local missing=""
+  local -a missing=()
   local cmd
-  for cmd in "${commands[@]}"; do
-    if ! command -v "${cmd}" >/dev/null 2>&1; then
-      if [[ -n ${missing} ]]; then
-        missing+=" "
-      fi
-      missing+="${cmd}"
-    fi
-  done
-  if [[ -n ${missing} ]]; then
-    log_error "Pflichtprogramme fehlen: ${missing}"
-    fi
-  done
-  if [[ -n ${missing} ]]; then
-    log_error "Pflichtprogramme fehlen: ${missing}"
-  local -A checks=(
-    ["Pflichtprogramme verfügbar"]="check_required_commands"
-    ["Proxmox Dienste"]="check_pve_services"
-    ["Storage vorhanden"]="check_storage"
-    ["Template verfügbar"]="check_template"
-    ["Bridge vorhanden"]="check_bridge"
-    ["Gateway erreichbar"]="check_gateway"
-    ["DNS-Auflösung"]="check_dns"
-    ["CTIDs frei"]="check_ctids"
-    ["FQDN-Validierung"]="check_hostnames"
-    ["Zeit-Sync"]="check_time_sync"
-    ["SSH-Pubkey"]="check_ssh_keys"
-    ["Backup-Host erreichbar"]="check_backup_host"
-  )
-
-  for description in "${!checks[@]}"; do
-    local fn=${checks[${description}]}
-    if ${fn}; then
-      printf 'PASS: %s\n' "${description}"
-    else
-      printf 'FAIL: %s\n' "${description}"
-      ((failures++))
-    fi
-  done
-  if [[ ${#missing[@]} -gt 0 ]]; then
-    log_error "Pflichtprogramme fehlen: ${missing[*]}"
-    return 1
-  fi
-  log_info "Alle Pflichtprogramme verfügbar"
-}
-
-check_required_commands()
-{
-  local -a commands=(pct qm pveversion pvesh lsblk)
-  local missing=()
   for cmd in "${commands[@]}"; do
     if ! command -v "${cmd}" >/dev/null 2>&1; then
       missing+=("${cmd}")
