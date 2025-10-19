@@ -41,7 +41,6 @@ Nutze `./scripts/install.sh` für einen end-to-end Lauf inklusive Preflight, Con
 ### Manuelle Sequenz
 
 1. Führe `make preflight` auf `pve01` aus. Das Skript prüft Proxmox-Dienste, Storage, Netz und SSH-Voraussetzungen und legt einen Bericht unter `logs/preflight-report-<timestamp>.txt` (über `RALF_PREFLIGHT_REPORT_DIR` überschreibbar) ab. Falls Proxmox noch nicht installiert ist, nutze `scripts/preflight.sh --install-proxmox` direkt auf dem Host und wiederhole anschließend den Preflight.
-1. Führe `make preflight` auf `pve01` aus. Das Skript prüft Proxmox-Dienste, Storage, Netz und SSH-Voraussetzungen und legt einen Bericht unter `logs/preflight-report-<timestamp>.txt` (über `RALF_PREFLIGHT_REPORT_DIR` überschreibbar) ab.
 2. Erstelle die LXC-Container mit den `scripts/pct-create-*.sh` Skripten in der angegebenen Reihenfolge. Sie lesen Variablen aus `infra/network/` und fragen bei Bedarf CTIDs, Ressourcen und IPs interaktiv ab.
 3. Setze `export SOPS_AGE_KEY_FILE=/pfad/zum/key` und stelle sicher, dass SOPS Zugriff auf deine age-Identität hat.
 4. Führe `make plan` gefolgt von `make apply` aus `ralf-lxc` aus. `make plan` beinhaltet `terraform plan`/`tofu plan` (sobald Module vorhanden sind) und `ansible-playbook --check` Läufe. `make apply` startet `tofu apply` gefolgt von `ansible-playbook` Runs.
