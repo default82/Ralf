@@ -1,6 +1,7 @@
 # Aufgabenübersicht
 
 ## Kurzfristig
+- [x] Orchestrierendes Installationsskript (`scripts/install.sh`) bereitstellen.
 - [ ] Werte in `infra/network/ip-schema.yml` gemäß aktueller Netzplanung ergänzen.
 - [ ] `infra/network/preflight.vars.source` mit Proxmox-Storage, Template-Namen und Netzwerkparametern füllen.
 - [ ] age-Recipient in `secrets/.sops.yaml` eintragen und Schlüssel bereitstellen.
