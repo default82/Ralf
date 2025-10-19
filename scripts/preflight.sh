@@ -11,8 +11,6 @@ PVE_NODE_NAME=${PVE_NODE_NAME:-$(hostname -s)}
 REPORT_DIR=${RALF_PREFLIGHT_REPORT_DIR:-${PROJECT_ROOT}/logs}
 REPORT_TIMESTAMP=$(date +%Y%m%d-%H%M%S)
 REPORT_FILE="${REPORT_DIR}/preflight-report-${REPORT_TIMESTAMP}.txt"
-INSTALL_PROXMOX=0
-PROXMOX_INSTALL_PERFORMED=0
 
 log()
 {
@@ -69,124 +67,6 @@ else:
     json.dump(data, sys.stdout, indent=2, sort_keys=True)
     sys.stdout.write("\n")
 PY
-}
-
-fetch_url()
-{
-  local url=$1
-  if command -v curl >/dev/null 2>&1; then
-    curl -fsSL "${url}"
-  else
-    wget -qO- "${url}"
-  fi
-}
-
-is_proxmox_installed()
-{
-  if command -v pveversion >/dev/null 2>&1; then
-    return 0
-  fi
-  if dpkg-query -W -f='${Status}' proxmox-ve 2>/dev/null | grep -q 'install ok installed'; then
-    return 0
-  fi
-  return 1
-}
-
-install_proxmox()
-{
-  if [[ ${EUID} -ne 0 ]]; then
-    log_error "Proxmox-Installation erfordert Root-Rechte"
-    return 1
-  fi
-  if [[ ! -f /etc/os-release ]]; then
-    log_error "/etc/os-release nicht gefunden; kann Debian-Version nicht bestimmen"
-    return 1
-  fi
-
-  # shellcheck disable=SC1091
-  source /etc/os-release
-  local codename=${VERSION_CODENAME:-}
-  local proxmox_suite
-  case ${codename} in
-    bookworm)
-      proxmox_suite=bookworm
-      ;;
-    trixie)
-      proxmox_suite=bookworm
-      log_warn "Debian trixie erkannt – Proxmox VE 9 basiert auf Debian 12 (bookworm). Verwende bookworm Repository." 
-      ;;
-    *)
-      proxmox_suite=bookworm
-      log_warn "Unbekannter Debian Codename ${codename:-unbekannt}; verwende bookworm Repository. Prüfe Kompatibilität manuell."
-      ;;
-  esac
-
-  log_info "Installiere benötigte Hilfspakete (curl, gnupg, ca-certificates)"
-  if ! apt-get update -o Acquire::AllowInsecureRepositories=false; then
-    log_error "apt-get update für Basis-Pakete fehlgeschlagen"
-    return 1
-  fi
-  if ! env DEBIAN_FRONTEND=noninteractive apt-get install -y -o Dpkg::Use-Pty=0 curl wget gnupg ca-certificates; then
-    log_error "Installation der Basis-Pakete fehlgeschlagen"
-    return 1
-  fi
-
-  local key_url="https://enterprise.proxmox.com/debian/proxmox-release-${proxmox_suite}.gpg"
-  local key_target="/etc/apt/trusted.gpg.d/proxmox-release-${proxmox_suite}.gpg"
-  if [[ ! -f ${key_target} ]]; then
-    log_info "Importiere Proxmox Signaturschlüssel"
-    if ! fetch_url "${key_url}" | gpg --dearmor --yes -o "${key_target}"; then
-      log_error "Import des Proxmox-Schlüssels fehlgeschlagen"
-      return 1
-    fi
-  else
-    log_info "Proxmox Signaturschlüssel bereits vorhanden"
-  fi
-
-  local repo_file="/etc/apt/sources.list.d/proxmox-ve.list"
-  log_info "Schreibe Proxmox Repository nach ${repo_file}"
-  cat <<EOF | tee "${repo_file}" >/dev/null
-deb http://download.proxmox.com/debian/pve ${proxmox_suite} pve-no-subscription
-EOF
-
-  log_info "Aktualisiere Paketquellen mit Proxmox-Repository"
-  if ! apt-get update -o Acquire::AllowInsecureRepositories=false; then
-    log_error "apt-get update mit Proxmox-Repository fehlgeschlagen"
-    return 1
-  fi
-
-  log_info "Installiere proxmox-ve, postfix und open-iscsi"
-  if ! env DEBIAN_FRONTEND=noninteractive APT_LISTCHANGES_FRONTEND=none apt-get install -y -o Dpkg::Use-Pty=0 proxmox-ve postfix open-iscsi; then
-    log_error "Installation von proxmox-ve fehlgeschlagen"
-    return 1
-  fi
-
-  PROXMOX_INSTALL_PERFORMED=1
-  log_info "Proxmox VE Installation abgeschlossen. Ein Neustart wird empfohlen."
-  return 0
-}
-
-ensure_proxmox_available()
-{
-  if is_proxmox_installed; then
-    log_info "Proxmox VE bereits installiert"
-    return 0
-  fi
-
-  log_warn "Proxmox VE ist nicht installiert. Ralf setzt eine funktionierende Proxmox-Umgebung voraus."
-  if [[ ${INSTALL_PROXMOX} -eq 0 ]]; then
-    log_error "Breche ab – führe das Skript mit --install-proxmox aus, um Proxmox automatisch zu installieren."
-    return 1
-  fi
-
-  log_info "Starte automatische Installation von Proxmox VE"
-  if install_proxmox && is_proxmox_installed; then
-    log_info "Proxmox VE steht jetzt zur Verfügung"
-    return 0
-  fi
-
-  log_error "Proxmox VE konnte nicht installiert werden"
-  return 1
 }
 
 collect_pvesh_json()
@@ -529,7 +409,7 @@ run_checks()
 
 check_required_commands()
 {
-  local -a commands=(pct qm pveversion pvesh lsblk pvesm pveam)
+  local -a commands=(pct qm pveversion pvesh lsblk)
   local missing=()
   for cmd in "${commands[@]}"; do
     if ! command -v "${cmd}" >/dev/null 2>&1; then
@@ -578,17 +458,6 @@ main()
   load_vars
   if ! collect_system_snapshot; then
     log_warn "Systembericht konnte nicht erzeugt werden"
-  fi
-  if ! ensure_proxmox_available; then
-    exit 1
-  fi
-  if [[ ${PROXMOX_INSTALL_PERFORMED} -eq 1 ]]; then
-    REPORT_TIMESTAMP=$(date +%Y%m%d-%H%M%S)
-    REPORT_FILE="${REPORT_DIR}/preflight-report-${REPORT_TIMESTAMP}.txt"
-    log_info "Erzeuge aktualisierten Systembericht nach Proxmox-Installation"
-    if ! collect_system_snapshot; then
-      log_warn "Aktualisierter Systembericht konnte nicht erzeugt werden"
-    fi
   fi
   if run_checks; then
     log_info "Preflight erfolgreich"
