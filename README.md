@@ -61,17 +61,12 @@ Sämtliche sensitiven Werte liegen verschlüsselt unter `secrets/` bzw. `ansible
 
 ## How-to-Run
 
+Für einen vollautomatisierten Erstaufbau steht ein orchestrierendes Skript bereit:
+
 ```bash
-make preflight
-./scripts/pct-create-ralf.sh
-./scripts/pct-create-svc-postgres.sh
-./scripts/pct-create-svc-semaphore.sh
-./scripts/pct-create-svc-foreman.sh
-./scripts/pct-create-svc-n8n.sh
-./scripts/pct-create-svc-vaultwarden.sh
-make plan && make apply
-make smoke
-make backup-check
+./scripts/install.sh --with-gui
 ```
 
-Weitere Details zu Sequenzen, Variablen und Service-Workflows findest du in `docs/SETUP.md` und `docs/ARCHITECTURE.md`.
+Der optional übergebene `--with-gui` Parameter startet den Dialog-basierten Installer und füllt die Variablendateien für den Preflight. Weitere Schalter (`--skip-smoke`, `--skip-backup-check`) erlauben es, spezifische Prüfungen bewusst auszulassen.
+
+Wer die Schritte granular abarbeiten möchte, findet die Einzelkommandos weiterhin in `docs/SETUP.md`. Dort sowie in `docs/ARCHITECTURE.md` sind zusätzliche Details zu Sequenzen, Variablen und Service-Workflows beschrieben.
