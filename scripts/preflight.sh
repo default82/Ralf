@@ -426,7 +426,7 @@ check_required_commands()
 usage()
 {
   cat <<USAGE
-Usage: $(basename "$0") [--debug]
+Usage: $(basename "$0") [--debug] [--install-proxmox]
 
 Führt Proxmox-Preflight-Checks für das Ralf Homelab aus.
 USAGE
@@ -438,6 +438,9 @@ main()
     case $1 in
       --debug)
         DEBUG=1
+        ;;
+      --install-proxmox)
+        INSTALL_PROXMOX=1
         ;;
       -h|--help)
         usage

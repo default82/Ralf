@@ -4,7 +4,7 @@ Diese Anleitung führt durch den kompletten Lebenszyklus des Homelab-Gerüsts. A
 
 ## Voraussetzungen
 
-- Proxmox VE Host (`pve01`) mit unprivilegierten LXC-Containern und `nesting=1`.
+- Proxmox VE Host (`pve01`) mit unprivilegierten LXC-Containern und `nesting=1`. Auf einem frischen Debian-Host installierst du Proxmox automatisch über `scripts/preflight.sh --install-proxmox`.
 - Ubuntu 24.04 Standard-Template im Proxmox-Storage (`local:vztmpl/ubuntu-24.04-standard_*.tar.zst`) – der genaue Name wird zur Laufzeit über Variablen gesetzt.
 - SSH-Schlüssel-basierte Authentifizierung; Passwort-Login ist deaktiviert.
 - Zugang zu einem externen Backup-Host (Borgmatic via SSH/22).
