@@ -1,0 +1,5 @@
+# Managed by Ansible - systemd-timesyncd configuration
+[Time]
+{% for server in ralf_ntp_servers %}NTP={{ server }}
+{% endfor %}
+FallbackNTP=ntp.ubuntu.com

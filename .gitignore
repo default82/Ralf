@@ -1,0 +1,62 @@
+# Byte-compiled / optimized / DLL files
+__pycache__/
+*.py[cod]
+*$py.class
+
+# C extensions
+*.so
+
+# Distribution / packaging
+.Python
+build/
+develop-eggs/
+dist/
+downloads/
+.eggs/
+lib/
+lib64/
+parts/
+sdist/
+var/
+*.egg-info/
+.installed.cfg
+*.egg
+
+# Virtual environments
+.env
+.venv
+ENV/
+venv/
+
+# Secrets and security
+secrets/*.key
+secrets/*.age
+secrets/*.txt
+secrets/tmp/
+
+# Ansible
+*.retry
+.ansible/
+
+# Logs
+logs/
+*.log
+
+# Editor & OS specific
+.DS_Store
+.idea/
+.vscode/
+*~
+
+# Terraform / OpenTofu state
+*.tfstate
+*.tfstate.*
+.terraform/
+.terraform.lock.hcl
+
+# SOPS decrypted files
+*.dec
+*.unencrypted
+
+# Borgmatic archives
+borgmatic-exports/

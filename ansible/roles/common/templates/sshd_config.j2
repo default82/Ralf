@@ -1,0 +1,32 @@
+# Managed by Ansible (common role)
+Include /etc/ssh/sshd_config.d/*.conf
+Protocol 2
+Port {{ common_sshd_port }}
+AddressFamily any
+ListenAddress 0.0.0.0
+ListenAddress ::
+HostKey /etc/ssh/ssh_host_ed25519_key
+HostKey /etc/ssh/ssh_host_rsa_key
+KexAlgorithms curve25519-sha256,curve25519-sha256@libssh.org
+Ciphers chacha20-poly1305@openssh.com,aes256-gcm@openssh.com,aes256-ctr
+MACs hmac-sha2-512-etm@openssh.com,hmac-sha2-256-etm@openssh.com
+LoginGraceTime 30
+PermitRootLogin prohibit-password
+StrictModes yes
+MaxAuthTries 3
+PubkeyAuthentication yes
+PasswordAuthentication no
+ChallengeResponseAuthentication no
+KerberosAuthentication no
+GSSAPIAuthentication no
+X11Forwarding no
+AllowAgentForwarding no
+AllowTcpForwarding no
+ClientAliveInterval 300
+ClientAliveCountMax 2
+UsePAM yes
+Banner /etc/issue.net
+{% if common_allow_users %}
+AllowUsers {% for user in common_allow_users %}{{ user }} {% endfor %}
+{% endif %}
+Subsystem sftp /usr/lib/openssh/sftp-server

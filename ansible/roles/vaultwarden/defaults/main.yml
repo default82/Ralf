@@ -1,0 +1,20 @@
+---
+vaultwarden_version: 1.30.5
+vaultwarden_download_url: "https://github.com/dani-garcia/vaultwarden/releases/download/{{ vaultwarden_version }}/vaultwarden-{{ vaultwarden_version }}-x86_64-unknown-linux-gnu.tar.gz"
+vaultwarden_user: vaultwarden
+vaultwarden_group: vaultwarden
+vaultwarden_data_dir: /var/lib/vaultwarden
+vaultwarden_config_dir: /etc/vaultwarden
+vaultwarden_env_file: /etc/vaultwarden/vaultwarden.env
+vaultwarden_service_name: vaultwarden
+vaultwarden_domain: "https://{{ hostvars[inventory_hostname].get('fqdn', inventory_hostname ~ '.' ~ ralf_domain) }}"
+vaultwarden_use_postgres: "{{ vaultwarden_use_postgres }}"
+vaultwarden_database_url: >-
+  {% if vaultwarden_use_postgres_effective %}
+  postgres://{{ postgres_app_users['vaultwarden'].user }}:{{ postgres_app_users['vaultwarden'].password }}@{{ postgres_host }}:{{ postgres_port }}/{{ postgres_app_users['vaultwarden'].db }}
+  {% else %}
+  sqlite:///{{ vaultwarden_data_dir }}/vaultwarden.db
+  {% endif %}
+vaultwarden_admin_token: "{{ apps_secret.vaultwarden_admin_token | default('CHANGE_ME') }}"
+
+vaultwarden_use_postgres_effective: {{ vaultwarden_use_postgres | bool }}

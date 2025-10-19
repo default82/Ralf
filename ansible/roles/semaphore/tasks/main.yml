@@ -1,0 +1,99 @@
+---
+- name: Ensure semaphore group exists
+  ansible.builtin.group:
+    name: "{{ semaphore_group }}"
+    system: true
+
+- name: Ensure semaphore user exists
+  ansible.builtin.user:
+    name: "{{ semaphore_user }}"
+    group: "{{ semaphore_group }}"
+    home: "{{ semaphore_install_dir }}"
+    create_home: false
+    shell: /usr/sbin/nologin
+    system: true
+
+- name: Create installation directory
+  ansible.builtin.file:
+    path: "{{ semaphore_install_dir }}"
+    state: directory
+    owner: "{{ semaphore_user }}"
+    group: "{{ semaphore_group }}"
+    mode: '0755'
+
+- name: Download semaphore archive
+  ansible.builtin.get_url:
+    url: "{{ semaphore_download_url }}"
+    dest: "/tmp/semaphore_{{ semaphore_version }}.tar.gz"
+    mode: '0644'
+    checksum: {{ apps_secret.semaphore_checksum | default(omit) }}
+  register: semaphore_archive
+
+- name: Extract semaphore archive
+  ansible.builtin.unarchive:
+    src: "/tmp/semaphore_{{ semaphore_version }}.tar.gz"
+    dest: "/tmp/semaphore_{{ semaphore_version }}"
+    remote_src: true
+  when: semaphore_archive is changed
+
+- name: Deploy semaphore binary
+  ansible.builtin.copy:
+    src: "/tmp/semaphore_{{ semaphore_version }}/semaphore"
+    dest: "{{ semaphore_binary_path }}"
+    owner: root
+    group: root
+    mode: '0755'
+    remote_src: true
+  when: semaphore_archive is changed
+
+- name: Create configuration directory
+  ansible.builtin.file:
+    path: "{{ semaphore_config_dir }}"
+    state: directory
+    owner: "{{ semaphore_user }}"
+    group: "{{ semaphore_group }}"
+    mode: '0750'
+
+- name: Render semaphore configuration
+  ansible.builtin.template:
+    src: config.json.j2
+    dest: "{{ semaphore_config_file }}"
+    owner: "{{ semaphore_user }}"
+    group: "{{ semaphore_group }}"
+    mode: '0640'
+  notify: Restart semaphore
+
+- name: Create semaphore tmp directory
+  ansible.builtin.file:
+    path: "{{ semaphore_install_dir }}/tmp"
+    state: directory
+    owner: {{ semaphore_user }}
+    group: {{ semaphore_group }}
+    mode: '0750'
+
+- name: Render semaphore environment file
+  ansible.builtin.template:
+    src: semaphore.env.j2
+    dest: "{{ semaphore_environment_file }}"
+    owner: root
+    group: root
+    mode: '0644'
+  notify: Restart semaphore
+
+- name: Install systemd unit
+  ansible.builtin.template:
+    src: semaphore.service.j2
+    dest: /etc/systemd/system/{{ semaphore_service_name }}.service
+    owner: root
+    group: root
+    mode: '0644'
+  notify:
+    - Reload systemd
+    - Restart semaphore
+
+- name: Ensure semaphore service is enabled
+  ansible.builtin.systemd:
+    name: "{{ semaphore_service_name }}"
+    enabled: true
+    state: started
+    daemon_reload: true

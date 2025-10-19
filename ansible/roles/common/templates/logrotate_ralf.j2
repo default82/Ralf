@@ -1,0 +1,9 @@
+{{ common_log_dir }}/*.log {
+    rotate {{ common_logrotate_retention }}
+    weekly
+    missingok
+    notifempty
+    compress
+    delaycompress
+    copytruncate
+}

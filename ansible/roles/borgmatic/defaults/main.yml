@@ -1,0 +1,29 @@
+---
+borgmatic_package_state: present
+borgmatic_config_dir: /etc/borgmatic.d
+borgmatic_config_file: "{{ borgmatic_config_dir }}/ralf.yaml"
+borgmatic_repository: "{{ ralf_backup_repository }}"
+borgmatic_retention: "{{ ralf_backup_retention }}"
+borgmatic_source_map:
+  svc-postgres:
+    - /var/lib/postgresql
+    - /etc/postgresql
+  svc-foreman:
+    - /etc/foreman
+    - /var/lib/foreman
+  svc-n8n:
+    - /home/n8n/.n8n
+    - /etc/n8n
+  svc-vaultwarden:
+    - /var/lib/vaultwarden
+    - /etc/vaultwarden
+  svc-semaphore:
+    - /etc/semaphore
+    - /var/lib/semaphore
+  ralf-lxc:
+    - /etc/ansible
+    - /var/lib/ralf
+borgmatic_hooks_pre_backup: []
+borgmatic_hooks_post_backup: []
+borgmatic_run_mode: backup
+borgmatic_extract_path: /tmp/restore

@@ -1,0 +1,19 @@
+{
+  "port": "3000",
+  "tmp_path": "{{ semaphore_install_dir }}/tmp",
+  "db": {
+    "name": "{{ semaphore_database.name }}",
+    "dialect": "postgres",
+    "host": "{{ semaphore_database.host }}",
+    "port": "{{ semaphore_database.port }}",
+    "user": "{{ semaphore_database.user }}",
+    "pass": "{{ semaphore_database.password }}",
+    "sslmode": "disable"
+  },
+  "session_encryption_key": "{{ apps_secret.semaphore_session_key | default('SETME') }}",
+  "email_sender": "{{ semaphore_admin_email }}",
+  "email_host": "{{ apps_secret.smtp_host | default('smtp.local') }}",
+  "email_port": {{ apps_secret.smtp_port | default(587) }},
+  "email_username": "{{ apps_secret.smtp_user | default('') }}",
+  "email_password": "{{ apps_secret.smtp_password | default('') }}"
+}

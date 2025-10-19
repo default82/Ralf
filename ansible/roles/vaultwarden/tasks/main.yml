@@ -1,0 +1,78 @@
+---
+- name: Ensure vaultwarden group exists
+  ansible.builtin.group:
+    name: "{{ vaultwarden_group }}"
+    system: true
+
+- name: Ensure vaultwarden user exists
+  ansible.builtin.user:
+    name: "{{ vaultwarden_user }}"
+    group: "{{ vaultwarden_group }}"
+    home: "{{ vaultwarden_data_dir }}"
+    create_home: false
+    shell: /usr/sbin/nologin
+    system: true
+
+- name: Create data directory
+  ansible.builtin.file:
+    path: "{{ vaultwarden_data_dir }}"
+    state: directory
+    owner: "{{ vaultwarden_user }}"
+    group: "{{ vaultwarden_group }}"
+    mode: '0750'
+
+- name: Create config directory
+  ansible.builtin.file:
+    path: "{{ vaultwarden_config_dir }}"
+    state: directory
+    owner: root
+    group: "{{ vaultwarden_group }}"
+    mode: '0750'
+
+- name: Download vaultwarden archive
+  ansible.builtin.get_url:
+    url: "{{ vaultwarden_download_url }}"
+    dest: "/tmp/vaultwarden_{{ vaultwarden_version }}.tar.gz"
+    mode: '0644'
+
+- name: Extract vaultwarden archive
+  ansible.builtin.unarchive:
+    src: "/tmp/vaultwarden_{{ vaultwarden_version }}.tar.gz"
+    dest: "/tmp/vaultwarden_{{ vaultwarden_version }}"
+    remote_src: true
+
+- name: Deploy vaultwarden binary
+  ansible.builtin.copy:
+    src: /tmp/vaultwarden_{{ vaultwarden_version }}/vaultwarden
+    dest: /usr/local/bin/vaultwarden
+    owner: root
+    group: root
+    mode: '0755'
+    remote_src: true
+
+- name: Render environment file
+  ansible.builtin.template:
+    src: vaultwarden.env.j2
+    dest: "{{ vaultwarden_env_file }}"
+    owner: "{{ vaultwarden_user }}"
+    group: "{{ vaultwarden_group }}"
+    mode: '0640'
+  notify: Restart vaultwarden
+
+- name: Install systemd service
+  ansible.builtin.template:
+    src: vaultwarden.service.j2
+    dest: /etc/systemd/system/{{ vaultwarden_service_name }}.service
+    owner: root
+    group: root
+    mode: '0644'
+  notify:
+    - Reload systemd
+    - Restart vaultwarden
+
+- name: Ensure vaultwarden service is running
+  ansible.builtin.systemd:
+    name: "{{ vaultwarden_service_name }}"
+    enabled: true
+    state: started
+    daemon_reload: true
