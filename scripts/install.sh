@@ -30,7 +30,9 @@ USAGE
 log() {
   local level=$1; shift
   local message=$*
-  [[ -n ${LOGGER_BIN:-} ]] && ${LOGGER_BIN} -t "${LOG_TAG}" "${level}: ${message}" || true
+  if [[ -n ${LOGGER_BIN:-} ]]; then
+    ${LOGGER_BIN} -t "${LOG_TAG}" "${level}: ${message}" || true
+  fi
   printf '%s: %s\n' "${level}" "${message}"
 }
 
@@ -142,8 +144,8 @@ run_step() {
 if (( WITH_GUI )); then
   local_gui="${SCRIPTS_DIR}/install-gui.sh"
   assert_executable "${local_gui}"
-  if ! command -v whiptail >/dev/null 2>&1 && ! command -v dialog >/dev/null 2>&1; then
-    log_error "Grafischer Installer angefordert, aber weder whiptail noch dialog sind installiert."
+  if ! command -v dialog >/dev/null 2>&1; then
+    log_error "Grafischer Installer angefordert, aber das Paket 'dialog' ist nicht installiert."
     exit 1
   fi
   run_step "Grafischer Installer" "${local_gui}"

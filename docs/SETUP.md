@@ -21,7 +21,7 @@ Vor dem ersten Lauf: Klone dieses Repository nach `/opt/ralf` auf `ralf-lxc` ode
 
 ### Vollautomatischer Durchlauf
 
-Nutze `./scripts/install.sh` für einen end-to-end Lauf inklusive Preflight, Container-Provisionierung sowie `make plan/apply` und nachgelagerter Prüfungen. Mit `--with-gui` wird automatisch `scripts/install-gui.sh` gestartet, um `infra/network/preflight.vars.source` und `infra/network/ip-schema.yml` interaktiv zu befüllen. Optional lassen sich Smoke- bzw. Backup-Checks mit `--skip-smoke` bzw. `--skip-backup-check` ausblenden.
+Nutze `./scripts/install.sh` für einen end-to-end Lauf inklusive Preflight, Container-Provisionierung sowie `make plan/apply` und nachgelagerter Prüfungen. Mit `--with-gui` startet vorab der dialog-basierte Installer (`scripts/install-gui.sh` – benötigt das Paket `dialog`). Dieser erfasst die Variablen aus `infra/network/preflight.vars.source` und `infra/network/ip-schema.yml` und öffnet im Anschluss einen mausbedienbaren Preflight-Dashboard, das jede Prüfung aus `scripts/preflight.sh` inklusive Handlungsempfehlungen durchgeht. Optional lassen sich Smoke- bzw. Backup-Checks mit `--skip-smoke` bzw. `--skip-backup-check` ausblenden.
 
 ### Manuelle Sequenz
 

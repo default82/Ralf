@@ -69,6 +69,6 @@ Für einen vollautomatisierten Erstaufbau steht ein orchestrierendes Skript bere
 ./scripts/install.sh --with-gui
 ```
 
-Der optional übergebene `--with-gui` Parameter startet den Dialog-basierten Installer und füllt die Variablendateien für den Preflight. Weitere Schalter (`--skip-smoke`, `--skip-backup-check`) erlauben es, spezifische Prüfungen bewusst auszulassen.
+Der optional übergebene `--with-gui` Parameter startet den dialog-basierten Installer (benötigt das Paket `dialog`). Dieser führt zunächst durch die Erfassung aller Variablen und präsentiert anschließend ein Maus- und Tastatur-bedienbares Preflight-Dashboard, das jeden Befund von `scripts/preflight.sh` inklusive Handlungsempfehlungen erläutert. Weitere Schalter (`--skip-smoke`, `--skip-backup-check`) erlauben es, spezifische Prüfungen bewusst auszublenden.
 
 Wer die Schritte granular abarbeiten möchte, findet die Einzelkommandos weiterhin in `docs/SETUP.md`. Dort sowie in `docs/ARCHITECTURE.md` sind zusätzliche Details zu Sequenzen, Variablen und Service-Workflows beschrieben.
