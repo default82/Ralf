@@ -21,7 +21,7 @@ Vor dem ersten Lauf: Klone dieses Repository nach `/opt/ralf` auf `ralf-lxc` ode
 
 ### Vollautomatischer Durchlauf
 
-Nutze `sudo ./scripts/install.sh` für einen end-to-end Lauf inklusive Preflight, Container-Provisionierung sowie `make plan/apply` und nachgelagerter Prüfungen. Das Skript muss als `root` laufen und installiert fehlende Host-Abhängigkeiten (z. B. `ansible-core`) automatisch via `apt-get`. Mit `--with-gui` wird automatisch `scripts/install-gui.sh` gestartet, um `infra/network/preflight.vars.source` und `infra/network/ip-schema.yml` interaktiv zu befüllen. Optional lassen sich Smoke- bzw. Backup-Checks mit `--skip-smoke` bzw. `--skip-backup-check` ausblenden.
+Nutze `./scripts/install.sh` für einen end-to-end Lauf inklusive Preflight, Container-Provisionierung sowie `make plan/apply` und nachgelagerter Prüfungen. Mit `--with-gui` wird automatisch `scripts/install-gui.sh` gestartet, um `infra/network/preflight.vars.source` und `infra/network/ip-schema.yml` interaktiv zu befüllen. Optional lassen sich Smoke- bzw. Backup-Checks mit `--skip-smoke` bzw. `--skip-backup-check` ausblenden.
 
 ### Manuelle Sequenz
 

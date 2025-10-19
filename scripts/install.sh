@@ -1,38 +1,11 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
-DEFAULT_PATH="/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin"
-PATH="${DEFAULT_PATH}:${PATH:-}"
-
 LOG_TAG=${LOG_TAG:-ralf-installer-run}
 LOGGER_BIN=$(command -v logger || true)
 PROJECT_ROOT=$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)
 SCRIPTS_DIR="${PROJECT_ROOT}/scripts"
 MAKE_BIN=$(command -v make || true)
-APT_GET_BIN=""
-
-resolve_binary() {
-  local name=$1
-  shift || true
-  local candidates=("$@")
-  if command -v "${name}" >/dev/null 2>&1; then
-    command -v "${name}"
-    return 0
-  fi
-  for path in "${candidates[@]}"; do
-    if [[ -x ${path} ]]; then
-      printf '%s\n' "${path}"
-      return 0
-    fi
-  done
-  return 1
-}
-
-APT_GET_BIN=$(resolve_binary apt-get /usr/bin/apt-get /bin/apt-get /usr/sbin/apt-get)
-if [[ -z ${APT_GET_BIN} ]]; then
-  APT_GET_BIN=$(resolve_binary apt /usr/bin/apt /bin/apt)
-fi
-APT_UPDATED=0
 
 WITH_GUI=0
 SKIP_SMOKE=0
@@ -132,17 +105,12 @@ if [[ -z ${MAKE_BIN:-} ]]; then
   exit 1
 fi
 
-for required in pct pvesm pveam; do
+for required in pct pvesm pveam ansible-playbook; do
   if ! command -v "${required}" >/dev/null 2>&1; then
     log_error "Benötigtes Kommando '${required}' wurde nicht gefunden."
     exit 1
   fi
 done
-
-if ! ensure_command ansible-playbook ansible-core ansible; then
-  log_error "ansible-playbook wurde nicht gefunden und konnte nicht automatisch installiert werden."
-  exit 1
-fi
 
 assert_executable() {
   local path=$1
