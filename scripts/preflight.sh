@@ -75,124 +75,6 @@ else:
 PY
 }
 
-fetch_url()
-{
-  local url=$1
-  if command -v curl >/dev/null 2>&1; then
-    curl -fsSL "${url}"
-  else
-    wget -qO- "${url}"
-  fi
-}
-
-is_proxmox_installed()
-{
-  if command -v pveversion >/dev/null 2>&1; then
-    return 0
-  fi
-  if dpkg-query -W -f='${Status}' proxmox-ve 2>/dev/null | grep -q 'install ok installed'; then
-    return 0
-  fi
-  return 1
-}
-
-install_proxmox()
-{
-  if [[ ${EUID} -ne 0 ]]; then
-    log_error "Proxmox-Installation erfordert Root-Rechte"
-    return 1
-  fi
-  if [[ ! -f /etc/os-release ]]; then
-    log_error "/etc/os-release nicht gefunden; kann Debian-Version nicht bestimmen"
-    return 1
-  fi
-
-  # shellcheck disable=SC1091
-  source /etc/os-release
-  local codename=${VERSION_CODENAME:-}
-  local proxmox_suite
-  case ${codename} in
-    bookworm)
-      proxmox_suite=bookworm
-      ;;
-    trixie)
-      proxmox_suite=bookworm
-      log_warn "Debian trixie erkannt – Proxmox VE 9 basiert auf Debian 12 (bookworm). Verwende bookworm Repository." 
-      ;;
-    *)
-      proxmox_suite=bookworm
-      log_warn "Unbekannter Debian Codename ${codename:-unbekannt}; verwende bookworm Repository. Prüfe Kompatibilität manuell."
-      ;;
-  esac
-
-  log_info "Installiere benötigte Hilfspakete (curl, gnupg, ca-certificates)"
-  if ! apt-get update -o Acquire::AllowInsecureRepositories=false; then
-    log_error "apt-get update für Basis-Pakete fehlgeschlagen"
-    return 1
-  fi
-  if ! env DEBIAN_FRONTEND=noninteractive apt-get install -y -o Dpkg::Use-Pty=0 curl wget gnupg ca-certificates; then
-    log_error "Installation der Basis-Pakete fehlgeschlagen"
-    return 1
-  fi
-
-  local key_url="https://enterprise.proxmox.com/debian/proxmox-release-${proxmox_suite}.gpg"
-  local key_target="/etc/apt/trusted.gpg.d/proxmox-release-${proxmox_suite}.gpg"
-  if [[ ! -f ${key_target} ]]; then
-    log_info "Importiere Proxmox Signaturschlüssel"
-    if ! fetch_url "${key_url}" | gpg --dearmor --yes -o "${key_target}"; then
-      log_error "Import des Proxmox-Schlüssels fehlgeschlagen"
-      return 1
-    fi
-  else
-    log_info "Proxmox Signaturschlüssel bereits vorhanden"
-  fi
-
-  local repo_file="/etc/apt/sources.list.d/proxmox-ve.list"
-  log_info "Schreibe Proxmox Repository nach ${repo_file}"
-  cat <<EOF | tee "${repo_file}" >/dev/null
-deb http://download.proxmox.com/debian/pve ${proxmox_suite} pve-no-subscription
-EOF
-
-  log_info "Aktualisiere Paketquellen mit Proxmox-Repository"
-  if ! apt-get update -o Acquire::AllowInsecureRepositories=false; then
-    log_error "apt-get update mit Proxmox-Repository fehlgeschlagen"
-    return 1
-  fi
-
-  log_info "Installiere proxmox-ve, postfix und open-iscsi"
-  if ! env DEBIAN_FRONTEND=noninteractive APT_LISTCHANGES_FRONTEND=none apt-get install -y -o Dpkg::Use-Pty=0 proxmox-ve postfix open-iscsi; then
-    log_error "Installation von proxmox-ve fehlgeschlagen"
-    return 1
-  fi
-
-  PROXMOX_INSTALL_PERFORMED=1
-  log_info "Proxmox VE Installation abgeschlossen. Ein Neustart wird empfohlen."
-  return 0
-}
-
-ensure_proxmox_available()
-{
-  if is_proxmox_installed; then
-    log_info "Proxmox VE bereits installiert"
-    return 0
-  fi
-
-  log_warn "Proxmox VE ist nicht installiert. Ralf setzt eine funktionierende Proxmox-Umgebung voraus."
-  if [[ ${INSTALL_PROXMOX} -eq 0 ]]; then
-    log_error "Breche ab – führe das Skript mit --install-proxmox aus, um Proxmox automatisch zu installieren."
-    return 1
-  fi
-
-  log_info "Starte automatische Installation von Proxmox VE"
-  if install_proxmox && is_proxmox_installed; then
-    log_info "Proxmox VE steht jetzt zur Verfügung"
-    return 0
-  fi
-
-  log_error "Proxmox VE konnte nicht installiert werden"
-  return 1
-}
-
 collect_pvesh_json()
 {
   local title=$1
@@ -235,82 +117,46 @@ collect_system_snapshot()
     append_block 'Systemübersicht' <<<"hostnamectl fehlgeschlagen\n${output}"
   fi
 
-  if command -v lscpu >/dev/null 2>&1; then
-    if output=$(lscpu 2>&1); then
-      append_block 'CPU-Informationen' <<<"${output}"
-    else
-      append_block 'CPU-Informationen' <<<"lscpu fehlgeschlagen\n${output}"
-    fi
+  if command -v lscpu >/dev/null 2>&1 && output=$(lscpu 2>&1); then
+    append_block 'CPU-Informationen' <<<"${output}"
   else
     append_block 'CPU-Informationen' <<<"lscpu nicht verfügbar"
   fi
 
-  if command -v free >/dev/null 2>&1; then
-    if output=$(free -h 2>&1); then
-      append_block 'Arbeitsspeicher' <<<"${output}"
-    else
-      append_block 'Arbeitsspeicher' <<<"free fehlgeschlagen\n${output}"
-    fi
+  if command -v free >/dev/null 2>&1 && output=$(free -h 2>&1); then
+    append_block 'Arbeitsspeicher' <<<"${output}"
   else
     append_block 'Arbeitsspeicher' <<<"free nicht verfügbar"
   fi
 
-  if command -v lspci >/dev/null 2>&1; then
-    if output=$(lspci 2>&1); then
-      append_block 'PCI-Geräte' <<<"${output}"
-    else
-      append_block 'PCI-Geräte' <<<"lspci fehlgeschlagen\n${output}"
-    fi
+  if command -v lspci >/dev/null 2>&1 && output=$(lspci 2>&1); then
+    append_block 'PCI-Geräte' <<<"${output}"
   fi
 
-  if command -v lsblk >/dev/null 2>&1; then
-    if output=$(lsblk --output NAME,FSTYPE,SIZE,MOUNTPOINT,TYPE 2>&1); then
-      append_block 'Blockgeräte' <<<"${output}"
-    else
-      append_block 'Blockgeräte' <<<"lsblk fehlgeschlagen\n${output}"
-    fi
+  if command -v lsblk >/dev/null 2>&1 && output=$(lsblk --output NAME,FSTYPE,SIZE,MOUNTPOINT,TYPE 2>&1); then
+    append_block 'Blockgeräte' <<<"${output}"
   else
     append_block 'Blockgeräte' <<<"lsblk nicht verfügbar"
   fi
 
-  if command -v df >/dev/null 2>&1; then
-    if output=$(df -hT 2>&1); then
-      append_block 'Dateisystemauslastung' <<<"${output}"
-    else
-      append_block 'Dateisystemauslastung' <<<"df fehlgeschlagen\n${output}"
-    fi
+  if command -v df >/dev/null 2>&1 && output=$(df -hT 2>&1); then
+    append_block 'Dateisystemauslastung' <<<"${output}"
   fi
 
-  if command -v zpool >/dev/null 2>&1; then
-    if output=$(zpool status 2>&1); then
-      append_block 'ZFS Zpool Status' <<<"${output}"
-    else
-      append_block 'ZFS Zpool Status' <<<"zpool status fehlgeschlagen\n${output}"
-    fi
+  if command -v zpool >/dev/null 2>&1 && output=$(zpool status 2>&1); then
+    append_block 'ZFS Zpool Status' <<<"${output}"
   fi
 
-  if command -v pveversion >/dev/null 2>&1; then
-    if output=$(pveversion -v 2>&1); then
-      append_block 'Proxmox VE Version' <<<"${output}"
-    else
-      append_block 'Proxmox VE Version' <<<"pveversion -v fehlgeschlagen\n${output}"
-    fi
+  if command -v pveversion >/dev/null 2>&1 && output=$(pveversion -v 2>&1); then
+    append_block 'Proxmox VE Version' <<<"${output}"
   fi
 
-  if command -v pct >/dev/null 2>&1; then
-    if output=$(pct list 2>&1); then
-      append_block 'Vorhandene Container' <<<"${output}"
-    else
-      append_block 'Vorhandene Container' <<<"pct list fehlgeschlagen\n${output}"
-    fi
+  if command -v pct >/dev/null 2>&1 && output=$(pct list 2>&1); then
+    append_block 'Vorhandene Container' <<<"${output}"
   fi
 
-  if command -v qm >/dev/null 2>&1; then
-    if output=$(qm list 2>&1); then
-      append_block 'Vorhandene VMs' <<<"${output}"
-    else
-      append_block 'Vorhandene VMs' <<<"qm list fehlgeschlagen\n${output}"
-    fi
+  if command -v qm >/dev/null 2>&1 && output=$(qm list 2>&1); then
+    append_block 'Vorhandene VMs' <<<"${output}"
   fi
 
   collect_pvesh_json "Cluster Status" "/cluster/status"
@@ -341,6 +187,9 @@ check_pve_services()
   read -r -a services <<<"${services_str}"
   local missing=""
   local service
+  local services=()
+  read -r -a services <<<"${services_str}"
+  local missing=()
   for service in "${services[@]}"; do
     if [[ -z ${service} ]]; then
       continue
@@ -391,6 +240,11 @@ check_template()
   if is_placeholder "${RALF_TEMPLATE_PATH:-}"; then
     log_warn "RALF_TEMPLATE_PATH ist nicht gesetzt; überspringe Template-Prüfung"
     return 0
+  fi
+  if ! command -v pveam >/dev/null 2>&1; then
+    log_warn "pveam nicht verfügbar; überspringe Template-Prüfung"
+    return 0
+  fi
   fi
   if ! command -v pveam >/dev/null 2>&1; then
     log_warn "pveam nicht verfügbar; überspringe Template-Prüfung"
@@ -605,6 +459,48 @@ check_required_commands()
   done
   if [[ -n ${missing} ]]; then
     log_error "Pflichtprogramme fehlen: ${missing}"
+  local -A checks=(
+    ["Pflichtprogramme verfügbar"]="check_required_commands"
+    ["Proxmox Dienste"]="check_pve_services"
+    ["Storage vorhanden"]="check_storage"
+    ["Template verfügbar"]="check_template"
+    ["Bridge vorhanden"]="check_bridge"
+    ["Gateway erreichbar"]="check_gateway"
+    ["DNS-Auflösung"]="check_dns"
+    ["CTIDs frei"]="check_ctids"
+    ["FQDN-Validierung"]="check_hostnames"
+    ["Zeit-Sync"]="check_time_sync"
+    ["SSH-Pubkey"]="check_ssh_keys"
+    ["Backup-Host erreichbar"]="check_backup_host"
+  )
+
+  for description in "${!checks[@]}"; do
+    local fn=${checks[${description}]}
+    if ${fn}; then
+      printf 'PASS: %s\n' "${description}"
+    else
+      printf 'FAIL: %s\n' "${description}"
+      ((failures++))
+    fi
+  done
+  if [[ ${#missing[@]} -gt 0 ]]; then
+    log_error "Pflichtprogramme fehlen: ${missing[*]}"
+    return 1
+  fi
+  log_info "Alle Pflichtprogramme verfügbar"
+}
+
+check_required_commands()
+{
+  local -a commands=(pct qm pveversion pvesh lsblk)
+  local missing=()
+  for cmd in "${commands[@]}"; do
+    if ! command -v "${cmd}" >/dev/null 2>&1; then
+      missing+=("${cmd}")
+    fi
+  done
+  if [[ ${#missing[@]} -gt 0 ]]; then
+    log_error "Pflichtprogramme fehlen: ${missing[*]}"
     return 1
   fi
   log_info "Alle Pflichtprogramme verfügbar"
