@@ -7,6 +7,10 @@ PROJECT_ROOT=$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)
 VARS_FILE="${PROJECT_ROOT}/infra/network/preflight.vars.source"
 IP_SCHEMA="${PROJECT_ROOT}/infra/network/ip-schema.yml"
 DEBUG=${DEBUG:-0}
+PVE_NODE_NAME=${PVE_NODE_NAME:-$(hostname -s)}
+REPORT_DIR=${RALF_PREFLIGHT_REPORT_DIR:-${PROJECT_ROOT}/logs}
+REPORT_TIMESTAMP=$(date +%Y%m%d-%H%M%S)
+REPORT_FILE="${REPORT_DIR}/preflight-report-${REPORT_TIMESTAMP}.txt"
 
 log()
 {
@@ -20,6 +24,143 @@ log_debug() { [[ ${DEBUG} -eq 1 ]] && log "DEBUG" "$*"; }
 log_info() { log "INFO" "$*"; }
 log_warn() { log "WARN" "$*"; }
 log_error() { log "ERROR" "$*"; }
+
+ensure_report_directory()
+{
+  if [[ -d ${REPORT_DIR} ]]; then
+    return 0
+  fi
+  if mkdir -p "${REPORT_DIR}"; then
+    log_debug "Report-Verzeichnis ${REPORT_DIR} erstellt"
+    return 0
+  fi
+  log_warn "Report-Verzeichnis ${REPORT_DIR} konnte nicht erstellt werden"
+  return 1
+}
+
+append_block()
+{
+  local title=$1
+  {
+    printf '## %s\n' "${title}"
+    cat
+    printf '\n'
+  } >>"${REPORT_FILE}"
+}
+
+pretty_print_json()
+{
+  if ! command -v python3 >/dev/null 2>&1; then
+    cat
+    return 0
+  fi
+  python3 - <<'PY' 2>/dev/null || cat
+import json
+import sys
+
+raw = sys.stdin.read()
+try:
+    data = json.loads(raw)
+except Exception:
+    sys.stdout.write(raw)
+else:
+    json.dump(data, sys.stdout, indent=2, sort_keys=True)
+    sys.stdout.write("\n")
+PY
+}
+
+collect_pvesh_json()
+{
+  local title=$1
+  local path=$2
+  shift 2
+  local -a args=("$@")
+  if ! command -v pvesh >/dev/null 2>&1; then
+    append_block "${title}" <<<'pvesh nicht verfügbar'
+    return 0
+  fi
+  local -a cmd=(pvesh get "${path}" --output-format json)
+  if [[ ${#args[@]} -gt 0 ]]; then
+    cmd+=("${args[@]}")
+  fi
+  local output
+  if output=$("${cmd[@]}" 2>&1); then
+    append_block "${title}" <<<"$(printf '%s' "${output}" | pretty_print_json)"
+  else
+    append_block "${title}" <<<"Befehl fehlgeschlagen: ${cmd[*]}\n${output}"
+  fi
+}
+
+collect_system_snapshot()
+{
+  if ! ensure_report_directory; then
+    log_warn "Überspringe Berichtserstellung, da das Verzeichnis nicht erstellt werden konnte"
+    return 1
+  fi
+
+  {
+    printf '# Ralf Preflight Systembericht\n'
+    printf '# Generiert: %s\n\n' "${REPORT_TIMESTAMP}"
+  } >"${REPORT_FILE}"
+
+  local output
+
+  if output=$(hostnamectl 2>&1); then
+    append_block 'Systemübersicht' <<<"${output}"
+  else
+    append_block 'Systemübersicht' <<<"hostnamectl fehlgeschlagen\n${output}"
+  fi
+
+  if command -v lscpu >/dev/null 2>&1 && output=$(lscpu 2>&1); then
+    append_block 'CPU-Informationen' <<<"${output}"
+  else
+    append_block 'CPU-Informationen' <<<"lscpu nicht verfügbar"
+  fi
+
+  if command -v free >/dev/null 2>&1 && output=$(free -h 2>&1); then
+    append_block 'Arbeitsspeicher' <<<"${output}"
+  else
+    append_block 'Arbeitsspeicher' <<<"free nicht verfügbar"
+  fi
+
+  if command -v lspci >/dev/null 2>&1 && output=$(lspci 2>&1); then
+    append_block 'PCI-Geräte' <<<"${output}"
+  fi
+
+  if command -v lsblk >/dev/null 2>&1 && output=$(lsblk --output NAME,FSTYPE,SIZE,MOUNTPOINT,TYPE 2>&1); then
+    append_block 'Blockgeräte' <<<"${output}"
+  else
+    append_block 'Blockgeräte' <<<"lsblk nicht verfügbar"
+  fi
+
+  if command -v df >/dev/null 2>&1 && output=$(df -hT 2>&1); then
+    append_block 'Dateisystemauslastung' <<<"${output}"
+  fi
+
+  if command -v zpool >/dev/null 2>&1 && output=$(zpool status 2>&1); then
+    append_block 'ZFS Zpool Status' <<<"${output}"
+  fi
+
+  if command -v pveversion >/dev/null 2>&1 && output=$(pveversion -v 2>&1); then
+    append_block 'Proxmox VE Version' <<<"${output}"
+  fi
+
+  if command -v pct >/dev/null 2>&1 && output=$(pct list 2>&1); then
+    append_block 'Vorhandene Container' <<<"${output}"
+  fi
+
+  if command -v qm >/dev/null 2>&1 && output=$(qm list 2>&1); then
+    append_block 'Vorhandene VMs' <<<"${output}"
+  fi
+
+  collect_pvesh_json "Cluster Status" "/cluster/status"
+  collect_pvesh_json "Cluster Ressourcen (Nodes)" "/cluster/resources" --type node
+  collect_pvesh_json "Cluster Ressourcen (Storage)" "/cluster/resources" --type storage
+  collect_pvesh_json "Cluster Ressourcen (VM/CT)" "/cluster/resources" --type vm
+  collect_pvesh_json "Node ${PVE_NODE_NAME} Disks" "/nodes/${PVE_NODE_NAME}/disks/list"
+
+  log_info "Systembericht gespeichert unter ${REPORT_FILE}"
+}
 
 load_vars()
 {
@@ -204,6 +345,7 @@ run_checks()
 {
   local failures=0
   local -A checks=(
+    ["Pflichtprogramme verfügbar"]="check_required_commands"
     ["Proxmox Dienste"]="check_pve_services"
     ["Storage vorhanden"]="check_storage"
     ["Template verfügbar"]="check_template"
@@ -227,6 +369,22 @@ run_checks()
     fi
   done
   return ${failures}
+}
+
+check_required_commands()
+{
+  local -a commands=(pct qm pveversion pvesh lsblk)
+  local missing=()
+  for cmd in "${commands[@]}"; do
+    if ! command -v "${cmd}" >/dev/null 2>&1; then
+      missing+=("${cmd}")
+    fi
+  done
+  if [[ ${#missing[@]} -gt 0 ]]; then
+    log_error "Pflichtprogramme fehlen: ${missing[*]}"
+    return 1
+  fi
+  log_info "Alle Pflichtprogramme verfügbar"
 }
 
 usage()
@@ -259,6 +417,9 @@ main()
   done
 
   load_vars
+  if ! collect_system_snapshot; then
+    log_warn "Systembericht konnte nicht erzeugt werden"
+  fi
   if run_checks; then
     log_info "Preflight erfolgreich"
     exit 0
