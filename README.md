@@ -206,6 +206,12 @@ Der Ablauf wird vom n8n-Workflow **Main Health Loop Orchestration** gesteuert, d
 - Compliance-Loop (A_SEC prüft TLS, Ports, Versionen, Richtlinien-Abweichungen).
 - Audits in Gitea durch Auto-Labels, Change-Reasons und nachvollziehbare PRs.
 
+### Policy-Pipeline
+
+1. **Secret-Rotation via Vaultwarden-API:** Das Installer-Profil `core` definiert für Vaultwarden neben Deploy- und Konfigurationsschritten auch Rotations-Jobs. Der Installer generiert neue Token/Passwörter und schreibt sie direkt über die Vaultwarden-API in die jeweiligen Einträge – wahlweise als Trockenlauf (Audit) oder im produktiven Modus.
+2. **Compliance-Scans & Ergebnisse:** Agent **A_SEC** sowie verbundene Scanner persistieren Ergebnisse als JSON-Dateien unterhalb eines `policy_results/`-Verzeichnisses des Profils. Jeder Eintrag enthält Policy-Name, Zielobjekt, Status, Severity und optionale Details.
+3. **Bericht & Distribution:** Mit `ralf-installer report installer/profiles/core.yaml [--results-dir …] [--json]` werden alle Findings konsolidiert. Die Ausgabe eignet sich für Matrix-Notifications, Audits in Gitea oder automatisierte Freigaben und kann wahlweise menschenlesbar oder als JSON für Pipelines ausgegeben werden.
+
 ## Betrieb, Monitoring & Backups
 
 - Prometheus, Loki und Grafana für Metriken, Logs und Dashboards.
