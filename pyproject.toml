@@ -1,0 +1,22 @@
+[build-system]
+requires = ["setuptools>=61.0"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "ralf-installer"
+version = "0.1.0"
+description = "Installer tooling for the R.A.L.F. homelab ecosystem"
+authors = [
+  { name = "Kolja / L.I.S.A. Project" }
+]
+readme = "README.md"
+requires-python = ">=3.10"
+dependencies = [
+  "PyYAML>=6.0"
+]
+
+[project.scripts]
+ralf-installer = "ralf_installer.cli:main"
+
+[tool.setuptools.packages.find]
+where = ["src"]

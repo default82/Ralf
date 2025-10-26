@@ -1,0 +1,45 @@
+name: core
+description: >-
+  Core services required for the R.A.L.F. homelab environment. The profile installs
+  databases, source control and automation runtimes in a dependency aware order.
+components:
+  - name: postgresql
+    description: Primary relational database used for inventory and status data.
+    tasks:
+      - Prepare storage volumes for PostgreSQL
+      - Deploy PostgreSQL container or VM
+      - Configure users and initial databases
+  - name: gitea
+    description: Git service hosting Infrastructure-as-Code and documentation.
+    depends_on:
+      - postgresql
+    tasks:
+      - Provision Gitea runtime and required volumes
+      - Configure database connection credentials
+      - Seed repositories for automation and knowledge artifacts
+  - name: vaultwarden
+    description: Secrets management service for credentials and API tokens.
+    depends_on:
+      - postgresql
+    tasks:
+      - Deploy Vaultwarden service
+      - Configure admin account and secrets storage
+      - Synchronise bootstrap secrets with installation nodes
+  - name: automation
+    description: Automation runtimes required by infrastructure agents.
+    depends_on:
+      - gitea
+      - vaultwarden
+    tasks:
+      - Deploy OpenTofu execution environment
+      - Deploy Ansible control node
+      - Register automation credentials in Vaultwarden
+  - name: observability
+    description: Monitoring stack with Prometheus, Loki and Grafana.
+    depends_on:
+      - postgresql
+      - automation
+    tasks:
+      - Deploy Prometheus and scrape configuration
+      - Deploy Loki for log aggregation
+      - Provision Grafana dashboards and data sources
