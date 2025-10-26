@@ -167,6 +167,86 @@ components:
       - Deploy Prometheus and scrape configuration
       - Deploy Loki for log aggregation
       - Provision Grafana dashboards and data sources
+  - name: ralf-ui
+    description: Web-Frontend und Matrix-Webhooks für R.A.L.F. Status & Operator-Feedback.
+    depends_on:
+      - postgresql
+      - automation
+    tasks:
+      - Provision Node.js build runner for the UI bundle
+      - Build ralf-ui React frontend and publish static assets via Nginx
+      - Register Matrix webhook endpoints for health and automation events
+      - Synchronise Matrix bot secrets from Vaultwarden to runtime environment
+    actions:
+      - provider: proxmox
+        operation: create_lxc
+        options:
+          node: pve01
+          vmid: 210
+          hostname: ui01.lab.local
+          template: debian12-standard
+          cores: 2
+          memory: 4096
+          disk_size_gb: 30
+          storage: local-lvm
+      - provider: proxmox
+        operation: configure_network
+        options:
+          vmid: 210
+          networks:
+            - name: eth0
+              bridge: vmbr0
+              ip: 10.42.0.41/24
+              gateway: 10.42.0.1
+      - provider: service
+        operation: run_commands
+        options:
+          host: ui01.lab.local
+          commands:
+            - apt-get update
+            - apt-get install -y nodejs npm nginx
+            - npm install -g pnpm
+      - provider: service
+        operation: build_frontend
+        options:
+          host: ui01.lab.local
+          repository: https://gitea.lab.local/ralf/ralf-ui.git
+          branch: main
+          build_command: pnpm install && pnpm build
+          artifact_path: dist
+          deploy_path: /var/www/ralf-ui
+      - provider: service
+        operation: configure_nginx_site
+        options:
+          host: ui01.lab.local
+          server_name: status.lab.local
+          root: /var/www/ralf-ui
+          tls_secret: vault://nginx/status.lab.local/tls
+      - provider: service
+        operation: configure_webhooks
+        options:
+          name: matrix_webhooks
+          host: ralf-core.lab.local
+          endpoints:
+            - event: health_alert
+              url: https://ralf-core.lab.local/webhooks/matrix/health
+              secret: vault://matrix/appservice/health
+            - event: automation_update
+              url: https://ralf-core.lab.local/webhooks/matrix/infra
+              secret: vault://matrix/appservice/infra
+          notify_ui: https://status.lab.local/api/webhook-refresh
+      - provider: vaultwarden
+        operation: sync_secrets
+        options:
+          url: https://vault.lab.local
+          access_token: "{{ env.VAULTWARDEN_ADMIN_TOKEN }}"
+          items:
+            - item_id: matrix-appservice-health
+              export_to: /etc/ralf/matrix/health.token
+              permissions: 0600
+            - item_id: matrix-appservice-infra
+              export_to: /etc/ralf/matrix/infra.token
+              permissions: 0600
 workflows:
   - name: Main Health Loop Orchestration
     loop: main
