@@ -1,0 +1,24 @@
+# Base Prometheus configuration for the R.A.L.F. observability stack
+# Deploys global scrape configuration and loads alert rules for core services.
+global:
+  scrape_interval: 15s
+  evaluation_interval: 30s
+
+alerting:
+  alertmanagers:
+    - static_configs:
+        - targets: ['localhost:9093']
+
+rule_files:
+  - alerts/core-services.yaml
+
+scrape_configs:
+  - job_name: prometheus
+    static_configs:
+      - targets:
+          - 'localhost:9090'
+  - job_name: ralf-core-services
+    file_sd_configs:
+      - files:
+          - targets/core-services.json
+        refresh_interval: 30s
