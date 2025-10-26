@@ -147,6 +147,7 @@ class WorkflowTemplate:
     description: str
     inputs: List[str]
     outputs: List[str]
+    phases: List[str]
 
     @classmethod
     def from_mapping(cls, data: Mapping[str, object]) -> "WorkflowTemplate":
@@ -161,11 +162,13 @@ class WorkflowTemplate:
         description_raw = data.get("description", "")
         inputs_raw = data.get("inputs", [])
         outputs_raw = data.get("outputs", [])
+        phases_raw = data.get("phases", [])
 
         entrypoint = str(entrypoint_raw)
         description = str(description_raw)
         inputs = _ensure_str_list(inputs_raw, field="inputs", component=name)
         outputs = _ensure_str_list(outputs_raw, field="outputs", component=name)
+        phases = _ensure_str_list(phases_raw, field="phases", component=name)
 
         return cls(
             name=name,
@@ -175,6 +178,7 @@ class WorkflowTemplate:
             description=description,
             inputs=inputs,
             outputs=outputs,
+            phases=phases,
         )
 
 
