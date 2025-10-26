@@ -92,6 +92,14 @@ Schritt für Schritt automatisierbare Routinen zu ergänzen und die Abhängigkei
 
 ## Datenflüsse & Hauptabläufe
 
+### Scheduler & Workflow-Aktivierung
+
+- **Main Health Loop Orchestration (n8n):** läuft alle fünf Minuten per Cron (`*/5 * * * *`, Zeitzone Europe/Berlin) und zusätzlich über einen 15-Minuten-Timer, um Health-, Repair- und Dokumentationsläufe zu starten.
+- **Foreman Discovery Sweep (Foreman):** stößt jede Stunde eine Discovery-Runde an, normalisiert eingehende Hardware-Facts und aktualisiert das Inventar.
+- **Adaptive Optimizer (n8n):** wird stündlich per Cron (`0 * * * *`) ausgeführt, bündelt Kapazitätsdaten und triggert Skalierungs- bzw. Migrationspfade.
+
+Mit `ralf-installer enable-workflows installer/profiles/core.yaml` lassen sich die hinterlegten Workflows anzeigen und gezielt nach Runtime (`--runtime n8n`/`foreman`) oder Loop (`--loop main`) aktivieren.
+
 ### Deployment Flow (Beispiel Jellyfin)
 
 1. **Input:** Matrix-Befehl „Installiere Jellyfin“.
@@ -110,6 +118,8 @@ Schritt für Schritt automatisierbare Routinen zu ergänzen und die Abhängigkei
 5. Lernen (Vector-DB).
 
 Ergebnis: stabile Systeme, Selbstheilung und kontinuierliche Optimierung.
+
+Der Ablauf wird vom n8n-Workflow **Main Health Loop Orchestration** gesteuert, der sowohl per Cron (alle fünf Minuten) als auch über einen Sicherheits-Timer nach 15 Minuten Nachlauf anstößt.
 
 ### Maintenance & Repair
 
@@ -141,6 +151,7 @@ Ergebnis: stabile Systeme, Selbstheilung und kontinuierliche Optimierung.
 - Foreman meldet DHCP/ARP/PXE-Ergebnisse zurück.
 - A_PLAN bewertet neue oder geänderte Hosts, erstellt Rollen-Vorschläge und aktualisiert Inventare via n8n.
 - Vaultwarden stellt Zugangsdaten für Scans bereit; Admins erhalten Hinweise via Synapse.
+- Der Workflow **Foreman Discovery Sweep** wird jede Stunde als Timer-Trigger ausgeführt und synchronisiert Inventardaten unmittelbar nach Abschluss mit Ralf-Core.
 
 ### Adaptive Infrastructure Loop
 
@@ -151,6 +162,7 @@ Ergebnis: stabile Systeme, Selbstheilung und kontinuierliche Optimierung.
 - A_SEC prüft Policies und Secrets; RALF lernt aus Ergebnissen und informiert über Synapse.
 - Ablauf: Analyse → Planung (Simulation) → Validierung (Policies/Secrets) → Ausführung (Tofu/Ansible) → Dokumentation (Gitea) → Lernen (Vector-DB) → Feedback (Matrix/UI).
 - Reagiert auf neue Hardware, Lastdrift, PBS-Events und Kapazitätsengpässe.
+- Die Planungskaskade wird stündlich vom n8n-Workflow **Adaptive Optimizer** gestartet, der Forecasts bündelt und Automationspfade für Skalierung und Dokumentation anstößt.
 
 ## Datenhaltung & Schnittstellen
 
