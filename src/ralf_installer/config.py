@@ -14,6 +14,15 @@ class ConfigurationError(RuntimeError):
 
 
 @dataclasses.dataclass(slots=True)
+class Action:
+    """Describes a provider specific operation for a component."""
+
+    provider: str
+    operation: str
+    options: Mapping[str, object]
+
+
+@dataclasses.dataclass(slots=True)
 class Component:
     """Represents a deployable component in a profile."""
 
@@ -21,6 +30,7 @@ class Component:
     description: str
     tasks: List[str]
     depends_on: List[str]
+    actions: List[Action]
 
     @classmethod
     def from_mapping(cls, data: Mapping[str, object]) -> "Component":
@@ -29,12 +39,20 @@ class Component:
             description = str(data.get("description", ""))
             raw_tasks = data.get("tasks", [])
             raw_depends = data.get("depends_on", [])
+            raw_actions = data.get("actions", [])
         except KeyError as exc:  # pragma: no cover - defensive
             raise ConfigurationError(f"Missing field in component definition: {exc}") from exc
 
         tasks = _ensure_str_list(raw_tasks, field="tasks", component=name)
         depends_on = _ensure_str_list(raw_depends, field="depends_on", component=name)
-        return cls(name=name, description=description, tasks=tasks, depends_on=depends_on)
+        actions = _ensure_action_list(raw_actions, component=name)
+        return cls(
+            name=name,
+            description=description,
+            tasks=tasks,
+            depends_on=depends_on,
+            actions=actions,
+        )
 
 
 @dataclasses.dataclass(slots=True)
@@ -121,3 +139,37 @@ def _ensure_str_list(value: object, *, field: str, component: str) -> List[str]:
             result.append(item)
         return result
     raise ConfigurationError(f"Component '{component}' field '{field}' must be a list of strings")
+
+
+def _ensure_action_list(value: object, *, component: str) -> List[Action]:
+    if value is None:
+        return []
+    if isinstance(value, Mapping):
+        value = [value]
+    if isinstance(value, Iterable) and not isinstance(value, (bytes, bytearray, str)):
+        result: List[Action] = []
+        for index, item in enumerate(value):
+            if not isinstance(item, Mapping):
+                raise ConfigurationError(
+                    "Component '%s' action entry %s must be a mapping" % (component, index)
+                )
+            provider = item.get("provider")
+            operation = item.get("operation")
+            options = item.get("options", {})
+            if not isinstance(provider, str) or not provider:
+                raise ConfigurationError(
+                    f"Component '{component}' action {index} is missing a provider"
+                )
+            if not isinstance(operation, str) or not operation:
+                raise ConfigurationError(
+                    f"Component '{component}' action {index} is missing an operation"
+                )
+            if not isinstance(options, Mapping):
+                raise ConfigurationError(
+                    f"Component '{component}' action {index} options must be a mapping"
+                )
+            result.append(Action(provider=provider, operation=operation, options=options))
+        return result
+    raise ConfigurationError(
+        f"Component '{component}' field 'actions' must be a mapping or list of mappings"
+    )

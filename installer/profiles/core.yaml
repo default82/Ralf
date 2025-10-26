@@ -9,6 +9,43 @@ components:
       - Prepare storage volumes for PostgreSQL
       - Deploy PostgreSQL container or VM
       - Configure users and initial databases
+    actions:
+      - provider: proxmox
+        operation: create_lxc
+        options:
+          node: pve01
+          vmid: 201
+          hostname: pgsql01.lab.local
+          template: debian12-standard
+          cores: 4
+          memory: 8192
+          disk_size_gb: 120
+          storage: local-lvm
+      - provider: proxmox
+        operation: configure_network
+        options:
+          vmid: 201
+          networks:
+            - name: eth0
+              bridge: vmbr0
+              ip: 10.42.0.11/24
+              gateway: 10.42.0.1
+      - provider: proxmox
+        operation: run_commands
+        options:
+          vmid: 201
+          commands:
+            - apt-get update
+            - apt-get install -y postgresql
+            - systemctl enable --now postgresql
+      - provider: service
+        operation: configure_postgresql
+        options:
+          host: pgsql01.lab.local
+          port: 5432
+          admin_user: postgres
+          database: ralf_core
+          app_user_secret: vault://postgresql/ralf-core/app-user
   - name: gitea
     description: Git service hosting Infrastructure-as-Code and documentation.
     depends_on:
@@ -17,6 +54,42 @@ components:
       - Provision Gitea runtime and required volumes
       - Configure database connection credentials
       - Seed repositories for automation and knowledge artifacts
+    actions:
+      - provider: proxmox
+        operation: create_lxc
+        options:
+          node: pve01
+          vmid: 202
+          hostname: gitea01.lab.local
+          template: debian12-standard
+          cores: 4
+          memory: 6144
+          disk_size_gb: 80
+          storage: local-lvm
+      - provider: proxmox
+        operation: configure_network
+        options:
+          vmid: 202
+          networks:
+            - name: eth0
+              bridge: vmbr0
+              ip: 10.42.0.21/24
+              gateway: 10.42.0.1
+      - provider: proxmox
+        operation: run_commands
+        options:
+          vmid: 202
+          commands:
+            - apt-get update
+            - apt-get install -y docker.io
+            - docker compose -f /opt/gitea/docker-compose.yml up -d
+      - provider: service
+        operation: configure_gitea
+        options:
+          url: https://gitea.lab.local
+          database_dsn: postgresql://gitea:vault://postgresql/gitea/db@pgsql01.lab.local:5432/gitea
+          admin_secret: vault://gitea/admin/password
+          oauth_secret: vault://gitea/oauth/client-secret
   - name: vaultwarden
     description: Secrets management service for credentials and API tokens.
     depends_on:
@@ -25,6 +98,41 @@ components:
       - Deploy Vaultwarden service
       - Configure admin account and secrets storage
       - Synchronise bootstrap secrets with installation nodes
+    actions:
+      - provider: proxmox
+        operation: create_lxc
+        options:
+          node: pve01
+          vmid: 203
+          hostname: vault01.lab.local
+          template: debian12-standard
+          cores: 2
+          memory: 4096
+          disk_size_gb: 40
+          storage: local-lvm
+      - provider: proxmox
+        operation: configure_network
+        options:
+          vmid: 203
+          networks:
+            - name: eth0
+              bridge: vmbr0
+              ip: 10.42.0.31/24
+              gateway: 10.42.0.1
+      - provider: proxmox
+        operation: run_commands
+        options:
+          vmid: 203
+          commands:
+            - apt-get update
+            - apt-get install -y docker.io
+            - docker run -d --name vaultwarden -p 80:80 vaultwarden/server:latest
+      - provider: service
+        operation: configure_vaultwarden
+        options:
+          url: https://vault.lab.local
+          admin_token_secret: vault://vaultwarden/admin/token
+          smtp_secret: vault://vaultwarden/smtp/password
   - name: automation
     description: Automation runtimes required by infrastructure agents.
     depends_on:

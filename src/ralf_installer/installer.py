@@ -3,9 +3,10 @@
 from __future__ import annotations
 
 import dataclasses
-from typing import Iterable, List
+from typing import List
 
 from .config import Component, Profile
+from .providers import execute_action
 
 
 @dataclasses.dataclass(slots=True)
@@ -44,16 +45,16 @@ class Installer:
         return self._profile.resolve_dependencies()
 
     def execute(self) -> ExecutionReport:
-        """Simulate executing the installer."""
+        """Execute the installer and return a detailed report."""
         ordered_components = self.plan()
         executed: List[str] = []
         skipped: List[str] = []
 
         for component in ordered_components:
+            _run_component(component, dry_run=self._dry_run)
             if self._dry_run:
                 skipped.append(component.name)
             else:
-                _run_component(component)
                 executed.append(component.name)
 
         return ExecutionReport(
@@ -63,12 +64,17 @@ class Installer:
         )
 
 
-def _run_component(component: Component) -> None:
-    """Placeholder for the real installer logic."""
+def _run_component(component: Component, *, dry_run: bool) -> None:
+    """Execute all actions for a component."""
 
-    for task in component.tasks:
-        _log_task(component.name, task)
+    if component.actions:
+        for action in component.actions:
+            execute_action(action, dry_run=dry_run)
+    else:
+        for task in component.tasks:
+            _log_task(component.name, task, dry_run=dry_run)
 
 
-def _log_task(component_name: str, task: str) -> None:
-    print(f"[{component_name}] {task}")
+def _log_task(component_name: str, task: str, *, dry_run: bool) -> None:
+    prefix = "DRY-RUN" if dry_run else "EXEC"
+    print(f"[{prefix}] {component_name}: {task}")
