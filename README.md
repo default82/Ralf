@@ -193,8 +193,59 @@ Der Ablauf wird vom n8n-Workflow **Main Health Loop Orchestration** gesteuert, d
 - **Vaultwarden:** Zentrale Secret-Quelle mit scoped Tokens und Credentials.
 - **Vector-DB:** Wissensspeicher für Muster, Heuristiken und Lessons Learned.
 - **Synapse (Matrix):** Chat-Befehle, Rückmeldungen, Notifications.
-- **Geplante Web-UI:** Ergänzendes grafisches Frontend.
+- **Web-UI (ralf-ui):** React/Vite-Frontend für Status-Visualisierung und Bot-Health.
 - **APIs & Integrationen:** n8n REST, Ansible/Semaphore, OpenTofu Provider, Prom/Loki Queries, Foreman API, Matrix Webhooks.
+
+## Matrix- & Synapse-Bots
+
+R.A.L.F. nutzt dedizierte Matrix-Bots, um Automationsereignisse, Health-Alerts und Operator-Kommandos bidirektional auszutauschen.
+Jeder Bot hat einen klar abgegrenzten Aufgabenbereich und wird über Synapse-Application-Services eingebunden.
+
+### Bots & Räume
+
+| Bot            | Empfohlener Raum                 | Aufgabe                                               |
+| -------------- | -------------------------------- | ------------------------------------------------------ |
+| `ralf-health`  | `!health:homelab`                | Health-/Alert-Feed aus A_MON                          |
+| `ralf-infra`   | `!infra:homelab`                 | Deployment-/Repair-Status von A_INFRA                 |
+| `ralf-planner` | `!planner:homelab`               | Kapazitätsplanung & Simulationsergebnisse von A_PLAN  |
+| `ralf-sec`     | `!sec:homelab`                   | Policy-/Compliance-Hinweise von A_SEC                 |
+| `ralf-core`    | `!ops:homelab`                   | Operator-Kommandos, Chat mit Ralf-Core                |
+
+### Synapse-Konfiguration (Auszug)
+
+```yaml
+# homeserver.yaml
+app_service_config_files:
+  - /etc/matrix-synapse/appservices/ralf.yaml
+
+rc_message:
+  per_second: 1
+  burst_count: 10
+```
+
+```yaml
+# /etc/matrix-synapse/appservices/ralf.yaml
+id: ralf
+url: https://ralf-core.lab.local/webhooks/matrix
+as_token: "<GENERATED_APP_SERVICE_TOKEN>"
+hs_token: "<HOMESERVER_TOKEN>"
+sender_localpart: ralf-health
+rate_limited: false
+namespaces:
+  users:
+    - exclusive: true
+      regex: '@ralf-.*:homelab'
+```
+
+**Secrets:** Tokens werden im Installer als `vault://matrix/appservice/*` referenziert und über Vaultwarden verwaltet.
+
+### Webhook-Zuordnung
+
+1. Matrix Application-Service in Synapse aktivieren (siehe YAML oben) und Homeserver neu starten.
+2. Webhook-URL (`https://ralf-core.lab.local/webhooks/matrix`) in n8n-Flows bzw. Ralf-Core hinterlegen.
+3. Räume erstellen und Bots mit `@ralf-<rolle>:homelab` in den jeweiligen Raum einladen.
+4. Zugriffstokens im Installer-Profil (`matrix_webhooks`) referenzieren, damit Deployments die Bots automatisch registrieren.
+5. UI (`ralf-ui`) verwendet die gleiche API, um Bot-Status (`matrixRooms`) in der Statusansicht darzustellen.
 
 ## Sicherheit & Compliance
 
