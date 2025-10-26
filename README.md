@@ -1,222 +1,190 @@
 # Ralf
 
-R.A.L.F. – Resourceful Assistant for Labs and Frameworks
+**R.A.L.F. – Resourceful Assistant for Labs and Frameworks**
+
+Ein KI-gesteuertes, selbstadaptives Homelab-Ökosystem, das Dienste orchestriert, Infrastruktur überwacht, Fehler heilt und aus Ereignissen lernt – vollständig lokal auf Proxmox, mit klaren APIs und auditierbaren Änderungen.
+
+## Inhaltsverzeichnis
+
+1. [Ziele & Prinzipien](#ziele--prinzipien)
+2. [Architekturüberblick](#architekturüberblick)
+3. [Komponenten](#komponenten)
+4. [Datenflüsse & Hauptabläufe](#datenflüsse--hauptabläufe)
+   - [Deployment Flow (Beispiel Jellyfin)](#deployment-flow-beispiel-jellyfin)
+   - [Main-Loop](#main-loop-health-self-healing-learning)
+   - [Maintenance & Repair](#maintenance--repair)
+   - [Learning & Explainability](#learning--explainability)
+   - [Policy & Security](#policy--security)
+   - [Telemetry & External Insights](#telemetry--external-insights)
+   - [Network Discovery Loop](#network-discovery-loop)
+   - [Adaptive Infrastructure Loop](#adaptive-infrastructure-loop)
+5. [Datenhaltung & Schnittstellen](#datenhaltung--schnittstellen)
+6. [Sicherheit & Compliance](#sicherheit--compliance)
+7. [Betrieb, Monitoring & Backups](#betrieb-monitoring--backups)
+8. [Roadmap & Checkpoints](#roadmap--checkpoints)
+9. [Mermaid-Gesamtarchitektur](#mermaid-gesamtarchitektur)
+10. [Glossar](#glossar)
+
+## Ziele & Prinzipien
+
+- **Autonomie:** Dienste installieren, konfigurieren, überwachen und reparieren sich weitgehend selbst.
+- **Lernen:** Mustererkennung aus Logs und Metriken; Konsolidation in einem Wissensspeicher.
+- **Transparenz:** Jede Entscheidung ist erklärbar (Explainability) und auditierbar (Gitea/Commits).
+- **APIs statt „Querschießen“:** Zugriff auf Systeme nur über dokumentierte Schnittstellen.
+- **Lokal first:** Betrieb lokal auf Proxmox, offline-fähig; externe Ressourcen optional.
+- **Sicherheit:** Strikte Secret-Governance über Vaultwarden; regelmäßige Rotation und Policy-Checks.
+
+## Architekturüberblick
+
+R.A.L.F. läuft innerhalb der Exo-KI-Runtime. Persistente Kerndienste (PostgreSQL, Gitea, Vaultwarden, Vector-DB) sowie Orchestrierung und Monitoring (n8n, Ansible, OpenTofu, Prometheus, Loki, Grafana) werden als VMs bzw. LXCs auf Proxmox betrieben. Foreman gehört zur R.A.L.F.-Domäne (Discovery/Inventar) und reagiert zusätzlich auf externe Events wie neue Hosts.
+
+## Komponenten
+
+| Kategorie      | Dienst/Agent            | Aufgabe (Kurz)                                               |
+| -------------- | ----------------------- | ------------------------------------------------------------ |
+| KI-Core        | Ralf-Core               | Reasoner/Planner/Coordinator, Chat-/UI-Interface             |
+| Agenten        | A_PLAN                  | Ressourcenplanung, Platzierung, Simulation                   |
+|                | A_INFRA                 | Provisionierung & Konfiguration (OpenTofu/Ansible)           |
+|                | A_MON                   | Health, Auto-Dashboards, Anomalien (Prometheus/Loki)         |
+|                | A_CODE                  | IaC, Dokumentation, PRs/Commits (Gitea)                      |
+|                | A_SEC                   | Secrets, Policy & Compliance                                 |
+| Runtime        | Exo                     | Hostet Ralf-Core & Agenten                                   |
+| Discovery      | Foreman                 | PXE/DHCP/Inventar, Rollen-Vorschläge                         |
+| Orchestrierung | n8n                     | Workflows, Freigaben, Notifications                          |
+| Automation     | Ansible / OpenTofu      | Konfiguration & IaC-Provisionierung                          |
+| Monitoring     | Prometheus / Loki / Grafana | Metriken, Logs, Dashboards                              |
+| Datenhaltung   | PostgreSQL              | Inventar, Status, Historie, Audit                            |
+|                | Gitea                   | Repositories, IaC, Playbooks, Dokumentation                  |
+|                | Vaultwarden             | Secrets, Tokens, Credentials                                 |
+|                | Vector-DB               | Wissensspeicher & Langzeitmuster                             |
+| Interfaces     | Synapse (Matrix)        | Chat-Befehle, Rückmeldungen                                  |
+|                | Web-UI (geplant)        | Grafisches Frontend                                          |
+
+## Datenflüsse & Hauptabläufe
+
+### Deployment Flow (Beispiel Jellyfin)
+
+1. **Input:** Matrix-Befehl „Installiere Jellyfin“.
+2. **Intent & Planung:** Ralf erkennt den Auftrag, A_PLAN prüft Ressourcen (PostgreSQL) und Templates (Gitea).
+3. **Workflow:** Ralf erzeugt einen n8n-Task „Deploy Jellyfin“.
+4. **Provisionierung:** A_INFRA orchestriert OpenTofu (LXC/VM) und Ansible (Installation/Konfiguration); Secrets kommen aus Vaultwarden.
+5. **Monitoring & Feedback:** Exporter aktivieren Metriken/Logs, A_MON bewertet Ergebnisse, Ralf bestätigt im Chat.
+6. **Persistenz:** Status, IaC, Dashboards und Audit-Trail werden aktualisiert.
+
+### Main-Loop (Health, Self-Healing, Learning)
+
+1. Sammeln (Prometheus/Loki) →
+2. Bewerten (Ralf) →
+3. Korrigieren (A_INFRA via Ansible/OpenTofu) →
+4. Dokumentieren (A_CODE/Gitea) →
+5. Lernen (Vector-DB).
+
+Ergebnis: stabile Systeme, Selbstheilung und kontinuierliche Optimierung.
+
+### Maintenance & Repair
+
+- Backups werden bei PBS-Erkennung automatisch geplant.
+- Repair-Loop sorgt für Redeploy/Restart bei Ausfällen.
+- Resource Balancing simuliert und verteilt Last über mehrere Nodes.
+
+### Learning & Explainability
+
+- Knowledge Consolidation erzeugt Erfahrungsobjekte zu Incidents und Deployments.
+- Pattern Recognition identifiziert wiederkehrende Fehler und erstellt Vorhersagen.
+- Explainability & Audit Trail durch Auto-PRs/Commits mit Begründungen in Gitea.
+
+### Policy & Security
+
+- RALF führt Security-Checks und Policy-Validierungen über A_SEC durch.
+- Secrets werden zentral über Vaultwarden verwaltet und regelmäßig rotiert.
+- Strikte Nutzung dokumentierter APIs; keine Direktzugriffe quer über Systeme.
+
+### Telemetry & External Insights
+
+- n8n speichert Workflow-Ergebnisse, schreibt Code, nutzt Secrets und versendet Benachrichtigungen.
+- Prometheus und Loki liefern Metriken bzw. Logs an RALF; Gitea, PostgreSQL und die Vector-DB dienen als persistente Wissensbasis.
+- Aggregation von Trends (Prometheus) → Reports/Dashboards (Grafana) sowie optionale Telemetry-Exporte ohne sensible Daten.
 
-KI-gesteuertes, selbstadaptives Homelab-Ökosystem
+### Network Discovery Loop
 
-Kurzfassung: R.A.L.F. ist die zentrale KI deines Homelabs. Er orchestriert Dienste, überwacht Infrastruktur, heilt sich selbst, lernt aus Ereignissen und optimiert Ressourcen – alles lokal auf Proxmox, mit klaren APIs und nachvollziehbaren Änderungen (Explainability & Audit).
+- RALF startet regelmäßige Scans über Foreman.
+- Foreman meldet DHCP/ARP/PXE-Ergebnisse zurück.
+- A_PLAN bewertet neue oder geänderte Hosts, erstellt Rollen-Vorschläge und aktualisiert Inventare via n8n.
+- Vaultwarden stellt Zugangsdaten für Scans bereit; Admins erhalten Hinweise via Synapse.
 
-Inhaltsverzeichnis
+### Adaptive Infrastructure Loop
 
-1. Ziele & Prinzipien
+- Foreman meldet neue Hosts oder Hardware, A_MON liefert Ressourcendaten.
+- RALF analysiert Optimierungspotenziale und gibt sie an A_PLAN weiter.
+- A_PLAN simuliert Umverteilungen, plant Migrationen/Scaling und triggert A_INFRA sowie A_CODE.
+- A_INFRA setzt Deployments/Migrationen um, aktualisiert Konfigurationen und persistiert Änderungen in PostgreSQL.
+- A_SEC prüft Policies und Secrets; RALF lernt aus Ergebnissen und informiert über Synapse.
+- Ablauf: Analyse → Planung (Simulation) → Validierung (Policies/Secrets) → Ausführung (Tofu/Ansible) → Dokumentation (Gitea) → Lernen (Vector-DB) → Feedback (Matrix/UI).
+- Reagiert auf neue Hardware, Lastdrift, PBS-Events und Kapazitätsengpässe.
 
-2. Architekturüberblick
+## Datenhaltung & Schnittstellen
 
-3. Komponenten
+- **PostgreSQL:** Inventar, Status, Historie, Audit-Trails und Entscheidungsprotokolle.
+- **Gitea:** „Single Source of Truth“ für Repositories, IaC, Playbooks und Dokumentation.
+- **Vaultwarden:** Zentrale Secret-Quelle mit scoped Tokens und Credentials.
+- **Vector-DB:** Wissensspeicher für Muster, Heuristiken und Lessons Learned.
+- **Synapse (Matrix):** Chat-Befehle, Rückmeldungen, Notifications.
+- **Geplante Web-UI:** Ergänzendes grafisches Frontend.
+- **APIs & Integrationen:** n8n REST, Ansible/Semaphore, OpenTofu Provider, Prom/Loki Queries, Foreman API, Matrix Webhooks.
 
-4. Datenflüsse & Hauptabläufe
+## Sicherheit & Compliance
 
-4.1 Deployment Flow (Beispiel Jellyfin)
+- Geheimnisverwaltung über Vaultwarden mit regelmäßiger Rotation.
+- Policy-Checks durch A_SEC inklusive Compliance-Berichte.
+- Explainability durch nachvollziehbare Änderungen (Commits, Audits, Dokumentation).
+- Least-Privilege-Prinzip mit tool-spezifischen Vaultwarden-Zugängen.
+- Rotation-Policies sowohl zeitgesteuert als auch ereignisgesteuert.
+- Compliance-Loop (A_SEC prüft TLS, Ports, Versionen, Richtlinien-Abweichungen).
+- Audits in Gitea durch Auto-Labels, Change-Reasons und nachvollziehbare PRs.
 
-4.2 Main-Loop (Health, Self-Healing, Learning)
+## Betrieb, Monitoring & Backups
 
-4.3 Maintenance & Repair
+- Prometheus, Loki und Grafana für Metriken, Logs und Dashboards.
+- n8n koordiniert Workflows, Freigaben und Benachrichtigungen.
+- PBS (Proxmox Backup Server) löst automatische Backup-Pläne aus; Ansible übernimmt Sicherung und Validierung.
+- Monitoring-Pipeline: Prometheus (Pull), Loki (Logs), Grafana (Dashboards & Alerts).
+- Restore-Prozeduren sind dokumentiert und werden regelmäßig getestet.
+- Notifications laufen über Matrix (Fehler, Deploys, Fragen/Approvals).
+- RALF überwacht eigene Dienste über Watchdogs und Health-Checks.
 
-4.4 Learning & Explainability
+## Roadmap & Checkpoints
 
-4.5 Policy & Security
+**Phase 1 – Baseline**
 
-4.6 Telemetry & External Insights
+- Proxmox-Node mit VLAN/DNS/Storage bereitstellen.
+- PostgreSQL, Gitea und Vaultwarden produktiv nehmen.
+- Prometheus, Loki und Grafana mit Basis-Dashboards aufsetzen.
 
-4.7 Network Discovery Loop
+**Phase 2 – Orchestrierung & Discovery**
 
-4.8 Adaptive Infrastructure Loop
+- n8n-Flows für Health-Loop, Deployment und Repair implementieren.
+- Foreman-Discovery anbinden und Events in n8n/Ralf integrieren.
 
-5. Datenhaltung & Schnittstellen
+**Phase 3 – KI-Schicht**
 
-6. Sicherheit & Compliance
+- Exo + Ralf-Core (lokales LLM, z. B. Mistral/Llama via Ollama/vLLM) einführen.
+- Agenten A_PLAN, A_INFRA, A_MON, A_CODE und A_SEC aktivieren.
 
-7. Betrieb, Monitoring & Backups
+**Phase 4 – Autonomie**
 
-8. Roadmap & Checkpoints
+- Adaptive Infrastructure Loop mit Simulation und Placement aktivieren.
+- Policy- und Secret-Rotation automatisieren.
+- Explainability- und Audit-Auto-PRs etablieren.
 
-9. Mermaid-Gesamtarchitektur
+**Phase 5 – Feinschliff**
 
-10. Glossar
+- Web-UI für Status, Fleet, Aktionen und Explainability ausbauen.
+- Telemetry-Exports und Berichte erweitern.
+- Vertiefte Integration externer Insights und Telemetrie-Quellen.
 
-1. Ziele & Prinzipien
+## Mermaid-Gesamtarchitektur
 
-Autonomie: Dienste installieren, konfigurieren, überwachen und reparieren sich weitgehend selbst.
-
-Lernen: Mustererkennung aus Logs/Metriken; Konsolidation in einem Wissensspeicher.
-
-Transparenz: Jede Entscheidung ist erklärbar (Explainability) und auditierbar (Gitea/Commits).
-
-APIs statt „Querschießen“: Zugriff auf Systeme nur über dokumentierte Schnittstellen.
-
-Lokal first: Betrieb lokal auf Proxmox, offline-fähig; externe Ressourcen optional.
-
-Sicherheit: Strikte Secret-Governance über Vaultwarden; regelmäßige Rotation & Policy-Checks.
-
-2. Architekturüberblick
-
-R.A.L.F. läuft innerhalb Exo (KI-Runtime). Die persistenten Kerndienste (PostgreSQL, Gitea, Vaultwarden, Vector-DB) sowie Orchestrierung/Monitoring (n8n, Ansible, OpenTofu, Prometheus, Loki, Grafana) laufen als VMs/LXCs auf Proxmox.
-Foreman ist Teil der R.A.L.F.-Domäne (Discovery/Inventar), aber reagiert auch auf externe Events (neuer Host).
-
-3. Komponenten
-Kategorie	Dienst/Agent	Aufgabe (Kurz)
-KI-Core	Ralf-Core	Reasoner/Planner/Coordinator, Chat/UI-Interface
-Agenten	A_PLAN	Ressourcenplanung, Platzierung, Simulation
-	A_INFRA	Provisionierung & Konfiguration (OpenTofu/Ansible)
-	A_MON	Health, Auto-Dashboards, Anomalien (Prom/Loki)
-	A_CODE	IaC, Doku, PRs/Commits (Gitea)
-	A_SEC	Secrets, Policy & Compliance
-Runtime	Exo	Hostet Ralf-Core & Agenten
-Discovery	Foreman	PXE/DHCP/Inventar, Rollen-Vorschläge
-Orchestrierung	n8n	Workflows, Approvals, Notifications
-Automation	Ansible / OpenTofu	Konfig & IaC-Provisionierung
-Monitoring	Prometheus / Loki / Grafana	Metriken, Logs, Dashboards
-Datenhaltung	PostgreSQL	Inventar, Status, Historie, Audit
-	Gitea	Repos, IaC, Playbooks, Doku
-	Vaultwarden	Secrets, Tokens, Credentials
-	Vector-DB	Wissensspeicher/Langzeitmuster
-Interfaces	Synapse (Matrix)	Chat-Befehle, Rückmeldungen
-	Web-UI	Geplantes grafisches Frontend
-4. Datenflüsse & Hauptabläufe
-4.1 Deployment Flow (Beispiel Jellyfin)
-
-Input: Matrix-Befehl „Installiere Jellyfin“.
-
-Intent & Planung: Ralf erkennt Auftrag; A_PLAN prüft Ressourcen (PG) & Templates (Gitea).
-
-Workflow: Ralf erzeugt n8n-Task „Deploy Jellyfin“.
-
-Provisionierung: A_INFRA → OpenTofu (LXC/VM) → Ansible (Install/Config); Secrets via Vaultwarden.
-
-Monitoring & Feedback: Exporter, Metriken/Logs aktiv; A_MON bewertet; Ralf antwortet im Chat.
-
-Persistenz: Status, IaC, Dashboards, Audit-Trail werden aktualisiert.
-
-4.2 Main-Loop (Health, Self-Healing, Learning)
-
-Sammeln (Prom/Loki) → Bewerten (Ralf) → Korrigieren (A_INFRA via Ansible/Tofu) → Dokumentieren (A_CODE/Gitea) → Lernen (Vector-DB).
-
-Ergebnis: Stabilität, Selbstheilung, kontinuierliche Optimierung.
-
-4.3 Maintenance & Repair
-
-Backups (bei PBS-Erkennung automatisch geplant).
-
-Repair-Loop (Redeploy/Restart bei Failure).
-
-Resource Balancing (mehrere Nodes, Simulation & Re-Placement).
-
-4.4 Learning & Explainability
-
-Knowledge Consolidation (Erfahrungsobjekte zu Incidents/Deploys).
-
-Pattern Recognition (wiederkehrende Fehler, Vorhersagen).
-
-Explainability & Audit Trail (Auto-PRs/Commits mit Begründungen in Gitea).
-
-4.5 Policy & Security
-
-Compliance-Checks, Secret-Rotation, Richtlinien-Monitoring, Notifications.
-
-Strikte Nutzung dokumentierter APIs; keine Direktzugriffe „quer“.
-
-4.6 Telemetry & External Insights
-
-Aggregation von Trends (Prometheus) → Reports/Dashboards (Grafana).
-
-Optionaler Telemetry-Export, ohne sensible Daten.
-
-4.7 Network Discovery Loop
-
-Zyklische Scans über Foreman (DHCP/ARP/PXE).
-
-Ralf/A_PLAN klassifizieren Änderungen, n8n aktualisiert Inventar (PG).
-
-Benachrichtigungen/Approvals via Matrix; Secrets für Scans via Vaultwarden.
-
-4.8 Adaptive Infrastructure Loop
-
-Analyse → Planung (Simulation) → Validierung (Policies/Secrets) → Ausführung (Tofu/Ansible) → Dokumentation (Gitea) → Lernen (Vector-DB) → Feedback (Matrix/UI).
-
-Reagiert auf neue Hardware, Lastdrift, PBS, Kapazitätsengpässe.
-
-5. Datenhaltung & Schnittstellen
-
-PostgreSQL: Inventar, Laufzeitstatus, Historie, Audit, Decisions.
-
-Gitea: „Single Source of Truth“ für IaC/Playbooks/Doku (PR-basiert).
-
-Vaultwarden: zentrale Secret-Quelle (scoped Tokens für Tools).
-
-Vector-DB: Muster, Heuristiken, Lessons Learned.
-
-APIs: n8n REST, Ansible/Semaphore, OpenTofu Provider, Prom/Loki Queries, Foreman API, Matrix Webhooks.
-
-6. Sicherheit & Compliance
-
-Least Privilege & Scopes (Vaultwarden → Tool-spezifische Zugänge).
-
-Rotation-Policies (zeitgesteuert & anlassbezogen).
-
-Compliance-Loop (A_SEC prüft TLS, Ports, Versionen, Richtlinien-Abweichungen).
-
-Audits (Gitea Commits/PRs mit Auto-Labels & Change-Reasons).
-
-7. Betrieb, Monitoring & Backups
-
-Monitoring: Prometheus (Pull), Loki (Logs), Grafana (Dashboards, Alerts).
-
-Backups: PBS-Erkennung triggert Sicherungsaufgaben; Restore-Prozeduren dokumentiert.
-
-Notifications: Matrix (Fehler, Deploys, Fragen/Approvals).
-
-Self-Checks: Ralf überwacht eigene Dienste (Watchdogs/Health).
-
-8. Roadmap & Checkpoints
-
-Phase 1 – Baseline
-
- PVE Node + VLAN/DNS/Storage steht
-
- PostgreSQL, Gitea, Vaultwarden betriebsbereit
-
- Prometheus, Loki, Grafana mit Basis-Dashboards
-
-Phase 2 – Orchestrierung & Discovery
-
- n8n Flows (Health-Loop, Deploy, Repair)
-
- Foreman Discovery + Event → n8n/Ralf
-
-Phase 3 – KI-Schicht
-
- Exo + Ralf-Core (lokales LLM, z. B. Mistral/Llama via Ollama/vLLM)
-
- Agenten: A_PLAN, A_INFRA, A_MON, A_CODE, A_SEC
-
-Phase 4 – Autonomie
-
- Adaptive Infrastructure Loop aktiv (Simulation → Placement)
-
- Policy/Secret-Rotation automatisiert
-
- Explainability & Audit-Auto-PRs
-
-Phase 5 – Feinschliff
-
- Web-UI (Status, Fleet, Actions, Explainability)
-
- Telemetry-Exports, Reports
-
-9. Mermaid-Gesamtarchitektur
-
-Hinweis: Dark-Theme & ELK-Layout aktiviert; getestet in Obsidian & mermaid.live.
-
+```mermaid
 ---
 config:
   theme: dark
@@ -399,15 +367,12 @@ A_CODE -->|"Aktualisiert IaC / Doku"| GIT:::adaptive
 RALF -->|"Lernt aus Ergebnissen"| KB:::adaptive
 RALF -->|"Sendet Benachrichtigungen"| SYN:::adaptive
 end
+```
 
-10. Glossar
+## Glossar
 
-IaC: Infrastructure as Code (Tofu/Ansible/Git).
-
-Exporter: Prometheus-Komponenten, die Metriken bereitstellen.
-
-Explainability: Nachvollziehbare Begründung, warum eine Entscheidung getroffen wurde.
-
-Self-Healing: Automatische Korrektur bei Fehlern (Repair-Loop).
-
-Adaptive Loop: Autonomes Re-Balancing, Migration, Scaling anhand von Daten & Policies.
+- **IaC:** Infrastructure as Code (OpenTofu/Ansible/Git).
+- **Exporter:** Prometheus-Komponenten, die Metriken bereitstellen.
+- **Explainability:** Nachvollziehbare Begründung, warum eine Entscheidung getroffen wurde.
+- **Self-Healing:** Automatische Korrektur bei Fehlern (Repair-Loop).
+- **Adaptive Loop:** Autonomes Re-Balancing, Migration und Scaling basierend auf Daten & Policies.
