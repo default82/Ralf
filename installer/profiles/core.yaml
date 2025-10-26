@@ -98,6 +98,8 @@ components:
       - Deploy Vaultwarden service
       - Configure admin account and secrets storage
       - Synchronise bootstrap secrets with installation nodes
+      - Establish rotation jobs for Vaultwarden collections
+      - Schedule compliance scans for critical credentials and policies
     actions:
       - provider: proxmox
         operation: create_lxc
@@ -133,6 +135,20 @@ components:
           url: https://vault.lab.local
           admin_token_secret: vault://vaultwarden/admin/token
           smtp_secret: vault://vaultwarden/smtp/password
+      - provider: vaultwarden
+        operation: rotate_secrets
+        options:
+          url: https://vault.lab.local
+          access_token: "{{ env.VAULTWARDEN_ADMIN_TOKEN }}"
+          items:
+            - item_id: automation-ansible-api
+              label: Ansible Automation API Token
+              field: password
+              length: 48
+            - item_id: automation-opentofu-api
+              label: OpenTofu Provisioning Token
+              field: password
+              length: 48
   - name: automation
     description: Automation runtimes required by infrastructure agents.
     depends_on:
