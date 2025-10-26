@@ -92,13 +92,35 @@ Schritt für Schritt automatisierbare Routinen zu ergänzen und die Abhängigkei
 
 ## Datenflüsse & Hauptabläufe
 
-### Scheduler & Workflow-Aktivierung
+### Loop-Vorlagen & Trigger
 
-- **Main Health Loop Orchestration (n8n):** läuft alle fünf Minuten per Cron (`*/5 * * * *`, Zeitzone Europe/Berlin) und zusätzlich über einen 15-Minuten-Timer, um Health-, Repair- und Dokumentationsläufe zu starten.
-- **Foreman Discovery Sweep (Foreman):** stößt jede Stunde eine Discovery-Runde an, normalisiert eingehende Hardware-Facts und aktualisiert das Inventar.
-- **Adaptive Optimizer (n8n):** wird stündlich per Cron (`0 * * * *`) ausgeführt, bündelt Kapazitätsdaten und triggert Skalierungs- bzw. Migrationspfade.
+Das Core-Profil modelliert drei Workflow-Vorlagen – Main, Discovery und Adaptive Loop – inklusive Eingaben, Outputs und Phasen. Die `scheduler`-Sektion hinterlegt passende Cron- bzw. Timer-Trigger und erlaubt damit reproduzierbare Aktivierungen.
 
-Mit `ralf-installer enable-workflows installer/profiles/core.yaml` lassen sich die hinterlegten Workflows anzeigen und gezielt nach Runtime (`--runtime n8n`/`foreman`) oder Loop (`--loop main`) aktivieren.
+**Main Health Loop Orchestration (n8n, Loop `main`)**
+
+- Template: `flows/main-health-loop.json`
+- Trigger: Cron `*/5 * * * *` (Europe/Berlin) + Timer `PT15M`
+- Inputs: Prometheus Alerts, Loki Incidents, Ralf-Core Policy Checks
+- Outputs: Ansible Self-Healing Jobs, Gitea Status-Updates, Matrix Health Notifications
+- Phasen: Telemetrie sammeln → Findings priorisieren → Self-Healing & Dokumentation starten → Operatoren informieren
+
+**Foreman Discovery Sweep (Foreman, Loop `discovery`)**
+
+- Template: `org.ralf.foreman.discovery`
+- Trigger: Timer `3600` Sekunden
+- Inputs: Foreman Discovery Facts, DHCP/ARP Events
+- Outputs: Inventar-Updates (PostgreSQL), Discovery Tickets für A_PLAN
+- Phasen: Discovery anstoßen → Hardware-Facts normalisieren → Ergebnisse an Ralf-Core & Planner zurückspielen
+
+**Adaptive Optimizer (n8n, Loop `adaptive`)**
+
+- Template: `flows/adaptive-optimizer.json`
+- Trigger: Cron `0 * * * *`
+- Inputs: Prometheus Kapazitätsreports, Planner-Simulationen, Foreman Insights
+- Outputs: OpenTofu Scaling-Pläne, Ansible Drift-Korrekturen, Gitea Change-Logs
+- Phasen: Kapazitätslage analysieren → Simulationen aggregieren → Maßnahmen katalogisieren → Änderungen dokumentieren & kommunizieren
+
+Aktivierung & Sichtprüfung: `ralf-installer enable-workflows installer/profiles/core.yaml [--runtime n8n|foreman] [--loop main]`. Der Befehl liest das Profil, filtert optional nach Runtime oder Loop und gibt Phasen, Inputs/Outputs sowie konfigurierte Trigger aus – ideal für Runbooks oder zur Übergabe an n8n-/Foreman-Teams.
 
 ### Deployment Flow (Beispiel Jellyfin)
 

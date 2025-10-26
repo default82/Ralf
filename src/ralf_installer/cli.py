@@ -109,6 +109,10 @@ def _handle_enable_workflows(argv: Iterable[str]) -> int:
         print(f"  entrypoint: {workflow.entrypoint}")
         if workflow.description:
             print(f"  description: {workflow.description}")
+        if workflow.phases:
+            print("  phases:")
+            for phase in workflow.phases:
+                print(f"    - {phase}")
         if workflow.inputs:
             print("  inputs:")
             for item in workflow.inputs:
