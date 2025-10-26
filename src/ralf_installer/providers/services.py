@@ -1,8 +1,8 @@
-"""High level service configuration helpers."""
+"""Service provider operations used by the installer."""
 
 from __future__ import annotations
 
-from typing import Mapping
+from typing import Iterable, Mapping, Sequence
 
 
 def execute(operation: str, options: dict[str, object], dry_run: bool) -> None:
@@ -10,6 +10,10 @@ def execute(operation: str, options: dict[str, object], dry_run: bool) -> None:
         "configure_postgresql": _configure_postgresql,
         "configure_gitea": _configure_gitea,
         "configure_vaultwarden": _configure_vaultwarden,
+        "configure_prometheus": _configure_prometheus,
+        "configure_loki": _configure_loki,
+        "configure_grafana": _configure_grafana,
+        "register_prometheus_targets": _register_prometheus_targets,
     }
 
     try:
@@ -58,6 +62,72 @@ def _configure_vaultwarden(options: Mapping[str, object], *, dry_run: bool) -> N
     _emit(dry_run, "service", "configure_vaultwarden", description)
 
 
+def _configure_prometheus(options: Mapping[str, object], *, dry_run: bool) -> None:
+    host = _require(options, "host")
+    config_path = _require(options, "config_path")
+    rules = _as_list(options.get("rules", []))
+
+    description = f"host={host} config={config_path}"
+    if rules:
+        description += " rules=" + ",".join(map(str, rules))
+    _emit(dry_run, "service", "configure_prometheus", description)
+
+
+def _configure_loki(options: Mapping[str, object], *, dry_run: bool) -> None:
+    host = _require(options, "host")
+    config_path = _require(options, "config_path")
+    retention = options.get("retention", "7d")
+
+    description = (
+        f"host={host} config={config_path} retention={retention}"
+    )
+    _emit(dry_run, "service", "configure_loki", description)
+
+
+def _configure_grafana(options: Mapping[str, object], *, dry_run: bool) -> None:
+    host = _require(options, "host")
+    admin_secret = _require(options, "admin_secret")
+    datasources = _as_list(options.get("datasources", []))
+    dashboards = _as_list(options.get("dashboards", []))
+
+    description = f"host={host} admin_secret={admin_secret}"
+    if datasources:
+        description += " datasources=" + ",".join(map(str, datasources))
+    if dashboards:
+        description += " dashboards=" + ",".join(map(str, dashboards))
+    _emit(dry_run, "service", "configure_grafana", description)
+
+
+def _register_prometheus_targets(
+    options: Mapping[str, object], *, dry_run: bool
+) -> None:
+    host = _require(options, "host")
+    target_file = _require(options, "target_file")
+    services = options.get("services", [])
+
+    if not isinstance(services, Iterable) or isinstance(services, (str, bytes)):
+        raise RuntimeError("'services' must be an iterable of mappings")
+
+    rendered: list[str] = []
+    for entry in services:
+        if not isinstance(entry, Mapping):
+            raise RuntimeError("Each service definition must be a mapping")
+        name = _require(entry, "name")
+        targets = entry.get("targets", [])
+        if not isinstance(targets, Sequence) or isinstance(targets, (str, bytes)):
+            raise RuntimeError("Service targets must be a sequence of strings")
+        if not targets:
+            raise RuntimeError("Service targets must not be empty")
+        rendered.append(f"{name}={','.join(map(str, targets))}")
+
+    description = (
+        f"host={host} target_file={target_file} services=" + ";".join(rendered)
+        if rendered
+        else f"host={host} target_file={target_file}"
+    )
+    _emit(dry_run, "service", "register_prometheus_targets", description)
+
+
 def _require(options: Mapping[str, object], key: str) -> object:
     try:
         value = options[key]
@@ -66,6 +136,16 @@ def _require(options: Mapping[str, object], key: str) -> object:
     if value in (None, ""):
         raise RuntimeError(f"Option '{key}' must not be empty")
     return value
+
+
+def _as_list(value: object) -> list[str]:
+    if value in (None, ""):
+        return []
+    if isinstance(value, (str, bytes)):
+        return [str(value)]
+    if not isinstance(value, Iterable):
+        raise RuntimeError("Value must be iterable to coerce into a list")
+    return [str(item) for item in value]
 
 
 def _emit(dry_run: bool, provider: str, operation: str, description: str) -> None:

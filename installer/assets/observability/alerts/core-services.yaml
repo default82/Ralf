@@ -1,0 +1,28 @@
+# Alerting rules for critical R.A.L.F. core services.
+groups:
+  - name: core-services
+    rules:
+      - alert: CoreServiceDown
+        expr: up{job="ralf-core-services"} == 0
+        for: 2m
+        labels:
+          severity: critical
+        annotations:
+          summary: "Core service {{ $labels.instance }} is unreachable"
+          description: |
+            Prometheus konnte den Service {{ $labels.job }} auf {{ $labels.instance }}
+            länger als zwei Minuten nicht abfragen. Überprüfe den Dienststatus oder
+            die Netzwerk-Erreichbarkeit.
+      - alert: HighDatabaseLatency
+        expr: rate(pg_stat_database_blks_hit{datname="ralf_core"}[5m]) /
+          ignoring(datname)
+          (rate(pg_stat_database_blks_hit{datname="ralf_core"}[5m]) +
+          rate(pg_stat_database_blks_read{datname="ralf_core"}[5m])) < 0.95
+        for: 5m
+        labels:
+          severity: warning
+        annotations:
+          summary: "PostgreSQL Cache Hit Ratio niedrig"
+          description: |
+            Die Cache-Hit-Rate der Datenbank ralf_core ist unter 95 % gefallen. Prüfe
+            Speicherzuweisung und mögliche I/O-Engpässe.

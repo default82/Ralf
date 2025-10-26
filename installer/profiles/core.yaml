@@ -167,6 +167,99 @@ components:
       - Deploy Prometheus and scrape configuration
       - Deploy Loki for log aggregation
       - Provision Grafana dashboards and data sources
+    actions:
+      - provider: proxmox
+        operation: create_lxc
+        options:
+          node: pve01
+          vmid: 211
+          hostname: mon01.lab.local
+          template: debian12-standard
+          cores: 4
+          memory: 8192
+          disk_size_gb: 80
+          storage: local-lvm
+      - provider: proxmox
+        operation: configure_network
+        options:
+          vmid: 211
+          networks:
+            - name: eth0
+              bridge: vmbr0
+              ip: 10.42.0.51/24
+              gateway: 10.42.0.1
+      - provider: proxmox
+        operation: run_commands
+        options:
+          vmid: 211
+          commands:
+            - apt-get update
+            - apt-get install -y docker.io docker-compose-plugin curl
+            - mkdir -p /etc/ralf/prometheus/targets /etc/ralf/loki /etc/ralf/grafana/dashboards
+            - test -f /etc/ralf/prometheus/prometheus.yml || touch /etc/ralf/prometheus/prometheus.yml
+            - test -f /etc/ralf/loki/config.yaml || touch /etc/ralf/loki/config.yaml
+            - docker rm -f prometheus 2>/dev/null || true
+            - docker network create observability || true
+            - |
+              docker run -d --name prometheus --restart unless-stopped \
+                --network observability -p 9090:9090 \
+                -v /etc/ralf/prometheus/prometheus.yml:/etc/prometheus/prometheus.yml \
+                -v /etc/ralf/prometheus/targets:/etc/prometheus/targets \
+                prom/prometheus:latest
+            - docker rm -f loki 2>/dev/null || true
+            - |
+              docker run -d --name loki --restart unless-stopped \
+                --network observability -p 3100:3100 \
+                -v /etc/ralf/loki/config.yaml:/etc/loki/local-config.yaml \
+                -v /etc/ralf/loki:/loki \
+                grafana/loki:latest
+            - docker rm -f grafana 2>/dev/null || true
+            - |
+              docker run -d --name grafana --restart unless-stopped \
+                --network observability -p 3000:3000 \
+                -v /etc/ralf/grafana:/var/lib/grafana \
+                grafana/grafana:latest
+      - provider: service
+        operation: configure_prometheus
+        options:
+          host: mon01.lab.local
+          config_path: installer/assets/observability/prometheus.yml
+          rules:
+            - installer/assets/observability/alerts/core-services.yaml
+      - provider: service
+        operation: configure_loki
+        options:
+          host: mon01.lab.local
+          config_path: installer/assets/observability/loki-config.yaml
+          retention: 168h
+      - provider: service
+        operation: configure_grafana
+        options:
+          host: mon01.lab.local
+          admin_secret: vault://grafana/admin/password
+          datasources:
+            - installer/assets/observability/datasources/prometheus.yaml
+            - installer/assets/observability/datasources/loki.yaml
+          dashboards:
+            - installer/assets/observability/dashboards/core-services.json
+      - provider: service
+        operation: register_prometheus_targets
+        options:
+          host: mon01.lab.local
+          target_file: /etc/ralf/prometheus/targets/core-services.json
+          services:
+            - name: postgresql
+              targets:
+                - 10.42.0.11:9187
+            - name: gitea
+              targets:
+                - 10.42.0.21:3000
+            - name: vaultwarden
+              targets:
+                - 10.42.0.31:80
+            - name: ralf-ui
+              targets:
+                - 10.42.0.41:80
   - name: ralf-ui
     description: Web-Frontend und Matrix-Webhooks für R.A.L.F. Status & Operator-Feedback.
     depends_on:
