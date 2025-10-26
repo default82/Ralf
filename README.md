@@ -9,7 +9,8 @@ Ein KI-gesteuertes, selbstadaptives Homelab-Ökosystem, das Dienste orchestriert
 1. [Ziele & Prinzipien](#ziele--prinzipien)
 2. [Architekturüberblick](#architekturüberblick)
 3. [Komponenten](#komponenten)
-4. [Datenflüsse & Hauptabläufe](#datenflüsse--hauptabläufe)
+4. [Installer (Erste Schritte)](#installer-erste-schritte)
+5. [Datenflüsse & Hauptabläufe](#datenflüsse--hauptabläufe)
    - [Deployment Flow (Beispiel Jellyfin)](#deployment-flow-beispiel-jellyfin)
    - [Main-Loop](#main-loop-health-self-healing-learning)
    - [Maintenance & Repair](#maintenance--repair)
@@ -18,12 +19,12 @@ Ein KI-gesteuertes, selbstadaptives Homelab-Ökosystem, das Dienste orchestriert
    - [Telemetry & External Insights](#telemetry--external-insights)
    - [Network Discovery Loop](#network-discovery-loop)
    - [Adaptive Infrastructure Loop](#adaptive-infrastructure-loop)
-5. [Datenhaltung & Schnittstellen](#datenhaltung--schnittstellen)
-6. [Sicherheit & Compliance](#sicherheit--compliance)
-7. [Betrieb, Monitoring & Backups](#betrieb-monitoring--backups)
-8. [Roadmap & Checkpoints](#roadmap--checkpoints)
-9. [Mermaid-Gesamtarchitektur](#mermaid-gesamtarchitektur)
-10. [Glossar](#glossar)
+6. [Datenhaltung & Schnittstellen](#datenhaltung--schnittstellen)
+7. [Sicherheit & Compliance](#sicherheit--compliance)
+8. [Betrieb, Monitoring & Backups](#betrieb-monitoring--backups)
+9. [Roadmap & Checkpoints](#roadmap--checkpoints)
+10. [Mermaid-Gesamtarchitektur](#mermaid-gesamtarchitektur)
+11. [Glossar](#glossar)
 
 ## Ziele & Prinzipien
 
@@ -59,6 +60,35 @@ R.A.L.F. läuft innerhalb der Exo-KI-Runtime. Persistente Kerndienste (PostgreSQ
 |                | Vector-DB               | Wissensspeicher & Langzeitmuster                             |
 | Interfaces     | Synapse (Matrix)        | Chat-Befehle, Rückmeldungen                                  |
 |                | Web-UI (geplant)        | Grafisches Frontend                                          |
+
+## Installer (Erste Schritte)
+
+Um die Architektur aus der Dokumentation in erste, wiederholbare Aktionen zu überführen, enthält das Repository nun einen
+profilbasierten Installer. Der Fokus der ersten Iteration liegt auf einer nachvollziehbaren Reihenfolge der Kernkomponenten
+(PostgreSQL, Gitea, Vaultwarden, Automatisierung, Observability) samt exemplarischer Aufgabenpakete.
+
+### Nutzung
+
+1. Abhängigkeiten installieren (am einfachsten in einer virtuellen Umgebung):
+
+   ```bash
+   pip install -e .
+   ```
+
+2. Installer im Trockenlauf ausführen, um den Ablauf zu prüfen:
+
+   ```bash
+   ralf-installer installer/profiles/core.yaml --dry-run
+   ```
+
+3. Optional den Report als JSON ausgeben:
+
+   ```bash
+   ralf-installer installer/profiles/core.yaml --dry-run --json
+   ```
+
+Der eigentliche Installationscode ist derzeit noch ein Platzhalter. Die Ausgabe der Aufgaben schafft jedoch die Grundlage, um
+Schritt für Schritt automatisierbare Routinen zu ergänzen und die Abhängigkeiten zwischen Diensten sichtbar zu machen.
 
 ## Datenflüsse & Hauptabläufe
 
