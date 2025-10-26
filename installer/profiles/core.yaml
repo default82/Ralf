@@ -151,3 +151,67 @@ components:
       - Deploy Prometheus and scrape configuration
       - Deploy Loki for log aggregation
       - Provision Grafana dashboards and data sources
+workflows:
+  - name: Main Health Loop Orchestration
+    loop: main
+    runtime: n8n
+    entrypoint: flows/main-health-loop.json
+    description: >-
+      Automatisiert den Gesundheitszyklus: sammelt Prometheus- und Loki-Events,
+      priorisiert Findings und stößt Reparatur-Playbooks sowie Dokumentationsläufe an.
+    inputs:
+      - Prometheus Alerts
+      - Loki Incidents
+      - Ralf-Core Policy Checks
+    outputs:
+      - Ansible Self-Healing Jobs
+      - Gitea Status- und Lessons-Learned-Updates
+      - Matrix Health Notifications
+  - name: Foreman Discovery Sweep
+    loop: discovery
+    runtime: foreman
+    entrypoint: org.ralf.foreman.discovery
+    description: >-
+      Startet Foreman-Discovery, normalisiert Hardware-Facts und publiziert
+      Inventar-Updates zurück an Ralf-Core und n8n.
+    inputs:
+      - Foreman Discovery Facts
+      - DHCP / ARP Events
+    outputs:
+      - Inventar-Aktualisierungen in PostgreSQL
+      - Discovery Tickets für A_PLAN
+  - name: Adaptive Optimizer
+    loop: adaptive
+    runtime: n8n
+    entrypoint: flows/adaptive-optimizer.json
+    description: >-
+      Konsolidiert Kapazitätsdaten, plant Umverteilungen und stößt Änderungen
+      an Automations- und Dokumentationspfade an.
+    inputs:
+      - Kapazitätsreports aus Prometheus
+      - Planner-Simulationen aus A_PLAN
+      - Foreman Hardware Insights
+    outputs:
+      - OpenTofu Scaling-Pläne
+      - Ansible Drift-Korrekturen
+      - Gitea Change-Logs
+scheduler:
+  loops:
+    main:
+      description: Herzschlag für Health-, Repair- und Dokumentationsläufe.
+      triggers:
+        - type: cron
+          expression: "*/5 * * * *"
+          timezone: Europe/Berlin
+        - type: timer
+          every: PT15M
+    discovery:
+      description: Regelmäßige Netzwerk- und Inventarüberprüfung durch Foreman.
+      triggers:
+        - type: timer
+          every: 3600
+    adaptive:
+      description: Strategische Bewertung von Kapazitäten und Optimierungen.
+      triggers:
+        - type: cron
+          expression: "0 * * * *"
