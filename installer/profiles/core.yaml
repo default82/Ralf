@@ -149,6 +149,103 @@ components:
               label: OpenTofu Provisioning Token
               field: password
               length: 48
+  - name: vector-db
+    description: Vector database providing long term memory and pattern context.
+    depends_on:
+      - postgresql
+      - vaultwarden
+    tasks:
+      - Provision Qdrant vector database runtime with persistent storage
+      - Configure authentication tokens and collection schema baselines
+      - Register ingestion pipelines for incidents, deployments and learning assets
+      - Sync rotation policies for vector embeddings stored in Vaultwarden
+    actions:
+      - provider: proxmox
+        operation: create_lxc
+        options:
+          node: pve01
+          vmid: 204
+          hostname: vector01.lab.local
+          template: debian12-standard
+          cores: 4
+          memory: 6144
+          disk_size_gb: 100
+          storage: local-lvm
+      - provider: proxmox
+        operation: configure_network
+        options:
+          vmid: 204
+          networks:
+            - name: eth0
+              bridge: vmbr0
+              ip: 10.42.0.35/24
+              gateway: 10.42.0.1
+      - provider: proxmox
+        operation: run_commands
+        options:
+          vmid: 204
+          commands:
+            - apt-get update
+            - apt-get install -y docker.io docker-compose-plugin
+            - docker rm -f qdrant 2>/dev/null || true
+            - |
+              docker run -d --name qdrant --restart unless-stopped \
+                -p 6333:6333 -p 6334:6334 \
+                -v /var/lib/qdrant/storage:/qdrant/storage \
+                qdrant/qdrant:latest
+      - provider: service
+        operation: configure_vector_db
+        options:
+          host: vector01.lab.local
+          http_port: 6333
+          grpc_port: 6334
+          admin_secret: vault://qdrant/admin/token
+          snapshot_path: /var/lib/qdrant/snapshots
+      - provider: service
+        operation: bootstrap_vector_collections
+        options:
+          host: vector01.lab.local
+          collections:
+            - name: incidents
+              dimensions: 1536
+              distance: cosine
+              on_disk: true
+              metadata:
+                - incident_id: keyword
+                - severity: keyword
+                - service: keyword
+                - detected_at: datetime
+            - name: deployments
+              dimensions: 1024
+              distance: cosine
+              metadata:
+                - deployment_id: keyword
+                - component: keyword
+                - status: keyword
+                - executed_at: datetime
+      - provider: service
+        operation: register_vector_pipelines
+        options:
+          host: vector01.lab.local
+          pipelines:
+            - name: incident_learning
+              source: prom+loki
+              target_collection: incidents
+              description: Correlates Prometheus alerts und Loki-Incidents für Lernobjekte.
+            - name: deployment_reviews
+              source: gitea-prs
+              target_collection: deployments
+              description: Persistiert Explainability-Analysen zu Infrastrukturänderungen.
+      - provider: vaultwarden
+        operation: rotate_secrets
+        options:
+          url: https://vault.lab.local
+          access_token: "{{ env.VAULTWARDEN_ADMIN_TOKEN }}"
+          items:
+            - item_id: qdrant-admin-token
+              label: Qdrant Admin Token
+              field: password
+              length: 64
   - name: automation
     description: Automation runtimes required by infrastructure agents.
     depends_on:
