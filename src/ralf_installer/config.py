@@ -23,6 +23,153 @@ class Action:
 
 
 @dataclasses.dataclass(slots=True)
+class ResourceProfile:
+    """Represents a bundle of resource values used for planning and scheduling."""
+
+    cpu: float = 0.0
+    memory_gb: float = 0.0
+    storage_gb: float = 0.0
+    network_gbps: float = 0.0
+
+    @classmethod
+    def from_mapping(cls, data: Mapping[str, object], *, context: str) -> "ResourceProfile":
+        if not isinstance(data, Mapping):
+            raise ConfigurationError(f"{context} must be defined as a mapping")
+
+        return cls(
+            cpu=_coerce_resource_value(data.get("cpu"), field="cpu", context=context),
+            memory_gb=_coerce_resource_value(
+                data.get("memory_gb"), field="memory_gb", context=context
+            ),
+            storage_gb=_coerce_resource_value(
+                data.get("storage_gb"), field="storage_gb", context=context
+            ),
+            network_gbps=_coerce_resource_value(
+                data.get("network_gbps"), field="network_gbps", context=context
+            ),
+        )
+
+    def clone(self) -> "ResourceProfile":
+        return dataclasses.replace(self)
+
+    def add_inplace(self, other: "ResourceProfile") -> None:
+        self.cpu += other.cpu
+        self.memory_gb += other.memory_gb
+        self.storage_gb += other.storage_gb
+        self.network_gbps += other.network_gbps
+
+    def consume(self, demand: "ResourceProfile") -> None:
+        self.cpu -= demand.cpu
+        self.memory_gb -= demand.memory_gb
+        self.storage_gb -= demand.storage_gb
+        self.network_gbps -= demand.network_gbps
+
+    def can_host(self, demand: "ResourceProfile") -> bool:
+        epsilon = 1e-9
+        return (
+            demand.cpu <= self.cpu + epsilon
+            and demand.memory_gb <= self.memory_gb + epsilon
+            and demand.storage_gb <= self.storage_gb + epsilon
+            and demand.network_gbps <= self.network_gbps + epsilon
+        )
+
+    def scaled(self, factor: float) -> "ResourceProfile":
+        return ResourceProfile(
+            cpu=self.cpu * factor,
+            memory_gb=self.memory_gb * factor,
+            storage_gb=self.storage_gb * factor,
+            network_gbps=self.network_gbps * factor,
+        )
+
+    def as_dict(self) -> Mapping[str, float]:
+        return {
+            "cpu": round(self.cpu, 4),
+            "memory_gb": round(self.memory_gb, 4),
+            "storage_gb": round(self.storage_gb, 4),
+            "network_gbps": round(self.network_gbps, 4),
+        }
+
+
+@dataclasses.dataclass(slots=True)
+class PlacementPolicy:
+    """Describes placement requirements for a component."""
+
+    required_labels: Mapping[str, str]
+    preferred_labels: Mapping[str, str]
+    affinity: List[str]
+    anti_affinity: List[str]
+    resources: ResourceProfile
+
+    @classmethod
+    def from_mapping(cls, data: Mapping[str, object], *, component: str) -> "PlacementPolicy":
+        if not isinstance(data, Mapping):
+            raise ConfigurationError(
+                f"Component '{component}' placement must be described using a mapping"
+            )
+
+        required_raw = data.get("required_labels", {})
+        preferred_raw = data.get("preferred_labels", {})
+        affinity_raw = data.get("affinity", [])
+        anti_affinity_raw = data.get("anti_affinity", [])
+        resources_raw = data.get("resources", {})
+
+        required = _ensure_str_mapping(
+            required_raw, context=f"component '{component}' placement.required_labels"
+        )
+        preferred = _ensure_str_mapping(
+            preferred_raw, context=f"component '{component}' placement.preferred_labels"
+        )
+        affinity = _ensure_str_list(affinity_raw, field="affinity", component=component)
+        anti_affinity = _ensure_str_list(
+            anti_affinity_raw, field="anti_affinity", component=component
+        )
+        resources = ResourceProfile.from_mapping(
+            resources_raw, context=f"component '{component}' placement.resources"
+        )
+
+        return cls(
+            required_labels=required,
+            preferred_labels=preferred,
+            affinity=affinity,
+            anti_affinity=anti_affinity,
+            resources=resources,
+        )
+
+
+@dataclasses.dataclass(slots=True)
+class NodeDefinition:
+    """Describes a node that can host components in distributed deployments."""
+
+    name: str
+    role: str
+    labels: Mapping[str, str]
+    capacity: ResourceProfile
+
+    @classmethod
+    def from_mapping(cls, data: Mapping[str, object]) -> "NodeDefinition":
+        if not isinstance(data, Mapping):
+            raise ConfigurationError("Each node definition must be a mapping")
+
+        try:
+            name = str(data["name"])
+        except KeyError as exc:  # pragma: no cover - defensive
+            raise ConfigurationError("Node definition is missing required field 'name'") from exc
+
+        role_raw = data.get("role", "")
+        role = str(role_raw) if isinstance(role_raw, str) else str(role_raw or "")
+        labels = _ensure_str_mapping(
+            data.get("labels", {}), context=f"node '{name}' labels"
+        )
+
+        capacity_raw = data.get("capacity", {})
+        capacity = ResourceProfile.from_mapping(
+            capacity_raw, context=f"node '{name}' capacity"
+        )
+
+        return cls(name=name, role=role, labels=labels, capacity=capacity)
+
+
+@dataclasses.dataclass(slots=True)
 class Component:
     """Represents a deployable component in a profile."""
 
@@ -31,6 +178,7 @@ class Component:
     tasks: List[str]
     depends_on: List[str]
     actions: List[Action]
+    placement: Optional[PlacementPolicy] = None
 
     @classmethod
     def from_mapping(cls, data: Mapping[str, object]) -> "Component":
@@ -40,18 +188,25 @@ class Component:
             raw_tasks = data.get("tasks", [])
             raw_depends = data.get("depends_on", [])
             raw_actions = data.get("actions", [])
+            placement_raw = data.get("placement")
         except KeyError as exc:  # pragma: no cover - defensive
             raise ConfigurationError(f"Missing field in component definition: {exc}") from exc
 
         tasks = _ensure_str_list(raw_tasks, field="tasks", component=name)
         depends_on = _ensure_str_list(raw_depends, field="depends_on", component=name)
         actions = _ensure_action_list(raw_actions, component=name)
+        placement = (
+            PlacementPolicy.from_mapping(placement_raw, component=name)
+            if placement_raw is not None
+            else None
+        )
         return cls(
             name=name,
             description=description,
             tasks=tasks,
             depends_on=depends_on,
             actions=actions,
+            placement=placement,
         )
 
 
@@ -62,6 +217,7 @@ class Profile:
     name: str
     description: str
     components: List[Component]
+    nodes: List[NodeDefinition] = dataclasses.field(default_factory=list)
     workflows: List["WorkflowTemplate"] = dataclasses.field(default_factory=list)
     scheduler: Optional["Scheduler"] = None
 
@@ -80,18 +236,21 @@ class Profile:
             name = str(payload["name"])
             description = str(payload.get("description", ""))
             components_raw = payload.get("components", [])
+            nodes_raw = payload.get("nodes", [])
             workflows_raw = payload.get("workflows", [])
             scheduler_raw = payload.get("scheduler")
         except KeyError as exc:  # pragma: no cover - defensive
             raise ConfigurationError(f"Profile missing required field: {exc}") from exc
 
         components = [_component_from_obj(obj) for obj in components_raw]
+        nodes = [_node_from_obj(obj) for obj in nodes_raw]
         workflows = [_workflow_from_obj(obj) for obj in workflows_raw]
         scheduler = Scheduler.from_mapping(scheduler_raw) if scheduler_raw else None
         return cls(
             name=name,
             description=description,
             components=components,
+            nodes=nodes,
             workflows=workflows,
             scheduler=scheduler,
         )
@@ -134,6 +293,12 @@ def _component_from_obj(obj: object) -> Component:
     if not isinstance(obj, Mapping):
         raise ConfigurationError("Each component entry must be a mapping")
     return Component.from_mapping(obj)
+
+
+def _node_from_obj(obj: object) -> NodeDefinition:
+    if not isinstance(obj, Mapping):
+        raise ConfigurationError("Each node entry must be a mapping")
+    return NodeDefinition.from_mapping(obj)
 
 
 @dataclasses.dataclass(slots=True)
@@ -358,4 +523,63 @@ def _ensure_action_list(value: object, *, component: str) -> List[Action]:
         return result
     raise ConfigurationError(
         f"Component '{component}' field 'actions' must be a mapping or list of mappings"
+    )
+
+
+def _ensure_str_mapping(value: object, *, context: str) -> Mapping[str, str]:
+    if value is None:
+        return {}
+    if isinstance(value, Mapping):
+        result: dict[str, str] = {}
+        for key, raw_value in value.items():
+            if not isinstance(key, str) or not key:
+                raise ConfigurationError(f"{context} keys must be non-empty strings")
+            if isinstance(raw_value, (str, int, float)):
+                result[key] = str(raw_value).strip()
+            elif isinstance(raw_value, bool):
+                result[key] = str(raw_value).lower()
+            elif raw_value is None:
+                result[key] = ""
+            else:
+                raise ConfigurationError(
+                    f"{context} values must be strings, numbers or booleans"
+                )
+        return result
+    if isinstance(value, Iterable) and not isinstance(value, (bytes, bytearray, str)):
+        result: dict[str, str] = {}
+        for index, entry in enumerate(value):
+            if not isinstance(entry, str) or "=" not in entry:
+                raise ConfigurationError(
+                    f"{context} sequence entry {index} must be a string containing 'key=value'"
+                )
+            key, raw_value = entry.split("=", 1)
+            key = key.strip()
+            if not key:
+                raise ConfigurationError(
+                    f"{context} sequence entry {index} must provide a non-empty key"
+                )
+            result[key] = raw_value.strip()
+        return result
+    raise ConfigurationError(
+        f"{context} must be defined as a mapping or list of 'key=value' strings"
+    )
+
+
+def _coerce_resource_value(value: object, *, field: str, context: str) -> float:
+    if value in (None, ""):
+        return 0.0
+    if isinstance(value, (int, float)):
+        return float(value)
+    if isinstance(value, str):
+        stripped = value.strip()
+        if not stripped:
+            return 0.0
+        try:
+            return float(stripped)
+        except ValueError as exc:  # pragma: no cover - defensive
+            raise ConfigurationError(
+                f"{context} field '{field}' must contain a numeric value"
+            ) from exc
+    raise ConfigurationError(
+        f"{context} field '{field}' must contain a numeric value"
     )

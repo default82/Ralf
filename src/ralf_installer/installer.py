@@ -10,7 +10,7 @@ import urllib.error
 import urllib.request
 from typing import Iterable, List, Mapping, Sequence
 
-from . import explainability
+from . import explainability, planner
 from .config import Action, Component, Profile
 from .providers import execute_action
 
@@ -185,9 +185,60 @@ class Installer:
         )
         return report.as_dict()
 
+    def plan_distributed_deployment(
+        self, *, components: Sequence[Component] | None = None
+    ) -> planner.DistributedPlan:
+        """Create a placement plan for components across available nodes."""
+
+        ordered_components = list(components) if components is not None else self.plan()
+        return planner.plan_distributed_deployment(ordered_components, self._profile.nodes)
+
+    def distributed_plan_report(self) -> Mapping[str, object]:
+        """Return a serialisable representation of the distributed deployment plan."""
+
+        plan = self.plan_distributed_deployment()
+        return plan.as_dict(
+            profile=self._profile.name,
+            description=self._profile.description,
+        )
+
+    def simulate_scaling(
+        self, scale_overrides: Mapping[str, float] | None = None
+    ) -> planner.ScalingSimulation:
+        """Run a resource scaling simulation for the current profile."""
+
+        ordered_components = self.plan()
+        plan = self.plan_distributed_deployment(components=ordered_components)
+        return planner.simulate_scaling(
+            plan,
+            ordered_components,
+            scale_overrides or {},
+        )
+
     def execute(self) -> ExecutionReport:
         """Execute the installer and return a detailed report."""
         ordered_components = self.plan()
+        distribution_plan = self.plan_distributed_deployment(components=ordered_components)
+        if distribution_plan.unsatisfied_requirements:
+            missing = ", ".join(distribution_plan.unsatisfied_requirements)
+            raise RuntimeError(
+                "Unable to satisfy placement requirements for components: %s" % missing
+            )
+
+        for decision in distribution_plan.decisions:
+            if not decision.required:
+                continue
+            prefix = "DRY-RUN" if self._dry_run else "ASSIGN"
+            if decision.node:
+                print(
+                    f"[{prefix}] placement {decision.component} -> {decision.node}"
+                    f" (score={decision.score:.2f})"
+                )
+            else:
+                print(
+                    f"[{prefix}] placement {decision.component}: no suitable node available"
+                )
+
         executed: List[str] = []
         skipped: List[str] = []
 

@@ -2,6 +2,56 @@ name: core
 description: >-
   Core services required for the R.A.L.F. homelab environment. The profile installs
   databases, source control and automation runtimes in a dependency aware order.
+nodes:
+  - name: pve01
+    role: compute
+    labels:
+      role: compute
+      zone: core
+      storage_tier: fast
+      network_tier: core
+      hypervisor: proxmox
+    capacity:
+      cpu: 24
+      memory_gb: 128
+      storage_gb: 1800
+      network_gbps: 20
+  - name: pve02
+    role: compute
+    labels:
+      role: compute
+      zone: edge
+      storage_tier: standard
+      network_tier: edge
+      hypervisor: proxmox
+    capacity:
+      cpu: 16
+      memory_gb: 64
+      storage_gb: 1200
+      network_gbps: 12
+  - name: pbs01
+    role: storage
+    labels:
+      role: storage
+      zone: core
+      storage_backend: zfs
+    capacity:
+      cpu: 12
+      memory_gb: 48
+      storage_gb: 8000
+      network_gbps: 10
+  - name: net01
+    role: network
+    labels:
+      role: network
+      zone: dmz
+      network_tier: edge
+      fabric: spine
+    capacity:
+      cpu: 8
+      memory_gb: 32
+      storage_gb: 500
+      network_gbps: 40
 components:
   - name: postgresql
     description: Primary relational database used for inventory and status data.
@@ -9,6 +59,21 @@ components:
       - Prepare storage volumes for PostgreSQL
       - Deploy PostgreSQL container or VM
       - Configure users and initial databases
+    placement:
+      required_labels:
+        role: compute
+        storage_tier: fast
+      preferred_labels:
+        zone: core
+      affinity:
+        - gitea
+      anti_affinity:
+        - vaultwarden
+      resources:
+        cpu: 6
+        memory_gb: 12
+        storage_gb: 200
+        network_gbps: 2
     actions:
       - provider: proxmox
         operation: create_lxc
@@ -54,6 +119,20 @@ components:
       - Provision Gitea runtime and required volumes
       - Configure database connection credentials
       - Seed repositories for automation and knowledge artifacts
+    placement:
+      required_labels:
+        role: compute
+      preferred_labels:
+        zone: core
+      affinity:
+        - postgresql
+      anti_affinity:
+        - vaultwarden
+      resources:
+        cpu: 4
+        memory_gb: 8
+        storage_gb: 150
+        network_gbps: 1
     actions:
       - provider: proxmox
         operation: create_lxc
@@ -100,6 +179,19 @@ components:
       - Synchronise bootstrap secrets with installation nodes
       - Establish rotation jobs for Vaultwarden collections
       - Schedule compliance scans for critical credentials and policies
+    placement:
+      required_labels:
+        role: compute
+      preferred_labels:
+        zone: edge
+      anti_affinity:
+        - postgresql
+        - gitea
+      resources:
+        cpu: 2
+        memory_gb: 4
+        storage_gb: 80
+        network_gbps: 1
     actions:
       - provider: proxmox
         operation: create_lxc
@@ -159,6 +251,19 @@ components:
       - Configure authentication tokens and collection schema baselines
       - Register ingestion pipelines for incidents, deployments and learning assets
       - Sync rotation policies for vector embeddings stored in Vaultwarden
+    placement:
+      required_labels:
+        role: compute
+        storage_tier: fast
+      preferred_labels:
+        zone: core
+      anti_affinity:
+        - observability
+      resources:
+        cpu: 8
+        memory_gb: 16
+        storage_gb: 300
+        network_gbps: 4
     actions:
       - provider: proxmox
         operation: create_lxc
@@ -255,6 +360,16 @@ components:
       - Deploy OpenTofu execution environment
       - Deploy Ansible control node
       - Register automation credentials in Vaultwarden
+    placement:
+      required_labels:
+        role: compute
+      preferred_labels:
+        network_tier: edge
+      resources:
+        cpu: 4
+        memory_gb: 8
+        storage_gb: 120
+        network_gbps: 2
   - name: observability
     description: Monitoring stack with Prometheus, Loki and Grafana.
     depends_on:
@@ -264,6 +379,18 @@ components:
       - Deploy Prometheus and scrape configuration
       - Deploy Loki for log aggregation
       - Provision Grafana dashboards and data sources
+    placement:
+      required_labels:
+        role: compute
+      preferred_labels:
+        network_tier: edge
+      affinity:
+        - automation
+      resources:
+        cpu: 6
+        memory_gb: 12
+        storage_gb: 240
+        network_gbps: 4
     actions:
       - provider: proxmox
         operation: create_lxc
@@ -370,6 +497,16 @@ components:
       - Capture job schedules, verification runs and sync windows for reporting
       - Export discovered retention policies for documentation and reporting
       - Queue restore validation scripts under installer/assets/backups for regular testing
+    placement:
+      required_labels:
+        role: storage
+      preferred_labels:
+        zone: core
+      resources:
+        cpu: 4
+        memory_gb: 8
+        storage_gb: 2000
+        network_gbps: 4
   - name: ralf-ui
     description: Web-Frontend und Matrix-Webhooks für R.A.L.F. Status & Operator-Feedback.
     depends_on:
@@ -380,6 +517,16 @@ components:
       - Build ralf-ui React frontend and publish static assets via Nginx
       - Register Matrix webhook endpoints for health and automation events
       - Synchronise Matrix bot secrets from Vaultwarden to runtime environment
+    placement:
+      required_labels:
+        role: compute
+      preferred_labels:
+        zone: core
+      resources:
+        cpu: 2
+        memory_gb: 4
+        storage_gb: 40
+        network_gbps: 1
     actions:
       - provider: proxmox
         operation: create_lxc
