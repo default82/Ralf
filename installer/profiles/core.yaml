@@ -484,6 +484,78 @@ components:
             - name: ralf-ui
               targets:
                 - 10.42.0.41:80
+  - name: llm-adapter
+    description: Unified REST and gRPC adapter that proxies LLM traffic.
+    depends_on:
+      - postgresql
+      - vaultwarden
+    tasks:
+      - Provision runtime for the adapter service
+      - Configure REST and gRPC endpoints for upstream models
+      - Register model access credentials inside Vaultwarden
+      - Enable request quotas per endpoint for cost governance
+    placement:
+      required_labels:
+        role: compute
+      preferred_labels:
+        zone: core
+      anti_affinity:
+        - postgresql
+      resources:
+        cpu: 2
+        memory_gb: 4
+        storage_gb: 40
+        network_gbps: 1
+    actions:
+      - provider: proxmox
+        operation: create_lxc
+        options:
+          node: pve02
+          vmid: 214
+          hostname: adapter01.lab.local
+          template: debian12-standard
+          cores: 2
+          memory: 4096
+          disk_size_gb: 40
+          storage: local-lvm
+      - provider: proxmox
+        operation: configure_network
+        options:
+          vmid: 214
+          networks:
+            - name: eth0
+              bridge: vmbr0
+              ip: 10.42.0.61/24
+              gateway: 10.42.0.1
+      - provider: service
+        operation: configure_llm_adapter
+        options:
+          config_path: /etc/ralf/llm-adapter.yaml
+          vaultwarden:
+            url: https://vault.lab.local
+            access_token: env://RALF_VAULTWARDEN_TOKEN
+          endpoints:
+            openai:
+              url: https://api.openai.com/v1/chat/completions
+              protocol: openai
+              model: gpt-4o-mini
+              rate_limit:
+                requests_per_minute: 30
+              auth:
+                type: bearer
+                token: vault://llm/openai/api-token
+              headers:
+                X-Client: RALF-Adapter
+            local-ollama:
+              url: http://llm-gateway.lab.local/v1/generate
+              protocol: generic
+              parameters:
+                temperature: 0.2
+                top_p: 0.9
+              rate_limit:
+                requests_per_minute: 120
+              headers:
+                X-API-Key: vault://llm/ollama/field:api-key
   - name: backups
     description: Discovery and enforcement of Proxmox Backup Server integrations.
     depends_on:
