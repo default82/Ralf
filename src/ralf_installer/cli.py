@@ -7,6 +7,7 @@ import dataclasses
 import json
 import os
 import pathlib
+import shutil
 import sys
 from typing import Iterable, List, Optional
 
@@ -135,6 +136,38 @@ def _build_n8n_flows_parser() -> argparse.ArgumentParser:
     return parser
 
 
+def _build_test_env_parser() -> argparse.ArgumentParser:
+    parser = argparse.ArgumentParser(description="Manage local agent test environments")
+    subparsers = parser.add_subparsers(dest="command", required=True)
+
+    def _add_common_arguments(target: argparse.ArgumentParser) -> None:
+        target.add_argument(
+            "--target",
+            dest="target_dir",
+            default=".ralf/test-env",
+            help="Directory where the test templates should be copied (default: ./.ralf/test-env)",
+        )
+
+    create_parser = subparsers.add_parser(
+        "create",
+        help="Copy docker-compose templates for the agents into a working directory",
+    )
+    _add_common_arguments(create_parser)
+    create_parser.add_argument(
+        "--force",
+        action="store_true",
+        help="Overwrite an existing test environment directory",
+    )
+
+    destroy_parser = subparsers.add_parser(
+        "destroy",
+        help="Remove a previously created test environment directory",
+    )
+    _add_common_arguments(destroy_parser)
+
+    return parser
+
+
 def main(argv: Optional[list[str]] = None) -> int:
     if argv is None:
         argv = sys.argv[1:]
@@ -145,6 +178,8 @@ def main(argv: Optional[list[str]] = None) -> int:
         return _handle_policy_report(argv[1:])
     if argv and argv[0] == "n8n-flows":
         return _handle_n8n_flows(argv[1:])
+    if argv and argv[0] == "test-env":
+        return _handle_test_env(argv[1:])
 
     parser = _build_install_parser()
     args = parser.parse_args(argv)
@@ -348,6 +383,85 @@ def _handle_n8n_flows(argv: Iterable[str]) -> int:
 
     parser.error("Unsupported n8n command")  # pragma: no cover - defensive
     return 2
+
+
+def _handle_test_env(argv: Iterable[str]) -> int:
+    parser = _build_test_env_parser()
+    args = parser.parse_args(list(argv))
+
+    try:
+        assets_dir = _resolve_testing_assets()
+    except FileNotFoundError as exc:
+        parser.error(str(exc))
+        return 2
+
+    target_dir = pathlib.Path(args.target_dir).expanduser()
+
+    if args.command == "create":
+        force = bool(getattr(args, "force", False))
+        return _create_test_env(assets_dir, target_dir, force=force)
+    if args.command == "destroy":
+        return _destroy_test_env(target_dir)
+
+    parser.error("Unsupported test-env command")  # pragma: no cover - defensive
+    return 2
+
+
+def _resolve_testing_assets() -> pathlib.Path:
+    current = pathlib.Path(__file__).resolve()
+    for parent in current.parents:
+        candidate = parent / "installer" / "assets" / "testing"
+        if candidate.exists():
+            return candidate
+    raise FileNotFoundError(
+        "Testing assets directory not found (expected installer/assets/testing relative to the project root)",
+    )
+
+
+def _create_test_env(assets_dir: pathlib.Path, target_dir: pathlib.Path, *, force: bool) -> int:
+    target_dir = target_dir.expanduser().resolve()
+    if target_dir.exists():
+        if not target_dir.is_dir():
+            print(f"Target path '{target_dir}' exists and is not a directory.")
+            return 1
+        if force:
+            shutil.rmtree(target_dir)
+        else:
+            try:
+                next(target_dir.iterdir())
+            except StopIteration:
+                pass
+            else:
+                print(
+                    f"Test environment already exists at '{target_dir}'. Use --force to recreate it.",
+                )
+                return 1
+
+    target_dir.mkdir(parents=True, exist_ok=True)
+
+    for item in assets_dir.iterdir():
+        destination = target_dir / item.name
+        if item.is_dir():
+            shutil.copytree(item, destination, dirs_exist_ok=True)
+        else:
+            shutil.copy2(item, destination)
+
+    print(f"Copied agent test templates to '{target_dir}'.")
+    return 0
+
+
+def _destroy_test_env(target_dir: pathlib.Path) -> int:
+    target_dir = target_dir.expanduser().resolve()
+    if not target_dir.exists():
+        print(f"No test environment found at '{target_dir}'.")
+        return 0
+    if not target_dir.is_dir():
+        print(f"Target path '{target_dir}' exists and is not a directory.")
+        return 1
+
+    shutil.rmtree(target_dir)
+    print(f"Removed agent test environment at '{target_dir}'.")
+    return 0
 
 
 def _print_json(report: ExecutionReport) -> None:
