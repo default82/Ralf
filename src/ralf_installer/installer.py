@@ -104,10 +104,30 @@ class Installer:
             )
         return summaries
 
+    def loop_schedule_report(self) -> Mapping[str, object]:
+        """Return loop schedule metadata in a serialisable structure."""
+
+        summaries = [summary.as_dict() for summary in self.describe_loop_schedules()]
+        return {
+            "profile": self._profile.name,
+            "description": self._profile.description,
+            "schedules": summaries,
+        }
+
     def describe_retention_policies(self) -> List[RetentionPolicy]:
         """Return a list of retention policies discovered in the profile."""
 
         return _collect_retention_policies(self._profile.components)
+
+    def retention_policy_report(self) -> Mapping[str, object]:
+        """Return discovered retention policies in a serialisable structure."""
+
+        policies = [policy.as_dict() for policy in self.describe_retention_policies()]
+        return {
+            "profile": self._profile.name,
+            "description": self._profile.description,
+            "retention_policies": policies,
+        }
 
     def execute(self) -> ExecutionReport:
         """Execute the installer and return a detailed report."""

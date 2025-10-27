@@ -274,18 +274,22 @@ namespaces:
 
 ### Backup-Strategie mit Proxmox Backup Server
 
-- Das Installer-Profil enthält einen dedizierten `backups`-Baustein, der Proxmox Backup Server Instanzen über die Proxmox-API entdeckt, Datastores den Kernservices zuordnet und vorhandene Jobs dokumentiert.【F:installer/profiles/core.yaml†L263-L272】
-- Gefundene Retention-Policies werden erfasst und für Audits bereitgestellt; fehlende oder inkonsistente Pläne lösen Warnungen in den Betriebs-Workflows aus.【F:installer/profiles/core.yaml†L269-L272】
+- Das Installer-Profil enthält einen dedizierten `backups`-Baustein, der Proxmox Backup Server Instanzen über die Proxmox-API entdeckt, die Appliances eindeutig den Proxmox-Knoten zuordnet und erreichbare Endpunkte für spätere Prüfungen speichert.【F:installer/profiles/core.yaml†L263-L271】
+- Datastores, Namespaces und Zugriffstoken werden mit den erwarteten Gästen (PostgreSQL, Gitea, Vaultwarden) abgeglichen, um Konfigurationsdrift unmittelbar zu erkennen.【F:installer/profiles/core.yaml†L268-L272】
+- Erfasste Jobs enthalten nun ihre geplanten Zeitfenster für Backups, Verify- und Sync-Läufe, damit Betriebsberichte den tatsächlichen Stand gegen Richtlinien spiegeln können.【F:installer/profiles/core.yaml†L268-L272】
+- Gefundene Retention-Policies werden erfasst und für Audits bereitgestellt; fehlende oder inkonsistente Pläne lösen Warnungen in den Betriebs-Workflows aus.【F:installer/profiles/core.yaml†L269-L272】【F:src/ralf_installer/installer.py†L102-L129】
 
 ### Restore-Validierung
 
 - Skripte unter `installer/assets/backups/` testen regelmäßige Restores: `pbs_restore_smoketest.sh` führt einen Proberestore des neuesten Snapshots in ein Scratch-Verzeichnis aus, `postgresql_restore_check.sh` prüft anschließend das Archiv und optional einen Einspieltest in eine temporäre Datenbank.【F:installer/assets/backups/pbs_restore_smoketest.sh†L1-L72】【F:installer/assets/backups/postgresql_restore_check.sh†L1-L74】
+- `gitea_restore_check.sh` extrahiert Dumps, verifiziert Metadaten (Version, Datenbank-Typ, Repository-Inhalte) und kann eine erwartete Gitea-Version validieren, um application.ini und Repository-Snapshots lückenlos zu dokumentieren.【F:installer/assets/backups/gitea_restore_check.sh†L1-L119】
 - Die Skripte können automatisiert in n8n- oder Ansible-Jobs eingebunden werden, um Restore-Checks als Teil der Betriebsroutine zu fahren.
 
 ### Automatisierte Zeitpläne & Retention
 
 - Die Scheduler-Definition im Profil beschreibt alle Loops (Main, Discovery, Adaptive) samt Cron- und Timer-Triggern, sodass Health-Checks und Kapazitätsanalysen reproduzierbar ausgelöst werden.【F:installer/profiles/core.yaml†L411-L430】
-- Retention-Werte, etwa für Loki oder PBS-Aufbewahrungen, werden aus den Aktionen extrahiert und können über den Installer ausgewertet werden, um Compliance-Vorgaben transparent zu halten.【F:installer/profiles/core.yaml†L230-L234】【F:installer/profiles/core.yaml†L269-L272】【F:src/ralf_installer/installer.py†L88-L188】
+- Der Installer stellt die Zeitpläne inklusive beschreibender Metadaten als serialisierbare Reports bereit, sodass Monitoring- oder GRC-Systeme automatisiert darauf zugreifen können.【F:src/ralf_installer/installer.py†L80-L116】
+- Retention-Werte, etwa für Loki oder PBS-Aufbewahrungen, werden aus den Aktionen extrahiert und können über den Installer ausgewertet werden, um Compliance-Vorgaben transparent zu halten.【F:installer/profiles/core.yaml†L230-L234】【F:installer/profiles/core.yaml†L269-L272】【F:src/ralf_installer/installer.py†L118-L188】
 
 ## Roadmap & Checkpoints
 
