@@ -94,15 +94,16 @@ Schritt für Schritt automatisierbare Routinen zu ergänzen und die Abhängigkei
 
 ### Loop-Vorlagen & Trigger
 
-Das Core-Profil modelliert drei Workflow-Vorlagen – Main, Discovery und Adaptive Loop – inklusive Eingaben, Outputs und Phasen. Die `scheduler`-Sektion hinterlegt passende Cron- bzw. Timer-Trigger und erlaubt damit reproduzierbare Aktivierungen.
+Das Core-Profil modelliert drei Workflow-Vorlagen – Main, Discovery und Adaptive Loop – inklusive Eingaben, Outputs und Phasen. Die `scheduler`-Sektion hinterlegt passende Cron- bzw. Timer-Trigger und erlaubt damit reproduzierbare Aktivierungen. Die Demo-Implementierungen der n8n-Flows liegen als JSON-Exports unter `installer/assets/n8n/` und spiegeln die dokumentierten Schnittstellen wider.
 
 **Main Health Loop Orchestration (n8n, Loop `main`)**
 
-- Template: `flows/main-health-loop.json`
+- Template: `installer/assets/n8n/main-health-loop.json`
 - Trigger: Cron `*/5 * * * *` (Europe/Berlin) + Timer `PT15M`
 - Inputs: Prometheus Alerts, Loki Incidents, Ralf-Core Policy Checks
 - Outputs: Ansible Self-Healing Jobs, Gitea Status-Updates, Matrix Health Notifications
 - Phasen: Telemetrie sammeln → Findings priorisieren → Self-Healing & Dokumentation starten → Operatoren informieren
+- Nodes & Pfad: Cron-Trigger sammelt Telemetrie, zwei HTTP-Requests fragen Prometheus/Loki ab, eine Function-Node korreliert die Ergebnisse und stößt via HTTP die Self-Healing- und Matrix-Webhook-Aktionen an.
 
 **Foreman Discovery Sweep (Foreman, Loop `discovery`)**
 
@@ -114,13 +115,14 @@ Das Core-Profil modelliert drei Workflow-Vorlagen – Main, Discovery und Adapti
 
 **Adaptive Optimizer (n8n, Loop `adaptive`)**
 
-- Template: `flows/adaptive-optimizer.json`
+- Template: `installer/assets/n8n/adaptive-optimizer.json`
 - Trigger: Cron `0 * * * *`
 - Inputs: Prometheus Kapazitätsreports, Planner-Simulationen, Foreman Insights
 - Outputs: OpenTofu Scaling-Pläne, Ansible Drift-Korrekturen, Gitea Change-Logs
 - Phasen: Kapazitätslage analysieren → Simulationen aggregieren → Maßnahmen katalogisieren → Änderungen dokumentieren & kommunizieren
+- Nodes & Pfad: Ein Cron-Trigger startet stündlich, HTTP-Requests ziehen Planner- und Kapazitätsdaten, ein Merge-Node führt die Antworten zusammen, eine Function-Node normalisiert die Daten und verteilt sie an OpenTofu- und Gitea-Endpunkte.
 
-Aktivierung & Sichtprüfung: `ralf-installer enable-workflows installer/profiles/core.yaml [--runtime n8n|foreman] [--loop main]`. Der Befehl liest das Profil, filtert optional nach Runtime oder Loop und gibt Phasen, Inputs/Outputs sowie konfigurierte Trigger aus – ideal für Runbooks oder zur Übergabe an n8n-/Foreman-Teams.
+Aktivierung & Sichtprüfung: `ralf-installer enable-workflows installer/profiles/core.yaml [--runtime n8n|foreman] [--loop main]`. Der Befehl liest das Profil, filtert optional nach Runtime oder Loop und gibt Phasen, Inputs/Outputs sowie konfigurierte Trigger aus – ideal für Runbooks oder zur Übergabe an n8n-/Foreman-Teams. Für einen vollständigen Import bzw. eine Deinstallation der Demo-Flows steht zusätzlich `ralf-installer n8n-flows install installer/profiles/core.yaml [--activate]` bzw. `ralf-installer n8n-flows remove installer/profiles/core.yaml` bereit; die Befehle sprechen die n8n-REST-API direkt an.
 
 ### Deployment Flow (Beispiel Jellyfin)
 

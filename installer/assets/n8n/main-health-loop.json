@@ -1,0 +1,187 @@
+{
+  "name": "Main Health Loop Orchestration",
+  "active": false,
+  "settings": {
+    "executionTimeout": 900,
+    "saveDataErrorExecution": "all",
+    "timezone": "Europe/Berlin"
+  },
+  "nodes": [
+    {
+      "parameters": {
+        "triggerTimes": [
+          {
+            "mode": "everyX",
+            "unit": "minutes",
+            "value": 5
+          }
+        ],
+        "timezone": "Europe/Berlin"
+      },
+      "id": "cron-trigger",
+      "name": "Cron Trigger",
+      "type": "n8n-nodes-base.cron",
+      "typeVersion": 1,
+      "position": [
+        -620,
+        200
+      ]
+    },
+    {
+      "parameters": {
+        "authentication": "none",
+        "url": "https://prometheus.lab.local/api/v1/alerts",
+        "responseFormat": "json"
+      },
+      "id": "fetch-prometheus",
+      "name": "Fetch Prometheus Alerts",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 3,
+      "position": [
+        -320,
+        40
+      ]
+    },
+    {
+      "parameters": {
+        "authentication": "none",
+        "url": "https://loki.lab.local/loki/api/v1/query",
+        "queryParameters": {
+          "entries": [
+            {
+              "name": "query",
+              "value": "{job=\"ralf\"} |~ \"ERROR|CRITICAL\""
+            }
+          ]
+        },
+        "responseFormat": "json"
+      },
+      "id": "fetch-loki",
+      "name": "Fetch Loki Incidents",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 3,
+      "position": [
+        -320,
+        360
+      ]
+    },
+    {
+      "parameters": {
+        "functionCode": "// correlate alerts and incidents\nconst alerts = items[0]?.json?.data?.alerts ?? [];\nconst incidents = items[1]?.json?.data ?? [];\nreturn [{ json: { alerts, incidents } }];"
+      },
+      "id": "correlate-findings",
+      "name": "Correlate Findings",
+      "type": "n8n-nodes-base.function",
+      "typeVersion": 1,
+      "position": [
+        0,
+        200
+      ]
+    },
+    {
+      "parameters": {
+        "authentication": "none",
+        "method": "POST",
+        "url": "https://ansible.lab.local/api/self-healing",
+        "jsonParameters": true,
+        "options": {
+          "batching": {
+            "batching": true,
+            "batchSize": 1
+          }
+        },
+        "bodyParametersJson": "={{$json}}"
+      },
+      "id": "trigger-ansible",
+      "name": "Trigger Self-Healing",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 3,
+      "position": [
+        320,
+        80
+      ]
+    },
+    {
+      "parameters": {
+        "authentication": "none",
+        "method": "POST",
+        "url": "https://matrix.lab.local/hooks/health",
+        "jsonParameters": true,
+        "bodyParametersJson": "={\n  \"summary\": 'Health loop executed',\n  \"alerts\": $json.alerts?.length ?? 0,\n  \"incidents\": $json.incidents?.length ?? 0\n}"
+      },
+      "id": "notify-matrix",
+      "name": "Notify Matrix",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 3,
+      "position": [
+        320,
+        320
+      ]
+    }
+  ],
+  "connections": {
+    "Cron Trigger": {
+      "main": [
+        [
+          {
+            "node": "Fetch Prometheus Alerts",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "Fetch Loki Incidents",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Fetch Prometheus Alerts": {
+      "main": [
+        [
+          {
+            "node": "Correlate Findings",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Fetch Loki Incidents": {
+      "main": [
+        [
+          {
+            "node": "Correlate Findings",
+            "type": "main",
+            "index": 1
+          }
+        ]
+      ]
+    },
+    "Correlate Findings": {
+      "main": [
+        [
+          {
+            "node": "Trigger Self-Healing",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "Notify Matrix",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "meta": {
+    "template": "demo",
+    "loop": "main"
+  },
+  "tags": [
+    "demo",
+    "health",
+    "main-loop"
+  ]
+}

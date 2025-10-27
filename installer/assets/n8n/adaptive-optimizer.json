@@ -1,0 +1,206 @@
+{
+  "name": "Adaptive Optimizer",
+  "active": false,
+  "settings": {
+    "executionTimeout": 1200,
+    "saveExecutionProgress": "all",
+    "timezone": "Europe/Berlin"
+  },
+  "nodes": [
+    {
+      "parameters": {
+        "triggerTimes": [
+          {
+            "mode": "custom",
+            "cronExpression": "0 * * * *"
+          }
+        ],
+        "timezone": "Europe/Berlin"
+      },
+      "id": "cron-hourly",
+      "name": "Hourly Trigger",
+      "type": "n8n-nodes-base.cron",
+      "typeVersion": 1,
+      "position": [
+        -680,
+        200
+      ]
+    },
+    {
+      "parameters": {
+        "authentication": "none",
+        "url": "https://planner.lab.local/api/v1/simulations",
+        "responseFormat": "json"
+      },
+      "id": "fetch-planner",
+      "name": "Fetch Planner Simulations",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 3,
+      "position": [
+        -380,
+        60
+      ]
+    },
+    {
+      "parameters": {
+        "authentication": "none",
+        "url": "https://prometheus.lab.local/api/v1/query",
+        "queryParameters": {
+          "entries": [
+            {
+              "name": "query",
+              "value": "sum(node_filesystem_size_bytes-node_filesystem_free_bytes) by (instance)"
+            }
+          ]
+        },
+        "responseFormat": "json"
+      },
+      "id": "fetch-capacity",
+      "name": "Fetch Capacity Reports",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 3,
+      "position": [
+        -380,
+        340
+      ]
+    },
+    {
+      "parameters": {
+        "operation": "combine",
+        "combineBy": "index",
+        "keepKeyMatches": true
+      },
+      "id": "merge-data",
+      "name": "Merge Insights",
+      "type": "n8n-nodes-base.merge",
+      "typeVersion": 2,
+      "position": [
+        -20,
+        200
+      ]
+    },
+    {
+      "parameters": {
+        "functionCode": "// summarise inputs for downstream actions\nconst planner = items[0]?.json ?? {};\nconst capacity = items[1]?.json ?? {};\nreturn [{ json: { planner, capacity, generatedAt: new Date().toISOString() } }];"
+      },
+      "id": "summarise",
+      "name": "Summarise Measures",
+      "type": "n8n-nodes-base.function",
+      "typeVersion": 1,
+      "position": [
+        240,
+        200
+      ]
+    },
+    {
+      "parameters": {
+        "authentication": "none",
+        "method": "POST",
+        "url": "https://opentofu.lab.local/api/v1/plans",
+        "jsonParameters": true,
+        "bodyParametersJson": "={\n  \"plan\": $json.planner.recommendations ?? [],\n  \"generatedAt\": $json.generatedAt\n}"
+      },
+      "id": "publish-tofu",
+      "name": "Publish OpenTofu Plan",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 3,
+      "position": [
+        560,
+        40
+      ]
+    },
+    {
+      "parameters": {
+        "authentication": "none",
+        "method": "POST",
+        "url": "https://gitea.lab.local/api/v1/repos/ralf/automation/issues",
+        "jsonParameters": true,
+        "bodyParametersJson": "={\n  \"title\": 'Adaptive Optimizer Report',\n  \"body\": 'Kapazitäten aktualisiert am ' + $json.generatedAt,\n  \"labels\": ['automation','adaptive-loop']\n}"
+      },
+      "id": "document-gitea",
+      "name": "Document in Gitea",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 3,
+      "position": [
+        560,
+        360
+      ]
+    }
+  ],
+  "connections": {
+    "Hourly Trigger": {
+      "main": [
+        [
+          {
+            "node": "Fetch Planner Simulations",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "Fetch Capacity Reports",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Fetch Planner Simulations": {
+      "main": [
+        [
+          {
+            "node": "Merge Insights",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Fetch Capacity Reports": {
+      "main": [
+        [
+          {
+            "node": "Merge Insights",
+            "type": "main",
+            "index": 1
+          }
+        ]
+      ]
+    },
+    "Merge Insights": {
+      "main": [
+        [
+          {
+            "node": "Summarise Measures",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Summarise Measures": {
+      "main": [
+        [
+          {
+            "node": "Publish OpenTofu Plan",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "Document in Gitea",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "meta": {
+    "template": "demo",
+    "loop": "adaptive"
+  },
+  "tags": [
+    "demo",
+    "adaptive",
+    "capacity"
+  ]
+}

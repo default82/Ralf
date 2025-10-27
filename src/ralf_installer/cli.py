@@ -5,12 +5,14 @@ from __future__ import annotations
 import argparse
 import dataclasses
 import json
+import os
 import pathlib
 import sys
 from typing import Iterable, List, Optional
 
 from .config import ConfigurationError, Profile
 from .installer import ExecutionReport, Installer
+from . import n8n
 
 
 def build_parser() -> argparse.ArgumentParser:
@@ -68,6 +70,65 @@ def _build_report_parser() -> argparse.ArgumentParser:
     return parser
 
 
+def _build_n8n_flows_parser() -> argparse.ArgumentParser:
+    parser = argparse.ArgumentParser(description="Manage demo workflows in n8n")
+    subparsers = parser.add_subparsers(dest="command", required=True)
+
+    def _add_common_arguments(target: argparse.ArgumentParser) -> None:
+        target.add_argument("profile", help="Path to the installer profile (YAML)")
+        target.add_argument(
+            "--url",
+            dest="base_url",
+            default=os.environ.get("N8N_URL"),
+            help="Base URL of the n8n REST API (defaults to $N8N_URL or http://localhost:5678/api/v1)",
+        )
+        target.add_argument(
+            "--api-key",
+            dest="api_key",
+            default=os.environ.get("N8N_API_KEY"),
+            help="n8n API key (defaults to $N8N_API_KEY)",
+        )
+        target.add_argument(
+            "--base-dir",
+            dest="base_dir",
+            help="Resolve workflow entrypoints relative to this directory (defaults to the profile directory)",
+        )
+
+    install_parser = subparsers.add_parser(
+        "install",
+        help="Import demo workflows into n8n",
+    )
+    _add_common_arguments(install_parser)
+    install_parser.add_argument(
+        "--activate",
+        action="store_true",
+        help="Activate workflows after import",
+    )
+    install_parser.add_argument(
+        "--skip-existing",
+        action="store_true",
+        help="Do not overwrite workflows that already exist",
+    )
+
+    remove_parser = subparsers.add_parser(
+        "remove",
+        help="Delete demo workflows from n8n",
+    )
+    _add_common_arguments(remove_parser)
+    remove_parser.add_argument(
+        "--keep-active",
+        action="store_true",
+        help="Do not deactivate workflows before deletion",
+    )
+    remove_parser.add_argument(
+        "--ignore-missing",
+        action="store_true",
+        help="Do not warn when a workflow is not present in n8n",
+    )
+
+    return parser
+
+
 def main(argv: Optional[list[str]] = None) -> int:
     if argv is None:
         argv = sys.argv[1:]
@@ -76,6 +137,8 @@ def main(argv: Optional[list[str]] = None) -> int:
         return _handle_enable_workflows(argv[1:])
     if argv and argv[0] == "report":
         return _handle_policy_report(argv[1:])
+    if argv and argv[0] == "n8n-flows":
+        return _handle_n8n_flows(argv[1:])
 
     parser = _build_install_parser()
     args = parser.parse_args(argv)
@@ -183,6 +246,91 @@ def _handle_policy_report(argv: Iterable[str]) -> int:
         _print_policy_summary(summary)
 
     return 0
+
+
+def _handle_n8n_flows(argv: Iterable[str]) -> int:
+    parser = _build_n8n_flows_parser()
+    args = parser.parse_args(list(argv))
+
+    profile_path = pathlib.Path(args.profile)
+    try:
+        profile = Profile.load(profile_path)
+    except ConfigurationError as exc:
+        parser.error(str(exc))
+        return 2
+
+    base_url = args.base_url or "http://localhost:5678/api/v1"
+    api_key = args.api_key or ""
+    if not api_key:
+        parser.error("n8n API key must be provided via --api-key or N8N_API_KEY")
+        return 2
+
+    base_dir = pathlib.Path(args.base_dir) if args.base_dir else profile_path.parent
+
+    try:
+        client = n8n.N8NClient(base_url, api_key)
+    except ValueError as exc:  # pragma: no cover - defensive
+        parser.error(str(exc))
+        return 2
+
+    installer = Installer(profile, dry_run=False)
+
+    if args.command == "install":
+        try:
+            results = installer.import_n8n_workflows(
+                client,
+                base_path=base_dir,
+                activate=args.activate,
+                overwrite=not args.skip_existing,
+            )
+        except (FileNotFoundError, ValueError, n8n.N8NError) as exc:
+            parser.error(str(exc))
+            return 2
+
+        if not results:
+            print("Profile does not define any n8n workflows.")
+            return 0
+
+        for result in results:
+            if result.skipped:
+                status = "skipped"
+            elif result.created:
+                status = "created"
+            else:
+                status = "updated"
+            suffix = " (activated)" if result.activated else ""
+            print(f"Workflow '{result.name}': {status}{suffix} [id={result.workflow_id}]")
+        return 0
+
+    if args.command == "remove":
+        workflows = [wf for wf in profile.workflows if wf.runtime == "n8n"]
+        if not workflows:
+            print("Profile does not define any n8n workflows.")
+            return 0
+
+        removed_any = False
+        for workflow in workflows:
+            try:
+                removed = client.delete_workflow_by_name(
+                    workflow.name,
+                    deactivate=not args.keep_active,
+                )
+            except n8n.N8NError as exc:
+                parser.error(str(exc))
+                return 2
+
+            if removed:
+                removed_any = True
+                print(f"Removed workflow '{workflow.name}' from n8n")
+            elif not args.ignore_missing:
+                print(f"Workflow '{workflow.name}' was not present in n8n.")
+
+        if not removed_any:
+            print("No workflows were deleted.")
+        return 0
+
+    parser.error("Unsupported n8n command")  # pragma: no cover - defensive
+    return 2
 
 
 def _print_json(report: ExecutionReport) -> None:
