@@ -10,6 +10,7 @@ import urllib.error
 import urllib.request
 from typing import Iterable, List, Mapping, Sequence
 
+from . import explainability
 from .config import Action, Component, Profile
 from .providers import execute_action
 
@@ -64,6 +65,30 @@ class RetentionPolicy:
         if self.provider:
             payload["provider"] = self.provider
         return payload
+
+
+@dataclasses.dataclass(slots=True)
+class _VectorBootstrapAccumulator:
+    """Internal helper collecting vector bootstrap configuration."""
+
+    host: str
+    http_port: int = 6333
+    grpc_port: int = 6334
+    admin_secret: str | None = None
+    snapshot_path: str | None = None
+    collections: list[Mapping[str, object]] = dataclasses.field(default_factory=list)
+    pipelines: list[Mapping[str, object]] = dataclasses.field(default_factory=list)
+
+    def summary(self) -> explainability.VectorBootstrapSummary:
+        return explainability.build_bootstrap_summary(
+            host=self.host,
+            http_port=self.http_port,
+            grpc_port=self.grpc_port,
+            collections=self.collections,
+            admin_secret=self.admin_secret,
+            snapshot_path=self.snapshot_path,
+            pipelines=self.pipelines,
+        )
 
 
 class Installer:
@@ -129,6 +154,37 @@ class Installer:
             "retention_policies": policies,
         }
 
+    def describe_vector_bootstrap(self) -> List[explainability.VectorBootstrapSummary]:
+        """Return the vector database bootstrap plan extracted from the profile."""
+
+        return _collect_vector_bootstrap(self._profile.components)
+
+    def vector_bootstrap_report(self) -> Mapping[str, object]:
+        """Return serialisable metadata about vector database initialisation."""
+
+        bootstrap = [entry.as_dict() for entry in self.describe_vector_bootstrap()]
+        return {
+            "profile": self._profile.name,
+            "description": self._profile.description,
+            "vector_bootstrap": bootstrap,
+        }
+
+    def describe_learning_paths(self) -> List[explainability.LearningPathway]:
+        """Return conceptual learning pathways shared across agents."""
+
+        return explainability.build_learning_paths()
+
+    def explainability_report(self) -> Mapping[str, object]:
+        """Return a full explainability and learning report."""
+
+        report = explainability.render_report(
+            self._profile.name,
+            self._profile.description,
+            self.describe_vector_bootstrap(),
+            self.describe_learning_paths(),
+        )
+        return report.as_dict()
+
     def execute(self) -> ExecutionReport:
         """Execute the installer and return a detailed report."""
         ordered_components = self.plan()
@@ -141,6 +197,10 @@ class Installer:
                 skipped.append(component.name)
             else:
                 executed.append(component.name)
+
+        bootstrap_plan = self.describe_vector_bootstrap()
+        if bootstrap_plan:
+            _initialise_vector_bootstrap(bootstrap_plan, dry_run=self._dry_run)
 
         return ExecutionReport(
             planned_components=[component.name for component in ordered_components],
@@ -206,6 +266,101 @@ def _find_retention_entries(
                     entries.extend(_find_retention_entries(item, prefix=nested_prefix))
 
     return entries
+
+
+def _collect_vector_bootstrap(
+    components: Sequence[Component],
+) -> List[explainability.VectorBootstrapSummary]:
+    """Extract vector bootstrap configuration from component actions."""
+
+    accumulators: dict[str, _VectorBootstrapAccumulator] = {}
+    for component in components:
+        for action in component.actions:
+            if action.provider != "service":
+                continue
+            operation = action.operation
+            if operation not in {
+                "configure_vector_db",
+                "bootstrap_vector_collections",
+                "register_vector_pipelines",
+            }:
+                continue
+
+            options = action.options
+            host_value = options.get("host")
+            if host_value in (None, ""):
+                raise RuntimeError(
+                    f"Vector database action '{operation}' requires a 'host' option"
+                )
+            host = str(host_value)
+
+            accumulator = accumulators.setdefault(
+                host, _VectorBootstrapAccumulator(host=host)
+            )
+
+            if operation == "configure_vector_db":
+                accumulator.http_port = int(options.get("http_port", accumulator.http_port))
+                accumulator.grpc_port = int(options.get("grpc_port", accumulator.grpc_port))
+                admin_secret = _optional_str(options.get("admin_secret"))
+                if admin_secret:
+                    accumulator.admin_secret = admin_secret
+                snapshot_path = _optional_str(options.get("snapshot_path"))
+                if snapshot_path:
+                    accumulator.snapshot_path = snapshot_path
+                continue
+
+            if operation == "bootstrap_vector_collections":
+                accumulator.http_port = int(options.get("http_port", accumulator.http_port))
+                accumulator.grpc_port = int(options.get("grpc_port", accumulator.grpc_port))
+                admin_secret = _optional_str(options.get("admin_secret"))
+                if admin_secret:
+                    accumulator.admin_secret = admin_secret
+                snapshot_path = _optional_str(options.get("snapshot_path"))
+                if snapshot_path:
+                    accumulator.snapshot_path = snapshot_path
+                collections = _ensure_mapping_sequence(
+                    options.get("collections"), field="collections"
+                )
+                accumulator.collections.extend(collections)
+                continue
+
+            if operation == "register_vector_pipelines":
+                pipelines = _ensure_mapping_sequence(
+                    options.get("pipelines"), field="pipelines"
+                )
+                accumulator.pipelines.extend(pipelines)
+
+    return [accumulators[key].summary() for key in sorted(accumulators)]
+
+
+def _ensure_mapping_sequence(value: object, *, field: str) -> list[Mapping[str, object]]:
+    if value in (None, ""):
+        return []
+    if not isinstance(value, Iterable) or isinstance(value, (str, bytes, bytearray)):
+        raise RuntimeError(f"Vector database option '{field}' must be an iterable of mappings")
+
+    entries: list[Mapping[str, object]] = []
+    for index, entry in enumerate(value):
+        if not isinstance(entry, Mapping):
+            raise RuntimeError(
+                f"Vector database option '{field}' entry at index {index} must be a mapping"
+            )
+        entries.append(dict(entry))
+    return entries
+
+
+def _optional_str(value: object) -> str | None:
+    if value in (None, ""):
+        return None
+    return str(value)
+
+
+def _initialise_vector_bootstrap(
+    summaries: Sequence[explainability.VectorBootstrapSummary], *, dry_run: bool
+) -> None:
+    prefix = "DRY-RUN" if dry_run else "EXEC"
+    for summary in summaries:
+        print(f"[{prefix}] vector-db:bootstrap {summary.describe()}")
 
 
 def _execute_vaultwarden_action(action: Action, *, dry_run: bool) -> None:

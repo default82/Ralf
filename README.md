@@ -151,9 +151,25 @@ Der Ablauf wird vom n8n-Workflow **Main Health Loop Orchestration** gesteuert, d
 
 ### Learning & Explainability
 
-- Knowledge Consolidation erzeugt Erfahrungsobjekte zu Incidents und Deployments.
-- Pattern Recognition identifiziert wiederkehrende Fehler und erstellt Vorhersagen.
-- Explainability & Audit Trail durch Auto-PRs/Commits mit Begründungen in Gitea.
+- **Vector-DB Bootstrap:** Der Installer provisioniert jetzt Qdrant inklusive Authentifizierung,
+  Snapshot-Pfad und Sammlungen (`incidents`, `deployments`). Jede Sammlung besitzt
+  definierte Metadatenfelder (Incident-ID, Komponenten, Severity, Zeitstempel), wodurch
+  Lernobjekte direkt mit Telemetrie und IaC-Änderungen korrelierbar werden.
+- **Ingestion Pipelines:** Aktionen wie `register_vector_pipelines` modellieren, welche
+  Ereignisquellen (Prometheus/Loki, Gitea-PRs) neue Einbettungen erzeugen und in welche
+  Kollektionen sie geschrieben werden. Dadurch entsteht ein reproduzierbarer Datenfluss für
+  Explainability-Analysen.
+- **Explainability Reports:** Das Modul `src/ralf_installer/explainability.py` stellt Klassen
+  für Vektor-Schemata, Pipelines und Lernpfade bereit. Der Installer kann damit Reports
+  generieren (`Installer.explainability_report()`), die Profile, Bootstrap-Status und
+  Wissensweitergabe strukturiert dokumentieren.
+- **Lernpfade & Wissenstransfer:** Vordefinierte Pfade beschreiben, wie Agenten Erkenntnisse
+  teilen – z. B. A_MON → A_CODE für Incident-Lessons-Learned, A_INFRA → Ralf-Core für
+  Change-Impact-Analysen oder A_PLAN → Vector-DB für Kapazitätsprognosen. Diese Pfade können
+  zur Übergabe an Teams oder zur Automatisierung in n8n genutzt werden.
+- **Auditierbarkeit:** Jede Schema- und Pipeline-Änderung taucht sowohl in den Installer-Reports
+  als auch in Gitea-Dokumentationen auf, sodass Lernfortschritt und Entscheidungspfade jederzeit
+  nachvollziehbar bleiben.
 
 ### Policy & Security
 

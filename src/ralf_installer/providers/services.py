@@ -4,6 +4,8 @@ from __future__ import annotations
 
 from typing import Iterable, Mapping, Sequence
 
+from .. import explainability
+
 
 def execute(operation: str, options: dict[str, object], dry_run: bool) -> None:
     operations = {
@@ -13,6 +15,9 @@ def execute(operation: str, options: dict[str, object], dry_run: bool) -> None:
         "configure_prometheus": _configure_prometheus,
         "configure_loki": _configure_loki,
         "configure_grafana": _configure_grafana,
+        "configure_vector_db": _configure_vector_db,
+        "bootstrap_vector_collections": _bootstrap_vector_collections,
+        "register_vector_pipelines": _register_vector_pipelines,
         "register_prometheus_targets": _register_prometheus_targets,
     }
 
@@ -96,6 +101,71 @@ def _configure_grafana(options: Mapping[str, object], *, dry_run: bool) -> None:
     if dashboards:
         description += " dashboards=" + ",".join(map(str, dashboards))
     _emit(dry_run, "service", "configure_grafana", description)
+
+
+def _configure_vector_db(options: Mapping[str, object], *, dry_run: bool) -> None:
+    host = _require(options, "host")
+    http_port = int(options.get("http_port", 6333))
+    grpc_port = int(options.get("grpc_port", 6334))
+    admin_secret_raw = options.get("admin_secret")
+    snapshot_path_raw = options.get("snapshot_path")
+
+    details = [f"host={host}", f"http_port={http_port}", f"grpc_port={grpc_port}"]
+    if admin_secret_raw not in (None, ""):
+        details.append(f"admin_secret={admin_secret_raw}")
+    if snapshot_path_raw not in (None, ""):
+        details.append(f"snapshot_path={snapshot_path_raw}")
+
+    _emit(dry_run, "service", "configure_vector_db", " ".join(details))
+
+
+def _bootstrap_vector_collections(
+    options: Mapping[str, object], *, dry_run: bool
+) -> None:
+    host = _require(options, "host")
+    raw_collections = options.get("collections", [])
+    if not isinstance(raw_collections, Iterable) or isinstance(raw_collections, (str, bytes)):
+        raise RuntimeError("Vector collections must be defined as an iterable of mappings")
+
+    collections: list[Mapping[str, object]] = []
+    for entry in raw_collections:
+        if not isinstance(entry, Mapping):
+            raise RuntimeError("Each vector collection definition must be a mapping")
+        collections.append(entry)
+
+    summary = explainability.build_bootstrap_summary(
+        host=str(host),
+        http_port=int(options.get("http_port", 6333)),
+        grpc_port=int(options.get("grpc_port", 6334)),
+        collections=collections,
+        admin_secret=str(options.get("admin_secret"))
+        if options.get("admin_secret") not in (None, "")
+        else None,
+        snapshot_path=str(options.get("snapshot_path"))
+        if options.get("snapshot_path") not in (None, "")
+        else None,
+        pipelines=[],
+    )
+
+    description = summary.describe()
+    _emit(dry_run, "service", "bootstrap_vector_collections", description)
+
+
+def _register_vector_pipelines(options: Mapping[str, object], *, dry_run: bool) -> None:
+    host = _require(options, "host")
+    raw_pipelines = options.get("pipelines", [])
+    if not isinstance(raw_pipelines, Iterable) or isinstance(raw_pipelines, (str, bytes)):
+        raise RuntimeError("Vector pipelines must be defined as an iterable of mappings")
+
+    pipelines: list[Mapping[str, object]] = []
+    for entry in raw_pipelines:
+        if not isinstance(entry, Mapping):
+            raise RuntimeError("Each vector pipeline definition must be a mapping")
+        pipelines.append(entry)
+
+    parsed = explainability.parse_pipelines(pipelines)
+    description = f"host={host} " + " ".join(pipeline.describe() for pipeline in parsed)
+    _emit(dry_run, "service", "register_vector_pipelines", description)
 
 
 def _register_prometheus_targets(
