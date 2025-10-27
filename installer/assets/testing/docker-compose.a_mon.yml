@@ -1,0 +1,44 @@
+version: "3.9"
+
+services:
+  monitor:
+    image: alpine:3.19
+    container_name: ralf_a_mon
+    command: ["/bin/sh", "-c", "apk add --no-cache curl jq && sleep infinity"]
+    environment:
+      AGENT_NAME: "A_MON"
+      LOG_LEVEL: "info"
+      PROMETHEUS_URL: "http://prometheus:9090"
+      LOKI_URL: "http://loki:3100"
+      GRAFANA_URL: "http://grafana:3000"
+    networks:
+      - ralf_testing
+
+  prometheus:
+    image: prom/prometheus:v2.48.0
+    volumes:
+      - prometheus_data:/prometheus
+    networks:
+      - ralf_testing
+
+  loki:
+    image: grafana/loki:2.9.1
+    command: ["-config.file=/etc/loki/local-config.yaml"]
+    networks:
+      - ralf_testing
+
+  grafana:
+    image: grafana/grafana:10.3.1
+    environment:
+      GF_SECURITY_ADMIN_USER: "ralf"
+      GF_SECURITY_ADMIN_PASSWORD: "ralf"
+    networks:
+      - ralf_testing
+
+volumes:
+  prometheus_data:
+
+networks:
+  ralf_testing:
+    name: ralf_testing
+    driver: bridge

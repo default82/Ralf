@@ -10,7 +10,8 @@ Ein KI-gesteuertes, selbstadaptives Homelab-Ökosystem, das Dienste orchestriert
 2. [Architekturüberblick](#architekturüberblick)
 3. [Komponenten](#komponenten)
 4. [Installer (Erste Schritte)](#installer-erste-schritte)
-5. [Datenflüsse & Hauptabläufe](#datenflüsse--hauptabläufe)
+5. [Agenten-Tests](#agenten-tests)
+6. [Datenflüsse & Hauptabläufe](#datenflüsse--hauptabläufe)
    - [Deployment Flow (Beispiel Jellyfin)](#deployment-flow-beispiel-jellyfin)
    - [Main-Loop](#main-loop-health-self-healing-learning)
    - [Maintenance & Repair](#maintenance--repair)
@@ -19,12 +20,12 @@ Ein KI-gesteuertes, selbstadaptives Homelab-Ökosystem, das Dienste orchestriert
    - [Telemetry & External Insights](#telemetry--external-insights)
    - [Network Discovery Loop](#network-discovery-loop)
    - [Adaptive Infrastructure Loop](#adaptive-infrastructure-loop)
-6. [Datenhaltung & Schnittstellen](#datenhaltung--schnittstellen)
-7. [Sicherheit & Compliance](#sicherheit--compliance)
-8. [Betrieb, Monitoring & Backups](#betrieb-monitoring--backups)
-9. [Roadmap & Checkpoints](#roadmap--checkpoints)
-10. [Mermaid-Gesamtarchitektur](#mermaid-gesamtarchitektur)
-11. [Glossar](#glossar)
+7. [Datenhaltung & Schnittstellen](#datenhaltung--schnittstellen)
+8. [Sicherheit & Compliance](#sicherheit--compliance)
+9. [Betrieb, Monitoring & Backups](#betrieb-monitoring--backups)
+10. [Roadmap & Checkpoints](#roadmap--checkpoints)
+11. [Mermaid-Gesamtarchitektur](#mermaid-gesamtarchitektur)
+12. [Glossar](#glossar)
 
 ## Ziele & Prinzipien
 
@@ -99,6 +100,42 @@ profilbasierten Installer. Der Fokus der ersten Iteration liegt auf einer nachvo
 
 Der eigentliche Installationscode ist derzeit noch ein Platzhalter. Die Ausgabe der Aufgaben schafft jedoch die Grundlage, um
 Schritt für Schritt automatisierbare Routinen zu ergänzen und die Abhängigkeiten zwischen Diensten sichtbar zu machen.
+
+## Agenten-Tests
+
+Um Funktionen der einzelnen Agenten reproduzierbar zu verifizieren, bringt das Repository Docker-Compose-Vorlagen unter
+`installer/assets/testing/` mit. Sie enthalten minimierte Abbildungen der benötigten Abhängigkeiten (z. B. PostgreSQL für
+A_PLAN oder Grafana/Loki für A_MON) und lassen sich direkt in einen lokalen Arbeitsordner kopieren.
+
+### Test-Umgebungen erzeugen
+
+```bash
+ralf-installer test-env create
+```
+
+Der Befehl kopiert alle verfügbaren Compose-Dateien sowie die begleitende Dokumentation nach `./.ralf/test-env`. Über
+`--target` kann ein alternativer Ordner gewählt werden; mit `--force` lässt sich ein bestehendes Verzeichnis überschreiben.
+Zum Entfernen genügt:
+
+```bash
+ralf-installer test-env destroy
+```
+
+Danach können die Templates einzeln mit Docker Compose gestartet werden, z. B.:
+
+```bash
+docker compose -f .ralf/test-env/docker-compose.a_plan.yml up
+```
+
+### Pytest-Szenarien
+
+Für jeden Agenten existiert ein Basisszenario samt Fixture in `tests/agents/test_scenarios.py`. Die Tests prüfen, ob alle
+benötigten Dienste in den Templates vorhanden sind und ob das CLI die Test-Umgebung korrekt anlegt bzw. entfernt. Sie lassen
+sich gemeinsam starten mit:
+
+```bash
+pytest tests/agents
+```
 
 ## Datenflüsse & Hauptabläufe
 

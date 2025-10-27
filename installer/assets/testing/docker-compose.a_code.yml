@@ -1,0 +1,41 @@
+version: "3.9"
+
+services:
+  code:
+    image: alpine:3.19
+    container_name: ralf_a_code
+    command: ["/bin/sh", "-c", "apk add --no-cache git pandoc && sleep infinity"]
+    environment:
+      AGENT_NAME: "A_CODE"
+      LOG_LEVEL: "info"
+      GITEA_URL: "http://gitea:3000"
+      VECTOR_DB_URL: "http://qdrant:6333"
+      DOCS_VOLUME: "/opt/ralf/docs"
+    volumes:
+      - code_docs:/opt/ralf/docs
+    networks:
+      - ralf_testing
+
+  gitea:
+    image: gitea/gitea:1.21.10
+    environment:
+      GITEA__security__INSTALL_LOCK: "true"
+      GITEA__database__DB_TYPE: "sqlite3"
+    volumes:
+      - gitea_data:/data
+    networks:
+      - ralf_testing
+
+  qdrant:
+    image: qdrant/qdrant:v1.7.3
+    networks:
+      - ralf_testing
+
+volumes:
+  code_docs:
+  gitea_data:
+
+networks:
+  ralf_testing:
+    name: ralf_testing
+    driver: bridge

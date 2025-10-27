@@ -1,0 +1,35 @@
+version: "3.9"
+
+services:
+  foreman:
+    image: alpine:3.19
+    container_name: ralf_foreman
+    command: ["/bin/sh", "-c", "apk add --no-cache nmap dhcping && sleep infinity"]
+    environment:
+      AGENT_NAME: "FOREMAN"
+      LOG_LEVEL: "info"
+      DISCOVERY_SUBNET: "192.168.56.0/24"
+      PXE_SERVER: "http://tftp-sim:8080"
+      INVENTORY_API: "http://inventory-mock:8080"
+    networks:
+      - ralf_testing
+
+  dhcp-sim:
+    image: ghcr.io/lisa-project/tooling/dhcp-simulator:latest
+    networks:
+      - ralf_testing
+
+  tftp-sim:
+    image: ghcr.io/lisa-project/tooling/tftp-simulator:latest
+    networks:
+      - ralf_testing
+
+  inventory-mock:
+    image: ghcr.io/lisa-project/tooling/inventory-api-mock:latest
+    networks:
+      - ralf_testing
+
+networks:
+  ralf_testing:
+    name: ralf_testing
+    driver: bridge

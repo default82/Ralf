@@ -1,0 +1,53 @@
+version: "3.9"
+
+services:
+  planner:
+    image: alpine:3.19
+    container_name: ralf_a_plan
+    command: ["/bin/sh", "-c", "apk add --no-cache curl && sleep infinity"]
+    environment:
+      AGENT_NAME: "A_PLAN"
+      LOG_LEVEL: "info"
+      INVENTORY_DSN: "postgresql://ralf:ralf@postgres:5432/ralf"
+      PROMETHEUS_URL: "http://prometheus:9090"
+      FOREMAN_URL: "http://foreman-mock:8080"
+    volumes:
+      - planner_data:/var/lib/ralf/planner
+    networks:
+      - ralf_testing
+
+  postgres:
+    image: postgres:15-alpine
+    environment:
+      POSTGRES_USER: "ralf"
+      POSTGRES_PASSWORD: "ralf"
+      POSTGRES_DB: "ralf"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    networks:
+      - ralf_testing
+
+  prometheus:
+    image: prom/prometheus:v2.48.0
+    command:
+      - "--config.file=/etc/prometheus/prometheus.yml"
+    volumes:
+      - prometheus_data:/prometheus
+    networks:
+      - ralf_testing
+
+  foreman-mock:
+    image: ghcr.io/lisa-project/tooling/foreman-mock:latest
+    restart: unless-stopped
+    networks:
+      - ralf_testing
+
+volumes:
+  planner_data:
+  postgres_data:
+  prometheus_data:
+
+networks:
+  ralf_testing:
+    name: ralf_testing
+    driver: bridge
