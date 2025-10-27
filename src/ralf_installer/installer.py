@@ -4,13 +4,14 @@ from __future__ import annotations
 
 import dataclasses
 import json
+import pathlib
 import secrets
 import string
 import urllib.error
 import urllib.request
 from typing import Iterable, List, Mapping, Sequence
 
-from . import explainability, planner
+from . import explainability, n8n, planner
 from .config import Action, Component, Profile
 from .providers import execute_action
 
@@ -168,6 +169,45 @@ class Installer:
             "description": self._profile.description,
             "vector_bootstrap": bootstrap,
         }
+
+    def import_n8n_workflows(
+        self,
+        client: n8n.N8NClient,
+        *,
+        base_path: pathlib.Path,
+        activate: bool = False,
+        overwrite: bool = True,
+    ) -> List[n8n.ImportResult]:
+        """Import all n8n workflows declared in the profile."""
+
+        templates = [wf for wf in self._profile.workflows if wf.runtime == "n8n"]
+        results: List[n8n.ImportResult] = []
+
+        if not templates:
+            return results
+
+        for template in templates:
+            entry_path = pathlib.Path(template.entrypoint)
+            if not entry_path.is_absolute():
+                entry_path = (base_path / entry_path).resolve()
+
+            if not entry_path.exists():
+                raise FileNotFoundError(f"Workflow entrypoint not found: {entry_path}")
+
+            try:
+                with entry_path.open("r", encoding="utf-8") as handle:
+                    payload = json.load(handle)
+            except json.JSONDecodeError as exc:  # pragma: no cover - defensive
+                raise ValueError(f"Workflow export '{entry_path}' is not valid JSON") from exc
+
+            result = client.import_workflow(
+                payload,
+                activate=activate,
+                overwrite=overwrite,
+            )
+            results.append(result)
+
+        return results
 
     def describe_learning_paths(self) -> List[explainability.LearningPathway]:
         """Return conceptual learning pathways shared across agents."""

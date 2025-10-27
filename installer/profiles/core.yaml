@@ -601,7 +601,7 @@ workflows:
   - name: Main Health Loop Orchestration
     loop: main
     runtime: n8n
-    entrypoint: flows/main-health-loop.json
+    entrypoint: ../assets/n8n/main-health-loop.json
     description: >-
       Automatisiert den Gesundheitszyklus: sammelt Prometheus- und Loki-Events,
       priorisiert Findings und stößt Reparatur-Playbooks sowie Dokumentationsläufe an.
@@ -638,7 +638,7 @@ workflows:
   - name: Adaptive Optimizer
     loop: adaptive
     runtime: n8n
-    entrypoint: flows/adaptive-optimizer.json
+    entrypoint: ../assets/n8n/adaptive-optimizer.json
     description: >-
       Konsolidiert Kapazitätsdaten, plant Umverteilungen und stößt Änderungen
       an Automations- und Dokumentationspfade an.
