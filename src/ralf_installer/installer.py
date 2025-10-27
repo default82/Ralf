@@ -8,7 +8,7 @@ import secrets
 import string
 import urllib.error
 import urllib.request
-from typing import Iterable, List, Mapping
+from typing import Iterable, List, Mapping, Sequence
 
 from .config import Action, Component, Profile
 from .providers import execute_action
@@ -30,6 +30,42 @@ class ExecutionReport:
         }
 
 
+@dataclasses.dataclass(slots=True)
+class LoopScheduleSummary:
+    """Summarises triggers configured for a specific automation loop."""
+
+    loop: str
+    description: str
+    triggers: List[str]
+
+    def as_dict(self) -> Mapping[str, object]:
+        return {
+            "loop": self.loop,
+            "description": self.description,
+            "triggers": list(self.triggers),
+        }
+
+
+@dataclasses.dataclass(slots=True)
+class RetentionPolicy:
+    """Represents an extracted retention policy from component actions."""
+
+    component: str
+    subject: str
+    value: str
+    provider: str | None
+
+    def as_dict(self) -> Mapping[str, object]:
+        payload: dict[str, object] = {
+            "component": self.component,
+            "subject": self.subject,
+            "value": self.value,
+        }
+        if self.provider:
+            payload["provider"] = self.provider
+        return payload
+
+
 class Installer:
     """High level coordinator that turns profiles into actionable steps."""
 
@@ -48,6 +84,30 @@ class Installer:
     def plan(self) -> List[Component]:
         """Return components in the order they will be processed."""
         return self._profile.resolve_dependencies()
+
+    def describe_loop_schedules(self) -> List[LoopScheduleSummary]:
+        """Return declarative information about configured loop schedules."""
+
+        scheduler = self._profile.scheduler
+        if not scheduler:
+            return []
+
+        summaries: List[LoopScheduleSummary] = []
+        for loop_name in sorted(scheduler.loops):
+            schedule = scheduler.loops[loop_name]
+            summaries.append(
+                LoopScheduleSummary(
+                    loop=loop_name,
+                    description=schedule.description,
+                    triggers=[trigger.describe() for trigger in schedule.triggers],
+                )
+            )
+        return summaries
+
+    def describe_retention_policies(self) -> List[RetentionPolicy]:
+        """Return a list of retention policies discovered in the profile."""
+
+        return _collect_retention_policies(self._profile.components)
 
     def execute(self) -> ExecutionReport:
         """Execute the installer and return a detailed report."""
@@ -86,6 +146,46 @@ def _run_component(component: Component, *, dry_run: bool) -> None:
 def _log_task(component_name: str, task: str, *, dry_run: bool) -> None:
     prefix = "DRY-RUN" if dry_run else "EXEC"
     print(f"[{prefix}] {component_name}: {task}")
+
+
+def _collect_retention_policies(components: Sequence[Component]) -> List[RetentionPolicy]:
+    """Inspect components and extract retention related configuration entries."""
+
+    policies: List[RetentionPolicy] = []
+    for component in components:
+        for action in component.actions:
+            for subject, value in _find_retention_entries(action.options):
+                policies.append(
+                    RetentionPolicy(
+                        component=component.name,
+                        subject=subject or action.operation,
+                        value=str(value),
+                        provider=action.provider,
+                    )
+                )
+    return policies
+
+
+def _find_retention_entries(
+    options: Mapping[str, object], *, prefix: str = ""
+) -> List[tuple[str, object]]:
+    """Recursively walk an options mapping and gather retention keys."""
+
+    entries: List[tuple[str, object]] = []
+    for key, value in options.items():
+        path = f"{prefix}{key}" if not prefix else f"{prefix}.{key}"
+        if "retention" in key.lower():
+            entries.append((path, value))
+
+        if isinstance(value, Mapping):
+            entries.extend(_find_retention_entries(value, prefix=path))
+        elif isinstance(value, Iterable) and not isinstance(value, (str, bytes, bytearray)):
+            for index, item in enumerate(value):
+                if isinstance(item, Mapping):
+                    nested_prefix = f"{path}[{index}]"
+                    entries.extend(_find_retention_entries(item, prefix=nested_prefix))
+
+    return entries
 
 
 def _execute_vaultwarden_action(action: Action, *, dry_run: bool) -> None:

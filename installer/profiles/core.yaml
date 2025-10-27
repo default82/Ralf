@@ -260,6 +260,16 @@ components:
             - name: ralf-ui
               targets:
                 - 10.42.0.41:80
+  - name: backups
+    description: Discovery and enforcement of Proxmox Backup Server integrations.
+    depends_on:
+      - automation
+    tasks:
+      - Detect existing Proxmox Backup Server appliances via the Proxmox API
+      - Collect datastore inventories and namespaces used for R.A.L.F. services
+      - Verify that scheduled jobs exist for PostgreSQL, Gitea and Vaultwarden guests
+      - Export discovered retention policies for documentation and reporting
+      - Queue restore validation scripts under installer/assets/backups for regular testing
   - name: ralf-ui
     description: Web-Frontend und Matrix-Webhooks für R.A.L.F. Status & Operator-Feedback.
     depends_on:

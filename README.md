@@ -265,13 +265,27 @@ namespaces:
 
 ## Betrieb, Monitoring & Backups
 
-- Prometheus, Loki und Grafana für Metriken, Logs und Dashboards.
-- n8n koordiniert Workflows, Freigaben und Benachrichtigungen.
-- PBS (Proxmox Backup Server) löst automatische Backup-Pläne aus; Ansible übernimmt Sicherung und Validierung.
-- Monitoring-Pipeline: Prometheus (Pull), Loki (Logs), Grafana (Dashboards & Alerts).
-- Restore-Prozeduren sind dokumentiert und werden regelmäßig getestet.
-- Notifications laufen über Matrix (Fehler, Deploys, Fragen/Approvals).
-- RALF überwacht eigene Dienste über Watchdogs und Health-Checks.
+### Monitoring und Betriebsführung
+
+- Prometheus, Loki und Grafana liefern Metriken, Logs und Dashboards für alle Kernservices.
+- n8n orchestriert Health-Loops, Freigaben und Operator-Benachrichtigungen.
+- Matrix bleibt der primäre Kanal für Status- und Alarmmeldungen (Deployments, Fehler, Approvals).
+- RALF überwacht seine Dienste kontinuierlich über Watchdogs und Health-Checks.
+
+### Backup-Strategie mit Proxmox Backup Server
+
+- Das Installer-Profil enthält einen dedizierten `backups`-Baustein, der Proxmox Backup Server Instanzen über die Proxmox-API entdeckt, Datastores den Kernservices zuordnet und vorhandene Jobs dokumentiert.【F:installer/profiles/core.yaml†L263-L272】
+- Gefundene Retention-Policies werden erfasst und für Audits bereitgestellt; fehlende oder inkonsistente Pläne lösen Warnungen in den Betriebs-Workflows aus.【F:installer/profiles/core.yaml†L269-L272】
+
+### Restore-Validierung
+
+- Skripte unter `installer/assets/backups/` testen regelmäßige Restores: `pbs_restore_smoketest.sh` führt einen Proberestore des neuesten Snapshots in ein Scratch-Verzeichnis aus, `postgresql_restore_check.sh` prüft anschließend das Archiv und optional einen Einspieltest in eine temporäre Datenbank.【F:installer/assets/backups/pbs_restore_smoketest.sh†L1-L72】【F:installer/assets/backups/postgresql_restore_check.sh†L1-L74】
+- Die Skripte können automatisiert in n8n- oder Ansible-Jobs eingebunden werden, um Restore-Checks als Teil der Betriebsroutine zu fahren.
+
+### Automatisierte Zeitpläne & Retention
+
+- Die Scheduler-Definition im Profil beschreibt alle Loops (Main, Discovery, Adaptive) samt Cron- und Timer-Triggern, sodass Health-Checks und Kapazitätsanalysen reproduzierbar ausgelöst werden.【F:installer/profiles/core.yaml†L411-L430】
+- Retention-Werte, etwa für Loki oder PBS-Aufbewahrungen, werden aus den Aktionen extrahiert und können über den Installer ausgewertet werden, um Compliance-Vorgaben transparent zu halten.【F:installer/profiles/core.yaml†L230-L234】【F:installer/profiles/core.yaml†L269-L272】【F:src/ralf_installer/installer.py†L88-L188】
 
 ## Roadmap & Checkpoints
 
