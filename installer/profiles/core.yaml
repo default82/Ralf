@@ -266,8 +266,11 @@ components:
       - automation
     tasks:
       - Detect existing Proxmox Backup Server appliances via the Proxmox API
+      - Map discovered appliances to cluster nodes and record reachable API endpoints
       - Collect datastore inventories and namespaces used for R.A.L.F. services
+      - Cross-check datastore namespaces with expected guest identifiers and PBS access tokens
       - Verify that scheduled jobs exist for PostgreSQL, Gitea and Vaultwarden guests
+      - Capture job schedules, verification runs and sync windows for reporting
       - Export discovered retention policies for documentation and reporting
       - Queue restore validation scripts under installer/assets/backups for regular testing
   - name: ralf-ui
