@@ -12,6 +12,7 @@ from typing import Iterable, List, Optional
 
 from .config import ConfigurationError, Profile
 from .installer import ExecutionReport, Installer
+from . import docgen
 from . import n8n
 
 
@@ -33,6 +34,11 @@ def _build_install_parser() -> argparse.ArgumentParser:
         "--json",
         action="store_true",
         help="Emit the execution report as JSON",
+    )
+    parser.add_argument(
+        "--generate-docs",
+        action="store_true",
+        help="Generate Markdown and HTML documentation in docs/generated/",
     )
     return parser
 
@@ -158,6 +164,17 @@ def main(argv: Optional[list[str]] = None) -> int:
         _print_json(report)
     else:
         _print_human(report, profile.description)
+
+    if args.generate_docs:
+        generated = docgen.generate_documentation(
+            installer,
+            report,
+            profile_path=profile_path,
+        )
+        output = sys.stderr if args.json else sys.stdout
+        print("Generated documentation:", file=output)
+        for path in generated:
+            print(f"  {path}", file=output)
 
     return 0
 

@@ -87,6 +87,16 @@ profilbasierten Installer. Der Fokus der ersten Iteration liegt auf einer nachvo
    ralf-installer installer/profiles/core.yaml --dry-run --json
    ```
 
+4. Automatisch Markdown- und HTML-Dokumentation generieren:
+
+   ```bash
+   ralf-installer installer/profiles/core.yaml --dry-run --generate-docs
+   ```
+
+   Die Berichte landen unter `docs/generated/` (z. B. `docs/generated/core.html`) und
+   bündeln Komponentenreihenfolge, Ressourcen, Workflows, Trigger sowie Vector-Bootstrap-
+   Details für das verwendete Profil.
+
 Der eigentliche Installationscode ist derzeit noch ein Platzhalter. Die Ausgabe der Aufgaben schafft jedoch die Grundlage, um
 Schritt für Schritt automatisierbare Routinen zu ergänzen und die Abhängigkeiten zwischen Diensten sichtbar zu machen.
 
