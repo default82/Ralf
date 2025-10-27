@@ -12,7 +12,11 @@ authors = [
 readme = "README.md"
 requires-python = ">=3.10"
 dependencies = [
-  "PyYAML>=6.0"
+  "PyYAML>=6.0",
+  "fastapi>=0.110",
+  "uvicorn>=0.23",
+  "grpcio>=1.62",
+  "httpx>=0.26"
 ]
 
 [project.scripts]

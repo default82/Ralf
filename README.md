@@ -21,6 +21,7 @@ Ein KI-gesteuertes, selbstadaptives Homelab-Ökosystem, das Dienste orchestriert
    - [Network Discovery Loop](#network-discovery-loop)
    - [Adaptive Infrastructure Loop](#adaptive-infrastructure-loop)
 7. [Datenhaltung & Schnittstellen](#datenhaltung--schnittstellen)
+   - [LLM-Adapter](#llm-adapter)
 8. [Sicherheit & Compliance](#sicherheit--compliance)
 9. [Betrieb, Monitoring & Backups](#betrieb-monitoring--backups)
 10. [Roadmap & Checkpoints](#roadmap--checkpoints)
@@ -260,6 +261,60 @@ Der Ablauf wird vom n8n-Workflow **Main Health Loop Orchestration** gesteuert, d
 - **Synapse (Matrix):** Chat-Befehle, Rückmeldungen, Notifications.
 - **Web-UI (ralf-ui):** React/Vite-Frontend für Status-Visualisierung und Bot-Health.
 - **APIs & Integrationen:** n8n REST, Ansible/Semaphore, OpenTofu Provider, Prom/Loki Queries, Foreman API, Matrix Webhooks.
+
+### LLM-Adapter
+
+Der neue **LLM-Adapter** koppelt R.A.L.F. über eine einheitliche REST- und gRPC-Schicht an beliebige Sprachmodelle. Die
+Konfiguration erfolgt per YAML und unterstützt:
+
+- **Mehrere Endpunkte** mit eigenen Defaults (`model`, Parameter, Header),
+- **Rate-Limits pro Upstream** zur Kostenkontrolle,
+- **Secret-Referenzen** (`vault://…`) – die Tokens werden beim Start aus Vaultwarden geladen,
+- **REST (`/v1/generate`) und gRPC (`ralf.adapter.v1.LLMAdapter/Generate`)** auf derselben Geschäftslogik.
+
+Minimalbeispiel einer Adapter-Konfiguration (`/etc/ralf/llm-adapter.yaml`):
+
+```yaml
+default_endpoint: openai
+vaultwarden:
+  url: https://vault.lab.local
+  access_token: env://RALF_VAULTWARDEN_TOKEN
+endpoints:
+  openai:
+    url: https://api.openai.com/v1/chat/completions
+    protocol: openai
+    model: gpt-4o-mini
+    rate_limit:
+      requests_per_minute: 30
+    auth:
+      type: bearer
+      token: vault://llm/openai/api-token
+  local-ollama:
+    url: http://llm-gateway.lab.local/v1/generate
+    protocol: generic
+    parameters:
+      temperature: 0.2
+    headers:
+      X-API-Key: vault://llm/ollama/field:api-key
+```
+
+REST-Aufruf (FastAPI):
+
+```bash
+curl -X POST http://adapter01.lab.local:8000/v1/generate \
+  -H 'Content-Type: application/json' \
+  -d '{"prompt": "Nenne drei Homelab-Automationen", "endpoint": "local-ollama"}'
+```
+
+gRPC-Aufruf mit `grpcurl` (benötigt JSON-Struktur, gRPC-Port z. B. `50051`):
+
+```bash
+grpcurl -plaintext -d '{"prompt":"Skizziere eine Self-Healing-Strategie"}' \
+  adapter01.lab.local:50051 ralf.adapter.v1.LLMAdapter/Generate
+```
+
+Weitere Details – inklusive Fehlercodes, Schema-Referenzen und Ablaufdiagramm – stehen in
+[`docs/llm-adapter.md`](docs/llm-adapter.md).
 
 ## Matrix- & Synapse-Bots
 
